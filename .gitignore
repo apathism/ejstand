@@ -1,0 +1,4 @@
+ejstand
+*.o
+*.hi
+**.xml
