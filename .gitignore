@@ -1,4 +1,5 @@
-ejstand
-*.o
-*.hi
-**.xml
+dist/**
+*.ps
+*.sandbox.config
+.cabal-sandbox/**
+xmls/**
