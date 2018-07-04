@@ -15,12 +15,13 @@ cabal-version:       >=1.10
 executable ejstand
   main-is:             Main.hs
   build-depends:       base         >= 4.11 && < 5,
-                       data-ordlist == 0.4.7.*,
-                       hxt          == 9.3.1.*,
-                       time         >= 1.8  && < 2
+                       time         >= 1.8  && < 2,
+                       text         == 1.2.3.*,
+                       containers,
+                       xml-conduit  == 1.8.*
   ghc-options:         -O2
   hs-source-dirs:      src
-  other-modules:       Ejudge.Standings.BaseModels
-                       Ejudge.Standings.StandingsModels
-                       Ejudge.Standings.DataParser
+  other-modules:       EjStand.BaseModels
+                       EjStand.StandingsModels
+                       EjStand.DataParser
   default-language:    Haskell2010
