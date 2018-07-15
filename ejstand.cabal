@@ -14,14 +14,17 @@ cabal-version:       >=1.10
 
 executable ejstand
   main-is:             Main.hs
-  build-depends:       base         >= 4.11 && < 5,
-                       time         >= 1.8  && < 2,
-                       text         == 1.2.3.*,
-                       containers,
-                       xml-conduit  == 1.8.*
+  build-depends:       base         >= 4.11   && < 5,
+                       time         >= 1.8,
+                       text         >= 1.2.3,
+                       bytestring   >= 0.10.8,
+                       containers   >= 0.5.11,
+                       xml-conduit  >= 1.8,
+                       mtl          >= 2.2
   ghc-options:         -O2
   hs-source-dirs:      src
   other-modules:       EjStand.BaseModels
                        EjStand.StandingsModels
                        EjStand.DataParser
+                       EjStand.ConfigParser
   default-language:    Haskell2010
