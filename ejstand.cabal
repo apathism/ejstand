@@ -9,18 +9,11 @@ maintainer:          Ivan Koryabkin <apathism@apathism.net>
 synopsis:            Ejudge Web Standings for Multiple Contests
 category:            Web
 build-type:          Simple
-extra-source-files:  ChangeLog.md
 cabal-version:       >=1.10
 
 executable ejstand
   main-is:             Main.hs
-  build-depends:       base         >= 4.11   && < 5,
-                       time         >= 1.8,
-                       text         >= 1.2.3,
-                       bytestring   >= 0.10.8,
-                       containers   >= 0.5.11,
-                       xml-conduit  >= 1.8,
-                       mtl          >= 2.2
+  build-depends:       base, time, containers, text, mtl, bytestring, xml-conduit, mtl
   ghc-options:         -O2
   hs-source-dirs:      src
   other-modules:       EjStand.BaseModels

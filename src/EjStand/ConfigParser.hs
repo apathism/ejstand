@@ -17,6 +17,7 @@ import qualified Data.Set as Set            (empty, singleton, fromDistinctAscLi
 import           Data.Map.Strict            (Map, insertWith, (!?), delete)
 import qualified Data.Map.Strict as Map     (empty)
 import           Data.Maybe                 (fromMaybe, listToMaybe)
+import           Data.Ratio                 ((%))
 import           Control.Exception          (Exception, throw)
 import           Control.Monad.State.Strict (State, get, put, evalState)
 
@@ -38,20 +39,22 @@ data ParsingException = NoValue Text
                       | NotTextValue Text
                       | IntegerExpected Text Text
                       | BoolExpected Text Text
+                      | RationalExpected Text Text
                       | InvalidInterval Text
                       | UnexpectedKey Text
 
 instance Exception ParsingException
 
 instance Show ParsingException where
-  show (NoValue key)               = "Value expected for key \"" ++ unpack key ++ "\", but got no = or {"
-  show (UndefinedKey key)          = "No key \"" ++ unpack key ++ "\" found, but it's mandatory for a config"
-  show (DuplicateKey key)          = "Key \"" ++ unpack key ++ "\" has multiple values, but must be unique"
-  show (NotTextValue key)          = "Text value at key \"" ++ unpack key ++ "\" expected, but other type of value found"
-  show (IntegerExpected key value) = "Integer expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
-  show (BoolExpected key value)    = "Bool expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
-  show (InvalidInterval key)       = "Invalid interval on key \"" ++ unpack key ++ "\""
-  show (UnexpectedKey key)         = "Unexpected key"
+  show (NoValue key)                = "Value expected for key \"" ++ unpack key ++ "\", but got no = or {"
+  show (UndefinedKey key)           = "No key \"" ++ unpack key ++ "\" found, but it's mandatory for a config"
+  show (DuplicateKey key)           = "Key \"" ++ unpack key ++ "\" has multiple values, but must be unique"
+  show (NotTextValue key)           = "Text value at key \"" ++ unpack key ++ "\" expected, but other type of value found"
+  show (IntegerExpected key value)  = "Integer expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
+  show (BoolExpected key value)     = "Bool expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
+  show (RationalExpected key value) = "Rational expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
+  show (InvalidInterval key)        = "Invalid interval on key \"" ++ unpack key ++ "\""
+  show (UnexpectedKey key)          = "Unexpected key \"" ++ unpack key ++ "\""
 
 -- Internal representation of configuration tree
 
@@ -142,6 +145,12 @@ toBool key value = case strip value of
   "False" -> False
   _       -> throw $ BoolExpected key value
 
+toRatio :: Text -> Text -> Rational
+toRatio key value = case map (toInteger key) $ splitOn "/" value of
+  [x]    -> fromIntegral x
+  [a, b] -> a % b
+  _      -> throw $ RationalExpected key value
+
 toIntervalValue :: Text -> Text -> Set Integer
 toIntervalValue key = mconcat . map (readInterval key . map (toInteger key . strip) . splitOn "-") . splitOn ","
   where
@@ -163,23 +172,28 @@ skipKey f _ = f
 
 -- Readers for options
 
+(==>) :: Bool -> a -> [a]
+(==>) False _ = []
+(==>) True  x = [x]
+
 buildStandingOptions :: TraversingState [StandingOption]
 buildStandingOptions = do
   reversedContestOrder <- takeUniqueValue ||> toTextValue ||> toBool |> skipKey (fromMaybe False) $ "ReversedContestOrder"
   enableDeadlines <- takeUniqueValue ||> toTextValue ||> toBool |> skipKey (fromMaybe False) $ "EnableDeadlines"
-  return $ mconcat [if reversedContestOrder then [ReversedContestOrder] else [],
-                    if enableDeadlines then [EnableDeadlines] else []
+  setDeadlinePenalty <- if enableDeadlines
+    then takeMandatoryValue |> toTextValue |> toRatio $ "SetDeadlinePenalty"
+    else const 0 <$> ensureNoValue "SetDeadlinePenalty"
+  return $ mconcat [reversedContestOrder ==> ReversedContestOrder,
+                    enableDeadlines ==> EnableDeadlines,
+                    enableDeadlines ==> SetDeadlinePenalty setDeadlinePenalty
                    ]
 
-buildStandingConfig' :: TraversingState StandingConfig
-buildStandingConfig' = do
+buildStandingConfig :: Configuration -> StandingConfig
+buildStandingConfig = evalState $ do
   standName <- takeMandatoryValue |> toTextValue $ "Name"
   standContests <- takeMandatoryValue |> toTextValue |> toIntervalValue $ "Contests"
   standOptions <- buildStandingOptions
   return $ StandingConfig standName standContests standOptions
-
-buildStandingConfig :: Configuration -> StandingConfig
-buildStandingConfig = evalState buildStandingConfig'  
 
 --parseConfig :: FilePath -> IO StaningConfig
 parseConfig path = do

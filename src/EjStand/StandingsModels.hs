@@ -8,6 +8,7 @@ import           Data.Set           (Set)
 import qualified Data.Set as Set
 import           Data.Text          (Text)
 import           Data.Time          (UTCTime)
+import           Data.Semigroup     (Semigroup, (<>))
 
 import           EjStand.BaseModels
 
