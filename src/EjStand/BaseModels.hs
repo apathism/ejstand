@@ -27,7 +27,7 @@ instance Ord Contestant where
 
 data Contest = Contest { contestID :: !Integer,
                          contestName :: !Text,
-                         contestStartTime :: Maybe UTCTime
+                         contestStartTime :: !(Maybe UTCTime)
                        }
              deriving (Show)
 
@@ -72,12 +72,12 @@ data RunStatus = OK | CE | RT | TL | PE | WA | CF | PT | AC | IG | DQ
 data Run = Run { runID :: !Integer,
                  runContest :: !Integer,
                  runContestant :: !Integer,
-                 runProblem :: Maybe Integer,
+                 runProblem :: !(Maybe Integer),
                  runTime :: !UTCTime,
                  runStatus :: !RunStatus,
-                 runLanguage :: Maybe Integer,
-                 runScore :: Maybe Integer,
-                 runTest :: Maybe Integer
+                 runLanguage :: !(Maybe Integer),
+                 runScore :: !(Maybe Integer),
+                 runTest :: !(Maybe Integer)
                } deriving (Show)
 
 instance Eq Run where

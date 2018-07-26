@@ -4,7 +4,7 @@ module EjStand.ConfigParser
   )
 where
 
-import           EjStand.StandingsModels        ( StandingConfig(..)
+import           EjStand.StandingModels         ( StandingConfig(..)
                                                 , StandingOption(..)
                                                 )
 import           Data.Char                      ( isDigit

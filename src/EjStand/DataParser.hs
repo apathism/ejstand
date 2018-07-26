@@ -38,7 +38,7 @@ import           Control.Exception              ( Exception
 import           Text.XML
 
 import           EjStand.BaseModels
-import           EjStand.StandingsModels        ( StandingsSource(..) )
+import           EjStand.StandingModels         ( StandingSource(..) )
 
 -- Exceptions
 
@@ -163,7 +163,7 @@ readRuns contest = map (readRun contest) . getChilds "run" . getChild "runs"
 
 -- Parser Frontend
 
-parseEjudgeXML :: FilePath -> IO StandingsSource
+parseEjudgeXML :: FilePath -> IO StandingSource
 parseEjudgeXML file = do
   root <- documentRoot <$> readFile def file
   let contest    = readContest root
@@ -172,9 +172,9 @@ parseEjudgeXML file = do
       probsSet   = Set.fromDistinctAscList $ readProblems contest root
       runsSet    = Set.fromDistinctAscList $ readRuns contest root
       contestSet = Set.singleton $ contest
-  return $ StandingsSource contestSet usersSet langsSet probsSet runsSet
+  return $ StandingSource contestSet usersSet langsSet probsSet runsSet
 
-parseEjudgeXMLs :: [FilePath] -> IO StandingsSource
+parseEjudgeXMLs :: [FilePath] -> IO StandingSource
 parseEjudgeXMLs filelist = do
   sources <- sequence $ map parseEjudgeXML filelist
   return $ mconcat sources
