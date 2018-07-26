@@ -39,9 +39,9 @@ data StandingConfig = StandingConfig { standingName :: !Text,
 
 data StandingOption = ReversedContestOrder
                     | EnableDeadlines
-                    | SetFixedDeadline { contestIDs :: [Integer],
+                    | SetFixedDeadline { contestIDs :: Set Integer,
                                          deadline :: !UTCTime,
-                                         contestantIDs :: Maybe [Integer]
+                                         contestantIDs :: Maybe (Set Integer)
                                        }
                     | SetDeadlinePenalty Rational
                     | ShowProblemStatistics

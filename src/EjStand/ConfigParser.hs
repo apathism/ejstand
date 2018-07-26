@@ -12,37 +12,22 @@ import           Data.Char                      ( isDigit
                                                 )
 import           Data.Text.Encoding             ( decodeUtf8 )
 import qualified Data.ByteString               as B
-                                                ( readFile )
 import           Data.Text                      ( Text
-                                                , strip
-                                                , stripStart
-                                                , words
-                                                , isPrefixOf
-                                                , span
                                                 , unpack
-                                                , uncons
-                                                , singleton
-                                                , breakOn
-                                                , lines
-                                                , stripEnd
-                                                , null
-                                                , head
-                                                , splitOn
                                                 )
+import qualified Data.Text                     as Text
 import           Data.Text.Read                 ( decimal )
+import           Data.Time                      ( UTCTime
+                                                , parseTimeM
+                                                , defaultTimeLocale
+                                                )
 import           Data.Set                       ( Set )
 import qualified Data.Set                      as Set
-                                                ( empty
-                                                , singleton
-                                                , fromDistinctAscList
-                                                )
 import           Data.Map.Strict                ( Map
                                                 , insertWith
                                                 , (!?)
-                                                , delete
                                                 )
 import qualified Data.Map.Strict               as Map
-                                                ( empty )
 import           Data.Maybe                     ( fromMaybe
                                                 , listToMaybe
                                                 )
@@ -50,23 +35,18 @@ import           Data.Ratio                     ( (%) )
 import           Control.Exception              ( Exception
                                                 , throw
                                                 )
+import           Control.Applicative            ( liftA2 )
 import           Control.Monad.State.Strict     ( State
                                                 , get
                                                 , put
                                                 , evalState
                                                 )
-
-import           Prelude                 hiding ( span
-                                                , lines
-                                                , null
-                                                , head
-                                                , toInteger
-                                                )
+import           Prelude                 hiding ( toInteger )
 
 -- Character types
 
 (|||) :: (a -> Bool) -> (a -> Bool) -> (a -> Bool)
-(|||) f g = \x -> f x || g x
+(|||) = liftA2 (||)
 
 isKeyCharacter :: Char -> Bool
 isKeyCharacter = isDigit ||| isLetter ||| (== '_')
@@ -76,10 +56,12 @@ isKeyCharacter = isDigit ||| isLetter ||| (== '_')
 data ParsingException = NoValue Text
                       | UndefinedKey Text
                       | DuplicateKey Text
-                      | NotTextValue Text
+                      | TextValueExpected Text
+                      | NestedConfigExpected Text
                       | IntegerExpected Text Text
                       | BoolExpected Text Text
                       | RationalExpected Text Text
+                      | TimeExpected Text Text
                       | InvalidInterval Text
                       | UnexpectedKey Text
 
@@ -89,10 +71,12 @@ instance Show ParsingException where
   show (NoValue key)                = "Value expected for key \"" ++ unpack key ++ "\", but got no = or {"
   show (UndefinedKey key)           = "No key \"" ++ unpack key ++ "\" found, but it's mandatory for a config"
   show (DuplicateKey key)           = "Key \"" ++ unpack key ++ "\" has multiple values, but must be unique"
-  show (NotTextValue key)           = "Text value at key \"" ++ unpack key ++ "\" expected, but other type of value found"
+  show (TextValueExpected key)      = "Text value at key \"" ++ unpack key ++ "\" expected, but other type of value found"
+  show (NestedConfigExpected key)   = "Nested configuration at key \"" ++ unpack key ++ "\" expected, but other type of value found"
   show (IntegerExpected key value)  = "Integer expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
   show (BoolExpected key value)     = "Bool expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
   show (RationalExpected key value) = "Rational expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
+  show (TimeExpected key value)     = "Time expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
   show (InvalidInterval key)        = "Invalid interval on key \"" ++ unpack key ++ "\""
   show (UnexpectedKey key)          = "Unexpected key \"" ++ unpack key ++ "\""
 
@@ -109,16 +93,16 @@ type ParsingState = State [Text]
 -- Configuration parser
 
 takeOneIf :: (Char -> Bool) -> Text -> (Text, Text)
-takeOneIf pred str = case uncons str of
+takeOneIf pred str = case Text.uncons str of
   Nothing     -> ("", str)
-  Just (c, t) -> if pred c then (singleton c, t) else ("", str)
+  Just (c, t) -> if pred c then (Text.singleton c, t) else ("", str)
 
 splitKeyValue :: Text -> (Text, Text, Text)
 splitKeyValue str = (key, symbol, content)
  where
-  (key   , str' ) = span isLetter str
-  (symbol, str'') = takeOneIf ((== '=') ||| (== '{')) $ stripStart str'
-  content         = stripStart str''
+  (key   , str' ) = Text.span isLetter str
+  (symbol, str'') = takeOneIf ((== '=') ||| (== '{')) $ Text.stripStart str'
+  content         = Text.stripStart str''
 
 buildConfig' :: Configuration -> ParsingState Configuration
 buildConfig' cfg = do
@@ -138,10 +122,14 @@ buildConfig' cfg = do
           buildConfig' $ insertWith (++) key new_elem cfg
 
 removeComment :: Text -> Text
-removeComment = fst . breakOn "--"
+removeComment = fst . Text.breakOn "--"
 
 buildConfig :: Text -> Configuration
-buildConfig = evalState (buildConfig' Map.empty) . filter (not . null) . map (stripEnd . removeComment . strip) . lines
+buildConfig =
+  evalState (buildConfig' Map.empty)
+    . filter (not . Text.null)
+    . map (Text.stripEnd . removeComment . Text.strip)
+    . Text.lines
 
 -- Traversing configuration tree
 
@@ -150,7 +138,7 @@ type TraversingState = State Configuration
 takeValuesByKey :: Text -> TraversingState [ConfigValue]
 takeValuesByKey key = do
   config <- get
-  put $ delete key config
+  put $ Map.delete key config
   return $ fromMaybe [] $ config !? key
 
 takeUniqueValue :: Text -> TraversingState (Maybe ConfigValue)
@@ -172,15 +160,19 @@ ensureNoValue key = do
 
 toTextValue :: Text -> ConfigValue -> Text
 toTextValue _   (TextValue txt) = txt
-toTextValue key _               = throw $ NotTextValue key
+toTextValue key _               = throw $ TextValueExpected key
+
+toNestedConfig :: Text -> ConfigValue -> Configuration
+toNestedConfig _   (NestedConfig cfg) = cfg
+toNestedConfig key _                  = throw $ NestedConfigExpected key
 
 toInteger :: Text -> Text -> Integer
-toInteger key value = case decimal $ strip value of
+toInteger key value = case decimal $ Text.strip value of
   Left  _              -> throw $ IntegerExpected key value
   Right (value', tail) -> if tail == "" then value' else throw $ IntegerExpected key value
 
 toBool :: Text -> Text -> Bool
-toBool key value = case strip value of
+toBool key value = case Text.strip value of
   "1"     -> True
   "0"     -> False
   "True"  -> True
@@ -188,18 +180,31 @@ toBool key value = case strip value of
   _       -> throw $ BoolExpected key value
 
 toRatio :: Text -> Text -> Rational
-toRatio key value = case map (toInteger key) $ splitOn "/" value of
+toRatio key value = case map (toInteger key) $ Text.splitOn "/" value of
   [x]    -> fromIntegral x
   [a, b] -> a % b
   _      -> throw $ RationalExpected key value
 
+toUTC :: Text -> Text -> UTCTime
+toUTC key value = case parseTimeM True defaultTimeLocale "%F %R" $ unpack value of
+  (Just value) -> value
+  Nothing      -> throw $ TimeExpected key value
+
 toIntervalValue :: Text -> Text -> Set Integer
-toIntervalValue key = mconcat . map (readInterval key . map (toInteger key . strip) . splitOn "-") . splitOn ","
+toIntervalValue key =
+  mconcat . map (readInterval key . map (toInteger key . Text.strip) . Text.splitOn "-") . Text.splitOn ","
  where
   readInterval :: Text -> [Integer] -> Set Integer
   readInterval _   [x]    = Set.singleton x
   readInterval _   [l, r] = Set.fromDistinctAscList [l .. r]
   readInterval key _      = throw $ InvalidInterval key
+
+ensureEmptyState :: TraversingState ()
+ensureEmptyState = do
+  cfg <- get
+  return $ case Map.lookupMin cfg of
+    Nothing       -> ()
+    Just (key, _) -> throw $ UnexpectedKey key
 
 -- Functor utilities
 
@@ -218,6 +223,19 @@ skipKey f _ = f
 (==>) False _ = []
 (==>) True  x = [x]
 
+buildExtraDeadline :: Configuration -> StandingOption
+buildExtraDeadline = evalState $ do
+  valueContestIDs    <- takeMandatoryValue |> toTextValue |> toIntervalValue $ "ContestIDs"
+  valueContestantIDs <- takeUniqueValue ||> toTextValue ||> toIntervalValue $ "ContestantIDs"
+  valueDeadline      <- takeMandatoryValue |> toTextValue |> toUTC $ "Deadline"
+  ensureEmptyState
+  return $ SetFixedDeadline valueContestIDs valueDeadline valueContestantIDs
+
+buildExtraDeadlines :: TraversingState [StandingOption]
+buildExtraDeadlines = do
+  deadlines <- takeValuesByKey ||> toNestedConfig $ "SetFixedDeadline"
+  return $ fmap buildExtraDeadline $ deadlines
+
 buildStandingOptions :: TraversingState [StandingOption]
 buildStandingOptions = do
   reversedContestOrder <-
@@ -225,11 +243,22 @@ buildStandingOptions = do
   enableDeadlines    <- takeUniqueValue ||> toTextValue ||> toBool |> skipKey (fromMaybe False) $ "EnableDeadlines"
   setDeadlinePenalty <- if enableDeadlines
     then takeMandatoryValue |> toTextValue |> toRatio $ "SetDeadlinePenalty"
-    else const 0 <$> ensureNoValue "SetDeadlinePenalty"
+    else undefined
+  showProblemStatistics <-
+    takeUniqueValue ||> toTextValue ||> toBool |> skipKey (fromMaybe False) $ "ShowProblemStatistics"
+  enableScores        <- takeUniqueValue ||> toTextValue ||> toBool |> skipKey (fromMaybe False) $ "EnableScores"
+  onlyScoreLastSubmit <- takeUniqueValue ||> toTextValue ||> toBool |> skipKey (fromMaybe False) $ "OnlyScoreLastSubmit"
+  showLanguages       <- takeUniqueValue ||> toTextValue ||> toBool |> skipKey (fromMaybe False) $ "ShowLanguages"
+  extraDeadlines      <- buildExtraDeadlines
   return $ mconcat
     [ reversedContestOrder ==> ReversedContestOrder
     , enableDeadlines ==> EnableDeadlines
     , enableDeadlines ==> SetDeadlinePenalty setDeadlinePenalty
+    , showProblemStatistics ==> ShowProblemStatistics
+    , enableScores ==> EnableScores
+    , onlyScoreLastSubmit ==> OnlyScoreLastSubmit
+    , showLanguages ==> ShowLanguages
+    , extraDeadlines
     ]
 
 buildStandingConfig :: Configuration -> StandingConfig
@@ -237,10 +266,11 @@ buildStandingConfig = evalState $ do
   standName     <- takeMandatoryValue |> toTextValue $ "Name"
   standContests <- takeMandatoryValue |> toTextValue |> toIntervalValue $ "Contests"
   standOptions  <- buildStandingOptions
+  ensureEmptyState
   return $ StandingConfig standName standContests standOptions
 
---parseConfig :: FilePath -> IO StaningConfig
+parseConfig :: FilePath -> IO StandingConfig
 parseConfig path = do
   contents <- decodeUtf8 <$> B.readFile path
   let cfg = buildConfig contents
-  print $ buildStandingConfig cfg
+  return $ buildStandingConfig cfg
