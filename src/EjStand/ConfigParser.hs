@@ -1,27 +1,67 @@
 {-# LANGUAGE OverloadedStrings #-}
-module EjStand.ConfigParser(
-  parseConfig
-  ) where
+module EjStand.ConfigParser
+  ( parseConfig
+  )
+where
 
-import           EjStand.StandingsModels    (StandingConfig(..),
-                                             StandingOption(..))
-import           Data.Char                  (isDigit, isLetter)
-import           Data.Text.Encoding         (decodeUtf8)
-import qualified Data.ByteString as B       (readFile)
-import           Data.Text                  (Text, strip, stripStart, words, isPrefixOf,
-                                             span, unpack, uncons, singleton, breakOn,
-                                             lines, stripEnd, null, head, splitOn)
-import           Data.Text.Read             (decimal)
-import           Data.Set                   (Set)
-import qualified Data.Set as Set            (empty, singleton, fromDistinctAscList)
-import           Data.Map.Strict            (Map, insertWith, (!?), delete)
-import qualified Data.Map.Strict as Map     (empty)
-import           Data.Maybe                 (fromMaybe, listToMaybe)
-import           Data.Ratio                 ((%))
-import           Control.Exception          (Exception, throw)
-import           Control.Monad.State.Strict (State, get, put, evalState)
+import           EjStand.StandingsModels        ( StandingConfig(..)
+                                                , StandingOption(..)
+                                                )
+import           Data.Char                      ( isDigit
+                                                , isLetter
+                                                )
+import           Data.Text.Encoding             ( decodeUtf8 )
+import qualified Data.ByteString               as B
+                                                ( readFile )
+import           Data.Text                      ( Text
+                                                , strip
+                                                , stripStart
+                                                , words
+                                                , isPrefixOf
+                                                , span
+                                                , unpack
+                                                , uncons
+                                                , singleton
+                                                , breakOn
+                                                , lines
+                                                , stripEnd
+                                                , null
+                                                , head
+                                                , splitOn
+                                                )
+import           Data.Text.Read                 ( decimal )
+import           Data.Set                       ( Set )
+import qualified Data.Set                      as Set
+                                                ( empty
+                                                , singleton
+                                                , fromDistinctAscList
+                                                )
+import           Data.Map.Strict                ( Map
+                                                , insertWith
+                                                , (!?)
+                                                , delete
+                                                )
+import qualified Data.Map.Strict               as Map
+                                                ( empty )
+import           Data.Maybe                     ( fromMaybe
+                                                , listToMaybe
+                                                )
+import           Data.Ratio                     ( (%) )
+import           Control.Exception              ( Exception
+                                                , throw
+                                                )
+import           Control.Monad.State.Strict     ( State
+                                                , get
+                                                , put
+                                                , evalState
+                                                )
 
-import           Prelude hiding             (span, lines, null, head, toInteger)
+import           Prelude                 hiding ( span
+                                                , lines
+                                                , null
+                                                , head
+                                                , toInteger
+                                                )
 
 -- Character types
 
@@ -75,26 +115,28 @@ takeOneIf pred str = case uncons str of
 
 splitKeyValue :: Text -> (Text, Text, Text)
 splitKeyValue str = (key, symbol, content)
-  where
-    (key, str') = span isLetter str
-    (symbol, str'') = takeOneIf ((== '=') ||| (== '{')) $ stripStart str'
-    content = stripStart str''
+ where
+  (key   , str' ) = span isLetter str
+  (symbol, str'') = takeOneIf ((== '=') ||| (== '{')) $ stripStart str'
+  content         = stripStart str''
 
 buildConfig' :: Configuration -> ParsingState Configuration
 buildConfig' cfg = do
   buffer <- get
   case buffer of
-    []    -> return cfg
-    (h:t) -> do
-      put t      
-      if h == "}" then return cfg else do
-        let (key, symbol, content) = splitKeyValue h
-        new_elem <- case symbol of
-          "=" -> return [TextValue content]
-          "{" -> return . NestedConfig <$> buildConfig' Map.empty
-          _   -> throw $ NoValue key
-        buildConfig' $ insertWith (++) key new_elem cfg
-        
+    []      -> return cfg
+    (h : t) -> do
+      put t
+      if h == "}"
+        then return cfg
+        else do
+          let (key, symbol, content) = splitKeyValue h
+          new_elem <- case symbol of
+            "=" -> return [TextValue content]
+            "{" -> return . NestedConfig <$> buildConfig' Map.empty
+            _   -> throw $ NoValue key
+          buildConfig' $ insertWith (++) key new_elem cfg
+
 removeComment :: Text -> Text
 removeComment = fst . breakOn "--"
 
@@ -103,7 +145,7 @@ buildConfig = evalState (buildConfig' Map.empty) . filter (not . null) . map (st
 
 -- Traversing configuration tree
 
-type TraversingState = State Configuration 
+type TraversingState = State Configuration
 
 takeValuesByKey :: Text -> TraversingState [ConfigValue]
 takeValuesByKey key = do
@@ -113,10 +155,10 @@ takeValuesByKey key = do
 
 takeUniqueValue :: Text -> TraversingState (Maybe ConfigValue)
 takeUniqueValue key = unique <$> takeValuesByKey key
-  where
-    unique :: [a] -> Maybe a
-    unique (_:_:_) = throw $ DuplicateKey key
-    unique list    = listToMaybe list
+ where
+  unique :: [a] -> Maybe a
+  unique (_ : _ : _) = throw $ DuplicateKey key
+  unique list        = listToMaybe list
 
 takeMandatoryValue :: Text -> TraversingState ConfigValue
 takeMandatoryValue key = fromMaybe (throw $ UndefinedKey key) <$> takeUniqueValue key
@@ -126,15 +168,15 @@ ensureNoValue key = do
   value <- takeUniqueValue key
   case value of
     Nothing -> return ()
-    _       -> throw $ UnexpectedKey key 
+    _       -> throw $ UnexpectedKey key
 
 toTextValue :: Text -> ConfigValue -> Text
-toTextValue _ (TextValue txt) = txt
-toTextValue key _             = throw $ NotTextValue key
+toTextValue _   (TextValue txt) = txt
+toTextValue key _               = throw $ NotTextValue key
 
 toInteger :: Text -> Text -> Integer
 toInteger key value = case decimal $ strip value of
-  Left _               -> throw $ IntegerExpected key value
+  Left  _              -> throw $ IntegerExpected key value
   Right (value', tail) -> if tail == "" then value' else throw $ IntegerExpected key value
 
 toBool :: Text -> Text -> Bool
@@ -153,11 +195,11 @@ toRatio key value = case map (toInteger key) $ splitOn "/" value of
 
 toIntervalValue :: Text -> Text -> Set Integer
 toIntervalValue key = mconcat . map (readInterval key . map (toInteger key . strip) . splitOn "-") . splitOn ","
-  where
-    readInterval :: Text -> [Integer] -> Set Integer
-    readInterval _   [x]    = Set.singleton x
-    readInterval _   [l, r] = Set.fromDistinctAscList [l..r]
-    readInterval key _      = throw $ InvalidInterval key
+ where
+  readInterval :: Text -> [Integer] -> Set Integer
+  readInterval _   [x]    = Set.singleton x
+  readInterval _   [l, r] = Set.fromDistinctAscList [l .. r]
+  readInterval key _      = throw $ InvalidInterval key
 
 -- Functor utilities
 
@@ -178,21 +220,23 @@ skipKey f _ = f
 
 buildStandingOptions :: TraversingState [StandingOption]
 buildStandingOptions = do
-  reversedContestOrder <- takeUniqueValue ||> toTextValue ||> toBool |> skipKey (fromMaybe False) $ "ReversedContestOrder"
-  enableDeadlines <- takeUniqueValue ||> toTextValue ||> toBool |> skipKey (fromMaybe False) $ "EnableDeadlines"
+  reversedContestOrder <-
+    takeUniqueValue ||> toTextValue ||> toBool |> skipKey (fromMaybe False) $ "ReversedContestOrder"
+  enableDeadlines    <- takeUniqueValue ||> toTextValue ||> toBool |> skipKey (fromMaybe False) $ "EnableDeadlines"
   setDeadlinePenalty <- if enableDeadlines
     then takeMandatoryValue |> toTextValue |> toRatio $ "SetDeadlinePenalty"
     else const 0 <$> ensureNoValue "SetDeadlinePenalty"
-  return $ mconcat [reversedContestOrder ==> ReversedContestOrder,
-                    enableDeadlines ==> EnableDeadlines,
-                    enableDeadlines ==> SetDeadlinePenalty setDeadlinePenalty
-                   ]
+  return $ mconcat
+    [ reversedContestOrder ==> ReversedContestOrder
+    , enableDeadlines ==> EnableDeadlines
+    , enableDeadlines ==> SetDeadlinePenalty setDeadlinePenalty
+    ]
 
 buildStandingConfig :: Configuration -> StandingConfig
 buildStandingConfig = evalState $ do
-  standName <- takeMandatoryValue |> toTextValue $ "Name"
+  standName     <- takeMandatoryValue |> toTextValue $ "Name"
   standContests <- takeMandatoryValue |> toTextValue |> toIntervalValue $ "Contests"
-  standOptions <- buildStandingOptions
+  standOptions  <- buildStandingOptions
   return $ StandingConfig standName standContests standOptions
 
 --parseConfig :: FilePath -> IO StaningConfig

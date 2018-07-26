@@ -1,14 +1,17 @@
-module EjStand.StandingsModels (
-  StandingsSource(..),
-  StandingConfig(..),
-  StandingOption(..)
-  ) where
+module EjStand.StandingsModels
+  ( StandingsSource(..)
+  , StandingConfig(..)
+  , StandingOption(..)
+  )
+where
 
-import           Data.Set           (Set)
-import qualified Data.Set as Set
-import           Data.Text          (Text)
-import           Data.Time          (UTCTime)
-import           Data.Semigroup     (Semigroup, (<>))
+import           Data.Set                       ( Set )
+import qualified Data.Set                      as Set
+import           Data.Text                      ( Text )
+import           Data.Time                      ( UTCTime )
+import           Data.Semigroup                 ( Semigroup
+                                                , (<>)
+                                                )
 
 import           EjStand.BaseModels
 
@@ -23,7 +26,7 @@ data StandingsSource = StandingsSource { contests :: Set Contest,
 instance Semigroup StandingsSource where
   (<>) x y = fromTuple $ (toTuple x) <> (toTuple y) where
     toTuple z = (contests z, contestants z, languages z, problems z, runs z)
-    fromTuple (a, b, c, d, e) = StandingsSource a b c d e 
+    fromTuple (a, b, c, d, e) = StandingsSource a b c d e
 
 instance Monoid StandingsSource where
   mempty = StandingsSource (mempty) (mempty) (mempty) (mempty) (mempty)

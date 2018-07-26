@@ -1,18 +1,18 @@
-module EjStand.BaseModels (
-  Contestant(..),
-  Contest(..),
-  Problem(..),
-  Language(..),
-  RunStatus(..),
-  Run(..),
-  ) where
+module EjStand.BaseModels
+  ( Contestant(..)
+  , Contest(..)
+  , Problem(..)
+  , Language(..)
+  , RunStatus(..)
+  , Run(..)
+  )
+where
 
-import Data.Time (UTCTime)
-import Data.Text (Text)
+import           Data.Time                      ( UTCTime )
+import           Data.Text                      ( Text )
 
 identify :: (b -> b -> c) -> (a -> b) -> (a -> a -> c)
-identify mapFunc keyFunc = curry $ uncurry mapFunc . mapTuple keyFunc where
-  mapTuple f (x, y) = (f x, f y)
+identify mapFunc keyFunc = curry $ uncurry mapFunc . mapTuple keyFunc where mapTuple f (x, y) = (f x, f y)
 
 data Contestant = Contestant { contestantID :: !Integer,
                                contestantName :: !Text
@@ -24,7 +24,7 @@ instance Eq Contestant where
 
 instance Ord Contestant where
   compare = identify compare contestantID
-  
+
 data Contest = Contest { contestID :: !Integer,
                          contestName :: !Text,
                          contestStartTime :: Maybe UTCTime
@@ -86,4 +86,4 @@ instance Eq Run where
 
 instance Ord Run where
   compare = identify compare keyFunc where
-    keyFunc x = (runContest x, runID x) 
+    keyFunc x = (runContest x, runID x)
