@@ -1,11 +1,17 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, BangPatterns #-}
 module EjStand.ConfigParser
-  ( parseConfig
+  ( parseStandingConfig
+  , parseStandingConfigDirectory
+  , parseGlobalConfiguration
+  , retrieveGlobalConfiguration
+  , retrieveGlobalConfiguration'
   )
 where
 
 import           EjStand.StandingModels         ( StandingConfig(..)
                                                 , StandingOption(..)
+                                                , GlobalConfiguration(..)
+                                                , defaultGlobalConfiguration
                                                 )
 import           Data.Char                      ( isDigit
                                                 , isLetter
@@ -21,6 +27,7 @@ import           Data.Time                      ( UTCTime
                                                 , parseTimeM
                                                 , defaultTimeLocale
                                                 )
+import qualified Data.List                     as List
 import           Data.Set                       ( Set )
 import qualified Data.Set                      as Set
 import           Data.Map.Strict                ( Map
@@ -33,7 +40,9 @@ import           Data.Maybe                     ( fromMaybe
                                                 )
 import           Data.Ratio                     ( (%) )
 import           Control.Exception              ( Exception
+                                                , IOException
                                                 , throw
+                                                , catch
                                                 )
 import           Control.Applicative            ( liftA2 )
 import           Control.Monad.State.Strict     ( State
@@ -41,6 +50,7 @@ import           Control.Monad.State.Strict     ( State
                                                 , put
                                                 , evalState
                                                 )
+import           System.Directory               ( listDirectory )
 import           Prelude                 hiding ( toInteger )
 
 -- Character types
@@ -206,7 +216,7 @@ ensureEmptyState = do
     Nothing       -> ()
     Just (key, _) -> throw $ UnexpectedKey key
 
--- Functor utilities
+-- Utilities
 
 (|>) :: Functor f => (a -> f b) -> (a -> b -> c) -> a -> f c
 (|>) f1 f2 x = f2 x <$> f1 x
@@ -217,18 +227,18 @@ ensureEmptyState = do
 skipKey :: (b -> c) -> a -> b -> c
 skipKey f _ = f
 
--- Readers for options
-
 (==>) :: Bool -> a -> [a]
 (==>) False _ = []
 (==>) True  x = [x]
+
+-- Configuration readers
 
 buildExtraDeadline :: Configuration -> StandingOption
 buildExtraDeadline = evalState $ do
   valueContestIDs    <- takeMandatoryValue |> toTextValue |> toIntervalValue $ "ContestIDs"
   valueContestantIDs <- takeUniqueValue ||> toTextValue ||> toIntervalValue $ "ContestantIDs"
   valueDeadline      <- takeMandatoryValue |> toTextValue |> toUTC $ "Deadline"
-  ensureEmptyState
+  !_                 <- ensureEmptyState
   return $ SetFixedDeadline valueContestIDs valueDeadline valueContestantIDs
 
 buildExtraDeadlines :: TraversingState [StandingOption]
@@ -263,14 +273,48 @@ buildStandingOptions = do
 
 buildStandingConfig :: Configuration -> StandingConfig
 buildStandingConfig = evalState $ do
-  standName     <- takeMandatoryValue |> toTextValue $ "Name"
-  standContests <- takeMandatoryValue |> toTextValue |> toIntervalValue $ "Contests"
-  standOptions  <- buildStandingOptions
-  ensureEmptyState
-  return $ StandingConfig standName standContests standOptions
+  standName         <- takeMandatoryValue |> toTextValue $ "Name"
+  standContests     <- takeMandatoryValue |> toTextValue |> toIntervalValue $ "Contests"
+  standInternalName <- takeMandatoryValue |> toTextValue $ "InternalName"
+  standOptions      <- buildStandingOptions
+  !_                <- ensureEmptyState
+  return $ StandingConfig standName standContests standInternalName standOptions
 
-parseConfig :: FilePath -> IO StandingConfig
-parseConfig path = do
+parseStandingConfig :: FilePath -> IO StandingConfig
+parseStandingConfig path = do
   contents <- decodeUtf8 <$> B.readFile path
   let cfg = buildConfig contents
   return $ buildStandingConfig cfg
+
+parseStandingConfigDirectory :: FilePath -> IO [StandingConfig]
+parseStandingConfigDirectory path = do
+  files <- filter (List.isSuffixOf ".cfg") <$> listDirectory path
+  sequence $ map parseStandingConfig files
+
+-- Global configuration
+
+buildGlobalConfiguration :: Configuration -> GlobalConfiguration
+buildGlobalConfiguration = evalState $ do
+  xmlFilePattern <- takeUniqueValue ||> toTextValue |> skipKey (fromMaybe defaultXMLPath) $ "XMLFilePattern"
+  standCfgPath   <- takeUniqueValue ||> toTextValue |> skipKey (fromMaybe defaultCfgPath) $ "StandingConfigurationsPath"
+  !_             <- ensureEmptyState
+  return $ GlobalConfiguration xmlFilePattern standCfgPath
+ where
+  defaultXMLPath = xmlFilePattern defaultGlobalConfiguration
+  defaultCfgPath = standingConfigurationsPath defaultGlobalConfiguration
+
+parseGlobalConfiguration :: FilePath -> IO GlobalConfiguration
+parseGlobalConfiguration path = do
+  contents <- decodeUtf8 <$> B.readFile path
+  let cfg = buildConfig contents
+  return $ buildGlobalConfiguration cfg
+
+retrieveGlobalConfiguration' :: [FilePath] -> IO GlobalConfiguration
+retrieveGlobalConfiguration' []            = return defaultGlobalConfiguration
+retrieveGlobalConfiguration' (file : rest) = catch (parseGlobalConfiguration file) (noFileExceptionHandler rest)
+ where
+  noFileExceptionHandler :: [FilePath] -> IOException -> IO GlobalConfiguration
+  noFileExceptionHandler rest _ = retrieveGlobalConfiguration' rest
+
+retrieveGlobalConfiguration :: IO GlobalConfiguration
+retrieveGlobalConfiguration = retrieveGlobalConfiguration' ["/etc/ejstand/ejstand.cfg", "./cfg/ejstand.cfg"]

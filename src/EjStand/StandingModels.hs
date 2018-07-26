@@ -1,8 +1,13 @@
+{-# LANGUAGE OverloadedStrings #-}
 module EjStand.StandingModels
-  ( StandingSource(..)
+  ( GlobalConfiguration(..)
+  , StandingSource(..)
   , StandingConfig(..)
   , StandingOption(..)
   , StandingCell(..)
+  , StandingRow(..)
+  , Standing(..)
+  , defaultGlobalConfiguration
   , getRunStatusType
   , getStatusesByRunStatusType
   )
@@ -20,11 +25,11 @@ import           Data.Semigroup                 ( Semigroup
 import           EjStand.BaseModels
 
 data StandingSource = StandingSource { contests :: !(Set Contest),
-                                         contestants :: !(Set Contestant),
-                                         languages :: !(Set Language),
-                                         problems :: !(Set Problem),
-                                         runs :: !(Set Run)
-                                       }
+                                       contestants :: !(Set Contestant),
+                                       languages :: !(Set Language),
+                                       problems :: !(Set Problem),
+                                       runs :: !(Set Run)
+                                     }
                      deriving (Show)
 
 instance Semigroup StandingSource where
@@ -35,8 +40,20 @@ instance Semigroup StandingSource where
 instance Monoid StandingSource where
   mempty = StandingSource (mempty) (mempty) (mempty) (mempty) (mempty)
 
+data GlobalConfiguration = GlobalConfiguration { xmlFilePattern :: Text,
+                                                 standingConfigurationsPath :: Text
+                                               }
+                                               deriving (Show)
+
+defaultGlobalConfiguration :: GlobalConfiguration
+defaultGlobalConfiguration = GlobalConfiguration
+  { xmlFilePattern             = "/home/judges/%06d/var/status/dir/standings.xml"
+  , standingConfigurationsPath = "/etc/ejstand/cfg/"
+  }
+
 data StandingConfig = StandingConfig { standingName :: !Text,
                                        standingContests :: !(Set Integer),
+                                       internalName :: !Text,
                                        standingOptions :: ![StandingOption]
                                      }
                       deriving (Show)
