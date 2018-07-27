@@ -2,6 +2,7 @@
 module EjStand.ConfigParser
   ( parseStandingConfig
   , parseStandingConfigDirectory
+  , retrieveStandingConfigs
   , parseGlobalConfiguration
   , retrieveGlobalConfiguration
   , retrieveGlobalConfiguration'
@@ -290,6 +291,9 @@ parseStandingConfigDirectory :: FilePath -> IO [StandingConfig]
 parseStandingConfigDirectory path = do
   files <- filter (List.isSuffixOf ".cfg") <$> listDirectory path
   sequence $ map parseStandingConfig files
+
+retrieveStandingConfigs :: GlobalConfiguration -> IO [StandingConfig]
+retrieveStandingConfigs = parseStandingConfigDirectory . unpack . standingConfigurationsPath
 
 -- Global configuration
 

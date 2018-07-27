@@ -1,8 +1,6 @@
---import EjStand.DataParser
---import Text.Printf (printf)
 import           EjStand.ConfigParser
 
 main :: IO ()
 main = do
-  cfg <- retrieveGlobalConfiguration 
+  cfg <- retrieveGlobalConfiguration
   print $ show cfg

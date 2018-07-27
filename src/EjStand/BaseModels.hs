@@ -10,9 +10,7 @@ where
 
 import           Data.Time                      ( UTCTime )
 import           Data.Text                      ( Text )
-
-identify :: (b -> b -> c) -> (a -> b) -> (a -> a -> c)
-identify mapFunc keyFunc = curry $ uncurry mapFunc . mapTuple keyFunc where mapTuple f (x, y) = (f x, f y)
+import           Data.Function                  ( on )
 
 data Contestant = Contestant { contestantID :: !Integer,
                                contestantName :: !Text
@@ -20,10 +18,10 @@ data Contestant = Contestant { contestantID :: !Integer,
                 deriving (Show)
 
 instance Eq Contestant where
-  (==) = identify (==) contestantID
+  (==) = (==) `on` contestantID
 
 instance Ord Contestant where
-  compare = identify compare contestantID
+  compare = compare `on` contestantID
 
 data Contest = Contest { contestID :: !Integer,
                          contestName :: !Text,
@@ -32,10 +30,10 @@ data Contest = Contest { contestID :: !Integer,
              deriving (Show)
 
 instance Eq Contest where
-  (==) = identify (==) contestID
+  (==) = (==) `on` contestID
 
 instance Ord Contest where
-  compare = identify compare contestID
+  compare = compare `on` contestID
 
 data Problem = Problem { problemID :: !Integer,
                          problemContest :: !Integer,
@@ -45,12 +43,10 @@ data Problem = Problem { problemID :: !Integer,
              deriving (Show)
 
 instance Eq Problem where
-  (==) = identify (==) keyFunc where
-    keyFunc x = (problemContest x, problemID x)
+  (==) = (==) `on` ([problemContest, problemID] <*>) . return
 
 instance Ord Problem where
-  compare = identify compare keyFunc where
-    keyFunc x = (problemContest x, problemID x)
+  compare = compare `on` ([problemContest, problemID] <*>) . return
 
 data Language = Language { languageID :: !Integer,
                            languageShortName :: !Text,
@@ -59,10 +55,10 @@ data Language = Language { languageID :: !Integer,
                 deriving (Show)
 
 instance Eq Language where
-  (==) = identify (==) languageID
+  (==) = (==) `on` languageID
 
 instance Ord Language where
-  compare = identify compare languageID
+  compare = compare `on` languageID
 
 data RunStatus = OK | CE | RT | TL | PE | WA | CF | PT | AC | IG | DQ
                | PD | ML | SE | SV | WT | PR | RJ | SK | SY | SM | RU
@@ -81,9 +77,7 @@ data Run = Run { runID :: !Integer,
                } deriving (Show)
 
 instance Eq Run where
-  (==) = identify (==) keyFunc where
-    keyFunc x = (runContest x, runID x)
+  (==) = (==) `on` ([runContest, runID] <*>) . return
 
 instance Ord Run where
-  compare = identify compare keyFunc where
-    keyFunc x = (runContest x, runID x)
+  compare = compare `on` ([runContest, runID] <*>) . return

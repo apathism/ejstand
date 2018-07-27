@@ -69,7 +69,7 @@ data StandingOption = ReversedContestOrder
                     | EnableScores
                     | OnlyScoreLastSubmit
                     | ShowLanguages
-                    deriving (Show)
+                    deriving (Show, Eq)
 
 data RunStatusType = Success | Ignore | Mistake | Error | Processed | Pending | Rejected | Disqualified
   deriving (Show, Eq, Bounded, Enum)
@@ -89,7 +89,8 @@ getRunStatusType status = case filter (elem status . getStatusesByRunStatusType)
   [x] -> x
   _   -> error $ "Unable to find run status type for run status " ++ show status
 
-data StandingCell = StandingCell { cellType :: !(Maybe RunStatusType),
+data StandingCell = StandingCell { cellType :: !RunStatusType,
+                                   cellIsOverdue :: !Bool,
                                    cellAttempts :: !Integer,
                                    cellScoringTime :: !UTCTime,
                                    cellScoringLanguage :: !(Maybe Language)
@@ -99,7 +100,7 @@ data StandingCell = StandingCell { cellType :: !(Maybe RunStatusType),
 data StandingRow = ContestantStandingRow { rowContestant :: !Contestant,
                                            rowTotalScore :: !Rational,
                                            rowTotalAccepted :: !Integer,
-                                           rowCells :: !(Map Problem StandingCell)
+                                           rowCells :: !(Map (Integer, Integer) StandingCell)
                                          }
                                          deriving (Show)
 
