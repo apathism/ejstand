@@ -6,39 +6,20 @@ module EjStand.DataParser
   )
 where
 
-import           Prelude                 hiding ( readFile )
-
-import           Data.Text                      ( Text
-                                                , unpack
-                                                )
-import qualified Data.Text                     as Text
-                                                ( null
-                                                , concat
-                                                )
-import           Data.Text.Read                 ( signed
-                                                , decimal
-                                                )
-import           Data.Maybe                     ( mapMaybe )
-import           Data.Map.Strict                ( Map )
-import qualified Data.Map.Strict               as Map
-                                                ( lookup )
-import qualified Data.Set                      as Set
-                                                ( fromDistinctAscList
-                                                , singleton
-                                                )
-import           Data.Time                      ( UTCTime
-                                                , parseTimeM
-                                                , defaultTimeLocale
-                                                , addUTCTime
-                                                )
-
-import           Control.Exception              ( Exception
-                                                , throw
-                                                )
+import           Prelude                hiding (readFile)
+import           Data.Map.Strict        (Map)
+import qualified Data.Map.Strict        as Map (lookup)
+import           Data.Maybe             (mapMaybe)
+import qualified Data.Set               as Set (fromDistinctAscList, singleton)
+import           Data.Text              (Text, unpack)
+import qualified Data.Text              as Text (concat, null)
+import           Data.Text.Read         (decimal, signed)
+import           Data.Time              (UTCTime, addUTCTime, defaultTimeLocale,
+                                         parseTimeM)
+import           Control.Exception      (Exception, throw)
 import           Text.XML
-
 import           EjStand.BaseModels
-import           EjStand.StandingModels         ( StandingSource(..) )
+import           EjStand.StandingModels (StandingSource (..))
 
 -- Exceptions
 

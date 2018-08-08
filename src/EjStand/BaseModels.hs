@@ -8,11 +8,11 @@ module EjStand.BaseModels
   )
 where
 
-import           Data.Time                      ( UTCTime )
-import           Data.Text                      ( Text )
-import           Data.Function                  ( on )
+import           Data.Function (on)
+import           Data.Text     (Text)
+import           Data.Time     (UTCTime)
 
-data Contestant = Contestant { contestantID :: !Integer,
+data Contestant = Contestant { contestantID   :: !Integer,
                                contestantName :: !Text
                              }
                 deriving (Show)
@@ -23,8 +23,8 @@ instance Eq Contestant where
 instance Ord Contestant where
   compare = compare `on` contestantID
 
-data Contest = Contest { contestID :: !Integer,
-                         contestName :: !Text,
+data Contest = Contest { contestID        :: !Integer,
+                         contestName      :: !Text,
                          contestStartTime :: !(Maybe UTCTime)
                        }
              deriving (Show)
@@ -35,10 +35,10 @@ instance Eq Contest where
 instance Ord Contest where
   compare = compare `on` contestID
 
-data Problem = Problem { problemID :: !Integer,
-                         problemContest :: !Integer,
+data Problem = Problem { problemID        :: !Integer,
+                         problemContest   :: !Integer,
                          problemShortName :: !Text,
-                         problemLongName :: !Text
+                         problemLongName  :: !Text
                        }
              deriving (Show)
 
@@ -48,9 +48,9 @@ instance Eq Problem where
 instance Ord Problem where
   compare = compare `on` ([problemContest, problemID] <*>) . return
 
-data Language = Language { languageID :: !Integer,
+data Language = Language { languageID        :: !Integer,
                            languageShortName :: !Text,
-                           languageLongName :: !Text
+                           languageLongName  :: !Text
                          }
                 deriving (Show)
 
@@ -65,15 +65,15 @@ data RunStatus = OK | CE | RT | TL | PE | WA | CF | PT | AC | IG | DQ
                | CD | CG | AV | EM | VS | VT
                deriving (Show, Read, Eq, Bounded, Enum)
 
-data Run = Run { runID :: !Integer,
-                 runContest :: !Integer,
+data Run = Run { runID         :: !Integer,
+                 runContest    :: !Integer,
                  runContestant :: !Integer,
-                 runProblem :: !(Maybe Integer),
-                 runTime :: !UTCTime,
-                 runStatus :: !RunStatus,
-                 runLanguage :: !(Maybe Integer),
-                 runScore :: !(Maybe Rational),
-                 runTest :: !(Maybe Integer)
+                 runProblem    :: !(Maybe Integer),
+                 runTime       :: !UTCTime,
+                 runStatus     :: !RunStatus,
+                 runLanguage   :: !(Maybe Integer),
+                 runScore      :: !(Maybe Rational),
+                 runTest       :: !(Maybe Integer)
                } deriving (Show)
 
 instance Eq Run where

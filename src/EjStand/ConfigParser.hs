@@ -1,4 +1,5 @@
-{-# LANGUAGE OverloadedStrings, BangPatterns #-}
+{-# LANGUAGE BangPatterns      #-}
+{-# LANGUAGE OverloadedStrings #-}
 module EjStand.ConfigParser
   ( parseStandingConfig
   , parseStandingConfigDirectory
@@ -9,50 +10,31 @@ module EjStand.ConfigParser
   )
 where
 
-import           EjStand.StandingModels         ( StandingConfig(..)
-                                                , StandingOption(..)
-                                                , GlobalConfiguration(..)
-                                                , defaultGlobalConfiguration
-                                                )
-import           Data.Char                      ( isDigit
-                                                , isLetter
-                                                )
-import           Data.Text.Encoding             ( decodeUtf8 )
-import qualified Data.ByteString               as B
-import           Data.Text                      ( Text
-                                                , unpack
-                                                )
-import qualified Data.Text                     as Text
-import           Data.Text.Read                 ( decimal )
-import           Data.Time                      ( UTCTime
-                                                , parseTimeM
-                                                , defaultTimeLocale
-                                                )
-import qualified Data.List                     as List
-import           Data.Set                       ( Set )
-import qualified Data.Set                      as Set
-import           Data.Map.Strict                ( Map
-                                                , insertWith
-                                                , (!?)
-                                                )
-import qualified Data.Map.Strict               as Map
-import           Data.Maybe                     ( fromMaybe
-                                                , listToMaybe
-                                                )
-import           Data.Ratio                     ( (%) )
-import           Control.Exception              ( Exception
-                                                , IOException
-                                                , throw
-                                                , catch
-                                                )
-import           Control.Applicative            ( liftA2 )
-import           Control.Monad.State.Strict     ( State
-                                                , get
-                                                , put
-                                                , evalState
-                                                )
-import           System.Directory               ( listDirectory )
-import           Prelude                 hiding ( toInteger )
+import           Control.Applicative        (liftA2)
+import           Control.Exception          (Exception, IOException, catch,
+                                             throw)
+import           Control.Monad.State.Strict (State, evalState, get, put)
+import qualified Data.ByteString            as B
+import           Data.Char                  (isDigit, isLetter)
+import qualified Data.List                  as List
+import           Data.Map.Strict            (Map, insertWith, (!?))
+import qualified Data.Map.Strict            as Map
+import           Data.Maybe                 (fromMaybe, listToMaybe)
+import           Data.Ratio                 ((%))
+import           Data.Set                   (Set)
+import qualified Data.Set                   as Set
+import           Data.Text                  (Text, unpack)
+import qualified Data.Text                  as Text
+import           Data.Text.Encoding         (decodeUtf8)
+import           Data.Text.Read             (decimal)
+import           Data.Time                  (UTCTime, defaultTimeLocale,
+                                             parseTimeM)
+import           EjStand.StandingModels     (GlobalConfiguration (..),
+                                             StandingConfig (..),
+                                             StandingOption (..),
+                                             defaultGlobalConfiguration)
+import           Prelude                    hiding (toInteger)
+import           System.Directory           (listDirectory)
 
 -- Character types
 

@@ -1,24 +1,23 @@
-{-# LANGUAGE RecordWildCards, ViewPatterns #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ViewPatterns    #-}
 module EjStand.StandingBuilder
   ( prepareStandingSource
+  , buildStanding
   )
 where
 
-import           Data.Maybe                     ( catMaybes
-                                                , fromMaybe
-                                                )
-import           Data.Text                      ( unpack )
-import           Data.List                      ( sortOn )
-import           Data.Set                       ( Set )
-import qualified Data.Set                      as Set
-import           Data.Time                      ( UTCTime )
-import           Safe                           ( headMay
-                                                , lastMay
-                                                )
-import           Text.Printf                    ( printf )
+import           Data.List              (sortOn)
+import qualified Data.Map.Strict        as Map
+import           Data.Maybe             (catMaybes, fromMaybe)
+import           Data.Set               (Set)
+import qualified Data.Set               as Set
+import           Data.Text              (unpack)
+import           Data.Time              (UTCTime)
 import           EjStand.BaseModels
-import           EjStand.StandingModels
 import           EjStand.DataParser
+import           EjStand.StandingModels
+import           Safe                   (headMay, lastMay)
+import           Text.Printf            (printf)
 
 -- Utilities
 
@@ -71,7 +70,7 @@ getRunScore cfg@(elem EnableScores . standingOptions -> True) ((runScore -> Noth
 getRunScore cfg@(elem EnableScores . standingOptions -> True) ((runScore -> Just score), _) = score
 getRunScore cfg ((getRunStatusType . runStatus -> Success), False) = 1
 getRunScore cfg ((getRunStatusType . runStatus -> Success), True) = getDeadlinePenalty cfg
-getRunScore _ _ = 0
+getRunScore _   _ = 0
 
 recalculateCellAttempts :: StandingConfig -> (Run, Bool) -> StandingCell -> StandingCell
 recalculateCellAttempts _ runT@(run@Run {..}, overdue) cell@StandingCell {..}
@@ -114,14 +113,17 @@ applicateRun cfg runT cell = setCellMainRunMaybe cfg runT cell
 
 buildCell :: StandingConfig -> StandingSource -> Problem -> Contestant -> StandingCell
 buildCell cfg@StandingConfig {..} src@StandingSource {..} prob@Problem {..} user@Contestant {..} =
-  let runsList = filter ((== contestantID) . runContestant) $ Set.toList $ takeFromSetBy runContest problemContest runs
-      deadline = calculateDeadline cfg src prob user
-      penalty = getDeadlinePenalty cfg
+  let runsList  = filter ((== contestantID) . runContestant) $ Set.toList $ takeFromSetBy runContest problemContest runs
+      deadline  = calculateDeadline cfg src prob user
+      penalty   = getDeadlinePenalty cfg
       deadlineT = (\x -> (x, penalty)) <$> deadline
   in  foldl (flip $ applicateRun cfg) defaultCell $ fmap (applyRunDeadline deadlineT) $ runsList
 
 buildRow :: StandingConfig -> StandingSource -> [Problem] -> Contestant -> StandingRow
-buildRow _ _ _ _ = undefined -- TODO: implement me :(
+buildRow cfg src probs user = StandingRow
+  { rowContestant = user
+  , rowCells = Map.fromList $ fmap (\p@Problem {..} -> ((problemContest, problemID), buildCell cfg src p user)) probs
+  }
 
 buildRows :: StandingConfig -> StandingSource -> [Problem] -> [StandingRow]
 buildRows cfg src probs = buildRow cfg src probs <$> (Set.toList $ contestants src)
@@ -135,4 +137,4 @@ buildStanding :: StandingConfig -> StandingSource -> Standing
 buildStanding cfg src =
   let problems = buildProblems cfg src
       rows     = buildRows cfg src problems
-  in  undefined -- TODO: implement me :(
+  in  Standing {standingConfig = cfg, standingProblems = problems, standingRows = rows}

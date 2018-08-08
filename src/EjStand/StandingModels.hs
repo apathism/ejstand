@@ -14,22 +14,19 @@ module EjStand.StandingModels
   )
 where
 
-import           Data.Set                       ( Set )
-import qualified Data.Set                      as Set
-import           Data.Map.Strict                ( Map )
-import           Data.Text                      ( Text )
-import           Data.Time                      ( UTCTime )
-import           Data.Semigroup                 ( Semigroup
-                                                , (<>)
-                                                )
-
+import           Data.Map.Strict    (Map)
+import           Data.Semigroup     (Semigroup, (<>))
+import           Data.Set           (Set)
+import qualified Data.Set           as Set
+import           Data.Text          (Text)
+import           Data.Time          (UTCTime)
 import           EjStand.BaseModels
 
-data StandingSource = StandingSource { contests :: !(Set Contest),
+data StandingSource = StandingSource { contests    :: !(Set Contest),
                                        contestants :: !(Set Contestant),
-                                       languages :: !(Set Language),
-                                       problems :: !(Set Problem),
-                                       runs :: !(Set Run)
+                                       languages   :: !(Set Language),
+                                       problems    :: !(Set Problem),
+                                       runs        :: !(Set Run)
                                      }
                      deriving (Show)
 
@@ -52,17 +49,17 @@ defaultGlobalConfiguration = GlobalConfiguration
   , standingConfigurationsPath = "/etc/ejstand/cfg/"
   }
 
-data StandingConfig = StandingConfig { standingName :: !Text,
+data StandingConfig = StandingConfig { standingName     :: !Text,
                                        standingContests :: !(Set Integer),
-                                       internalName :: !Text,
-                                       standingOptions :: ![StandingOption]
+                                       internalName     :: !Text,
+                                       standingOptions  :: ![StandingOption]
                                      }
                       deriving (Show)
 
 data StandingOption = ReversedContestOrder
                     | EnableDeadlines
-                    | SetFixedDeadline { contestIDs :: !(Set Integer),
-                                         deadline :: !UTCTime,
+                    | SetFixedDeadline { contestIDs    :: !(Set Integer),
+                                         deadline      :: !UTCTime,
                                          contestantIDs :: !(Maybe (Set Integer))
                                        }
                     | SetDeadlinePenalty Rational
@@ -90,21 +87,21 @@ getRunStatusType status = case filter (elem status . getStatusesByRunStatusType)
   [x] -> x
   _   -> error $ "Unable to find run status type for run status " ++ show status
 
-data StandingCell = StandingCell { cellType :: !RunStatusType,
+data StandingCell = StandingCell { cellType      :: !RunStatusType,
                                    cellIsOverdue :: !Bool,
-                                   cellScore :: !Rational,
-                                   cellAttempts :: !Integer,
-                                   cellMainRun :: !(Maybe Run)
+                                   cellScore     :: !Rational,
+                                   cellAttempts  :: !Integer,
+                                   cellMainRun   :: !(Maybe Run)
                                  }
                                  deriving (Show)
 
-data StandingRow = ContestantStandingRow { rowContestant :: !Contestant,
-                                           rowCells :: !(Map (Integer, Integer) StandingCell)
-                                         }
-                                         deriving (Show)
+data StandingRow = StandingRow { rowContestant :: !Contestant,
+                                 rowCells :: !(Map (Integer, Integer) StandingCell)
+                               }
+                               deriving (Show)
 
-data Standing = Standing { standingConfig :: !StandingConfig,
+data Standing = Standing { standingConfig   :: !StandingConfig,
                            standingProblems :: ![Problem],
-                           standingRows :: ![StandingRow]
+                           standingRows     :: ![StandingRow]
                          }
                          deriving (Show)
