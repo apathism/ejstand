@@ -155,7 +155,7 @@ readRun contest elem = Run runID runContest runContestant runProblem runTime run
     makeContestTime contest (readIntegral $ getAttributeValue "time" elem, readIntegral $ getAttributeValue "nsec" elem)
   runStatus   = read . unpack $ getAttributeValue "status" elem
   runLanguage = readIntegral <$> getMaybeAttributeValue "lang_id" elem
-  runScore    = readIntegral <$> getMaybeAttributeValue "score" elem
+  runScore    = fromInteger <$> readIntegral <$> getMaybeAttributeValue "score" elem
   runTest     = readIntegral <$> getMaybeAttributeValue "test" elem
 
 readRuns :: Contest -> Element -> [Run]

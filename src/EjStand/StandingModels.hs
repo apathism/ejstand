@@ -7,6 +7,7 @@ module EjStand.StandingModels
   , StandingCell(..)
   , StandingRow(..)
   , Standing(..)
+  , RunStatusType(..)
   , defaultGlobalConfiguration
   , getRunStatusType
   , getStatusesByRunStatusType
@@ -71,15 +72,15 @@ data StandingOption = ReversedContestOrder
                     | ShowLanguages
                     deriving (Show, Eq)
 
-data RunStatusType = Success | Ignore | Mistake | Error | Processed | Pending | Rejected | Disqualified
-  deriving (Show, Eq, Bounded, Enum)
+data RunStatusType =  Ignore | Mistake | Rejected | Processing | Pending | Success | Disqualified | Error
+  deriving (Show, Eq, Ord, Bounded, Enum)
 
 getStatusesByRunStatusType :: RunStatusType -> [RunStatus]
 getStatusesByRunStatusType Success      = [OK]
 getStatusesByRunStatusType Ignore       = [CE, IG, SK, EM, VS, VT]
 getStatusesByRunStatusType Mistake      = [RT, TL, PE, WA, PT, ML, SE, WT, SY]
 getStatusesByRunStatusType Error        = [CF]
-getStatusesByRunStatusType Processed    = [AC, PD, RU, CD, CG, AV, RJ]
+getStatusesByRunStatusType Processing   = [AC, PD, RU, CD, CG, AV, RJ]
 getStatusesByRunStatusType Pending      = [PR]
 getStatusesByRunStatusType Rejected     = [SV, RJ, SM]
 getStatusesByRunStatusType Disqualified = [DQ]
@@ -91,15 +92,13 @@ getRunStatusType status = case filter (elem status . getStatusesByRunStatusType)
 
 data StandingCell = StandingCell { cellType :: !RunStatusType,
                                    cellIsOverdue :: !Bool,
+                                   cellScore :: !Rational,
                                    cellAttempts :: !Integer,
-                                   cellScoringTime :: !UTCTime,
-                                   cellScoringLanguage :: !(Maybe Language)
+                                   cellMainRun :: !(Maybe Run)
                                  }
                                  deriving (Show)
 
 data StandingRow = ContestantStandingRow { rowContestant :: !Contestant,
-                                           rowTotalScore :: !Rational,
-                                           rowTotalAccepted :: !Integer,
                                            rowCells :: !(Map (Integer, Integer) StandingCell)
                                          }
                                          deriving (Show)

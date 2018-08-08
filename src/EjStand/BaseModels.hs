@@ -72,7 +72,7 @@ data Run = Run { runID :: !Integer,
                  runTime :: !UTCTime,
                  runStatus :: !RunStatus,
                  runLanguage :: !(Maybe Integer),
-                 runScore :: !(Maybe Integer),
+                 runScore :: !(Maybe Rational),
                  runTest :: !(Maybe Integer)
                } deriving (Show)
 
