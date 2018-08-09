@@ -3,7 +3,7 @@ $doctype 5
     <head>
         <meta http-equiv="content-type" content="text/html; charset=UTF-8">
         <title>#{standingName standingConfig}
-        <link rel="stylesheet" href="https://apathism.net/standings/stand.css"/>
+        <link rel="stylesheet" href="stand.css"/>
     <body>
         <h1>
             #{standingName standingConfig}
@@ -16,8 +16,16 @@ $doctype 5
                 <td rowspan="2" class="solved">=
                 <td rowspan="2" class="solved">Время
                 $forall contest@Contest{..} <- Set.toList $ contests standingSource
-                    <td colspan="#{Set.size $ takeFromSetBy problemContest contestID $ problems standingSource}" class="contest">
+                    <td colspan="#{Set.size $ takeFromSetBy problemContest contestID $ problems standingSource}" class="contest"
+                    title="#{contestName}">
                         #{last $ splitOn " " $ contestName}
             <tr>
                 $forall problem@Problem{..} <- standingProblems
-                    <td class="problem">#{problemShortName}
+                    <td class="problem" title="#{problemShortName}: #{problemLongName}">
+                        #{problemShortName}
+            $forall (place, row) <- enumerate standingRows
+                <tr>
+                    <td>#{place}
+                    <td>#{contestantName $ rowContestant row}
+                    <td class="solved">#{rowScore $ rowStats row}
+                    <td class="solved">#{rowSuccesses $ rowStats row}

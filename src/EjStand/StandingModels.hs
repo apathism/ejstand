@@ -6,6 +6,7 @@ module EjStand.StandingModels
   , StandingOption(..)
   , StandingCell(..)
   , StandingRow(..)
+  , StandingRowStats(..)
   , Standing(..)
   , RunStatusType(..)
   , defaultGlobalConfiguration
@@ -77,7 +78,7 @@ getStatusesByRunStatusType Success      = [OK]
 getStatusesByRunStatusType Ignore       = [CE, IG, SK, EM, VS, VT]
 getStatusesByRunStatusType Mistake      = [RT, TL, PE, WA, PT, ML, SE, WT, SY]
 getStatusesByRunStatusType Error        = [CF]
-getStatusesByRunStatusType Processing   = [AC, PD, RU, CD, CG, AV, RJ]
+getStatusesByRunStatusType Processing   = [AC, PD, RU, CD, CG, AV]
 getStatusesByRunStatusType Pending      = [PR]
 getStatusesByRunStatusType Rejected     = [SV, RJ, SM]
 getStatusesByRunStatusType Disqualified = [DQ]
@@ -95,8 +96,26 @@ data StandingCell = StandingCell { cellType      :: !RunStatusType,
                                  }
                                  deriving (Show)
 
+data StandingRowStats = StandingRowStats { rowSuccesses       :: !Integer,
+                                           rowAttempts        :: !Integer,
+                                           rowLastTimeSuccess :: !(Maybe UTCTime),
+                                           rowScore           :: !Rational
+                                         }
+                                         deriving (Show, Eq)
+
+instance Semigroup StandingRowStats where
+  statA <> statB = StandingRowStats { rowSuccesses = rowSuccesses statA + rowSuccesses statB,
+                                      rowAttempts  = rowAttempts statA + rowAttempts statB,
+                                      rowLastTimeSuccess = rowLastTimeSuccess statA `max` rowLastTimeSuccess statB,
+                                      rowScore = rowScore statA + rowScore statB
+                                    }
+
+instance Monoid StandingRowStats where
+  mempty = StandingRowStats 0 0 Nothing 0
+
 data StandingRow = StandingRow { rowContestant :: !Contestant,
-                                 rowCells      :: !(Map (Integer, Integer) StandingCell)
+                                 rowCells      :: !(Map (Integer, Integer) StandingCell),
+                                 rowStats      :: !StandingRowStats
                                }
                                deriving (Show)
 

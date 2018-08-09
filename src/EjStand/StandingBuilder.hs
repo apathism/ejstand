@@ -120,10 +120,27 @@ buildCell cfg@StandingConfig {..} src@StandingSource {..} prob@Problem {..} user
       deadlineT = (\x -> (x, penalty)) <$> deadline
   in  foldl (flip $ applicateRun cfg) defaultCell $ fmap (applyRunDeadline deadlineT) $ runsList
 
+calculateCellStats :: StandingCell -> StandingRowStats
+calculateCellStats StandingCell {..} = if cellType /= Success
+  then mempty { rowScore = cellScore }
+  else StandingRowStats
+    { rowSuccesses       = 1
+    , rowAttempts        = cellAttempts
+    , rowScore           = cellScore
+    , rowLastTimeSuccess = runTime <$> cellMainRun
+    }
+
+calculateRowStats :: StandingRow -> StandingRowStats
+calculateRowStats StandingRow {..} = mconcat $ calculateCellStats <$> Map.elems rowCells
+
+appendRecalculatedCellStats :: StandingRow -> StandingRow
+appendRecalculatedCellStats row = row { rowStats = calculateRowStats row }
+
 buildRow :: StandingConfig -> StandingSource -> [Problem] -> Contestant -> StandingRow
-buildRow cfg src probs user = StandingRow
+buildRow cfg src probs user = appendRecalculatedCellStats $ StandingRow
   { rowContestant = user
   , rowCells = Map.fromList $ fmap (\p@Problem {..} -> ((problemContest, problemID), buildCell cfg src p user)) probs
+  , rowStats = mempty
   }
 
 buildRows :: StandingConfig -> StandingSource -> [Problem] -> [StandingRow]
@@ -134,8 +151,14 @@ buildProblems cfg | elem ReversedContestOrder $ standingOptions cfg = sortOn cmp
                   | otherwise = Set.toList . problems
   where cmp = ([negate . problemContest, problemID] <*>) . return
 
+sortRows :: [StandingRow] -> [StandingRow]
+sortRows = sortOn (comparator . calculateRowStats)
+ where
+  comparator :: StandingRowStats -> (Rational, Integer, Maybe UTCTime)
+  comparator StandingRowStats {..} = (negate rowScore, negate rowSuccesses, rowLastTimeSuccess)
+
 buildStanding :: StandingConfig -> StandingSource -> Standing
 buildStanding cfg src =
   let problems = buildProblems cfg src
-      rows     = buildRows cfg src problems
+      rows     = sortRows $ buildRows cfg src problems
   in  Standing {standingConfig = cfg, standingSource = src, standingProblems = problems, standingRows = rows}
