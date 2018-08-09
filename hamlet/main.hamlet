@@ -1,0 +1,23 @@
+$doctype 5
+<html lang="ru">
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+        <title>#{standingName standingConfig}
+        <link rel="stylesheet" href="https://apathism.net/standings/stand.css"/>
+    <body>
+        <h1>
+            #{standingName standingConfig}
+        Наведите курсор на ячейку, чтобы получить дополнительную информацию о задаче/участнике/посылке.
+        <table class="results"> 
+            <tr>
+                <td rowspan="2">Место
+                <td rowspan="2" class="solved">Имя
+                <td rowspan="2" class="solved">&Sigma;
+                <td rowspan="2" class="solved">=
+                <td rowspan="2" class="solved">Время
+                $forall contest@Contest{..} <- Set.toList $ contests standingSource
+                    <td colspan="#{Set.size $ takeFromSetBy problemContest contestID $ problems standingSource}" class="contest">
+                        #{last $ splitOn " " $ contestName}
+            <tr>
+                $forall problem@Problem{..} <- standingProblems
+                    <td class="problem">#{problemShortName}

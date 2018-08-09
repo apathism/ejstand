@@ -4,4 +4,4 @@ dist/**
 .cabal-sandbox/**
 .stack-work/**
 xmls/**
-cfg/**
+**/*.cfg

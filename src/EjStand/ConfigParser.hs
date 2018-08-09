@@ -11,8 +11,7 @@ module EjStand.ConfigParser
 where
 
 import           Control.Applicative        (liftA2)
-import           Control.Exception          (Exception, IOException, catch,
-                                             throw)
+import           Control.Exception          (Exception, IOException, catch, throw)
 import           Control.Monad.State.Strict (State, evalState, get, put)
 import qualified Data.ByteString            as B
 import           Data.Char                  (isDigit, isLetter)
@@ -27,11 +26,8 @@ import           Data.Text                  (Text, unpack)
 import qualified Data.Text                  as Text
 import           Data.Text.Encoding         (decodeUtf8)
 import           Data.Text.Read             (decimal)
-import           Data.Time                  (UTCTime, defaultTimeLocale,
-                                             parseTimeM)
-import           EjStand.StandingModels     (GlobalConfiguration (..),
-                                             StandingConfig (..),
-                                             StandingOption (..),
+import           Data.Time                  (UTCTime, defaultTimeLocale, parseTimeM)
+import           EjStand.StandingModels     (GlobalConfiguration (..), StandingConfig (..), StandingOption (..),
                                              defaultGlobalConfiguration)
 import           Prelude                    hiding (toInteger)
 import           System.Directory           (listDirectory)
@@ -271,8 +267,8 @@ parseStandingConfig path = do
 
 parseStandingConfigDirectory :: FilePath -> IO [StandingConfig]
 parseStandingConfigDirectory path = do
-  files <- filter (List.isSuffixOf ".cfg") <$> listDirectory path
-  sequence $ map parseStandingConfig files
+  files <- listDirectory path
+  sequence $ map parseStandingConfig $ fmap ((path ++ "/") ++) $ filter (List.isSuffixOf ".cfg") $ files
 
 retrieveStandingConfigs :: GlobalConfiguration -> IO [StandingConfig]
 retrieveStandingConfigs = parseStandingConfigDirectory . unpack . standingConfigurationsPath
@@ -303,4 +299,4 @@ retrieveGlobalConfiguration' (file : rest) = catch (parseGlobalConfiguration fil
   noFileExceptionHandler rest _ = retrieveGlobalConfiguration' rest
 
 retrieveGlobalConfiguration :: IO GlobalConfiguration
-retrieveGlobalConfiguration = retrieveGlobalConfiguration' ["/etc/ejstand/ejstand.cfg", "./cfg/ejstand.cfg"]
+retrieveGlobalConfiguration = retrieveGlobalConfiguration' ["/etc/ejstand/ejstand.cfg", "./ejstand.cfg"]

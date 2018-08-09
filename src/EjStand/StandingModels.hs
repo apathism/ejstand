@@ -38,7 +38,7 @@ instance Semigroup StandingSource where
 instance Monoid StandingSource where
   mempty = StandingSource (mempty) (mempty) (mempty) (mempty) (mempty)
 
-data GlobalConfiguration = GlobalConfiguration { xmlFilePattern :: Text,
+data GlobalConfiguration = GlobalConfiguration { xmlFilePattern             :: Text,
                                                  standingConfigurationsPath :: Text
                                                }
                                                deriving (Show)
@@ -96,11 +96,12 @@ data StandingCell = StandingCell { cellType      :: !RunStatusType,
                                  deriving (Show)
 
 data StandingRow = StandingRow { rowContestant :: !Contestant,
-                                 rowCells :: !(Map (Integer, Integer) StandingCell)
+                                 rowCells      :: !(Map (Integer, Integer) StandingCell)
                                }
                                deriving (Show)
 
 data Standing = Standing { standingConfig   :: !StandingConfig,
+                           standingSource   :: !StandingSource,
                            standingProblems :: ![Problem],
                            standingRows     :: ![StandingRow]
                          }

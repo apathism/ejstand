@@ -1,7 +1,8 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ViewPatterns    #-}
 module EjStand.StandingBuilder
-  ( prepareStandingSource
+  ( takeFromSetBy
+  , prepareStandingSource
   , buildStanding
   )
 where
@@ -66,11 +67,11 @@ applyRunDeadline (Just (time, penalty)) run@Run {..}
   | otherwise      = (run { runScore = runScore >>= return . (* penalty) }, True)
 
 getRunScore :: StandingConfig -> (Run, Bool) -> Rational
-getRunScore cfg@(elem EnableScores . standingOptions -> True) ((runScore -> Nothing), _) = 0
+getRunScore cfg@(elem EnableScores . standingOptions -> True) ((runScore -> Nothing), _)    = 0
 getRunScore cfg@(elem EnableScores . standingOptions -> True) ((runScore -> Just score), _) = score
-getRunScore cfg ((getRunStatusType . runStatus -> Success), False) = 1
-getRunScore cfg ((getRunStatusType . runStatus -> Success), True) = getDeadlinePenalty cfg
-getRunScore _   _ = 0
+getRunScore cfg ((getRunStatusType . runStatus -> Success), False)                          = 1
+getRunScore cfg ((getRunStatusType . runStatus -> Success), True)                           = getDeadlinePenalty cfg
+getRunScore _   _                                                                           = 0
 
 recalculateCellAttempts :: StandingConfig -> (Run, Bool) -> StandingCell -> StandingCell
 recalculateCellAttempts _ runT@(run@Run {..}, overdue) cell@StandingCell {..}
@@ -100,16 +101,16 @@ setCellMainRunMaybe = setCellMainRun False
 
 applicateRun :: StandingConfig -> (Run, Bool) -> StandingCell -> StandingCell
 -- 0 priority: Ignore
-applicateRun _ ((getRunStatusType . runStatus -> Ignore), _) cell = cell
-applicateRun cfg runT cell@StandingCell { cellType = Ignore, ..} = setCellMainRunForce cfg runT cell
+applicateRun _ ((getRunStatusType . runStatus -> Ignore), _) cell              = cell
+applicateRun cfg runT cell@StandingCell { cellType = Ignore, ..}               = setCellMainRunForce cfg runT cell
 -- 1 priority: Error
-applicateRun _ _ cell@StandingCell { cellType = Error, ..} = cell
-applicateRun cfg runT@((getRunStatusType . runStatus -> Error), _) cell = setCellMainRunForce cfg runT cell
+applicateRun _ _ cell@StandingCell { cellType = Error, ..}                     = cell
+applicateRun cfg runT@((getRunStatusType . runStatus -> Error), _) cell        = setCellMainRunForce cfg runT cell
 -- 2 priority: Disqualified
-applicateRun _ _ cell@StandingCell { cellType = Disqualified, ..} = cell
+applicateRun _ _ cell@StandingCell { cellType = Disqualified, ..}              = cell
 applicateRun cfg runT@((getRunStatusType . runStatus -> Disqualified), _) cell = setCellMainRunForce cfg runT cell
 -- Extra priorities: Other statuses
-applicateRun cfg runT cell = setCellMainRunMaybe cfg runT cell
+applicateRun cfg runT cell                                                     = setCellMainRunMaybe cfg runT cell
 
 buildCell :: StandingConfig -> StandingSource -> Problem -> Contestant -> StandingCell
 buildCell cfg@StandingConfig {..} src@StandingSource {..} prob@Problem {..} user@Contestant {..} =
@@ -137,4 +138,4 @@ buildStanding :: StandingConfig -> StandingSource -> Standing
 buildStanding cfg src =
   let problems = buildProblems cfg src
       rows     = buildRows cfg src problems
-  in  Standing {standingConfig = cfg, standingProblems = problems, standingRows = rows}
+  in  Standing {standingConfig = cfg, standingSource = src, standingProblems = problems, standingRows = rows}

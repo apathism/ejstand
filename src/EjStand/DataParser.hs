@@ -6,7 +6,7 @@ module EjStand.DataParser
   )
 where
 
-import           Prelude                hiding (readFile)
+import           Control.Exception      (Exception, throw)
 import           Data.Map.Strict        (Map)
 import qualified Data.Map.Strict        as Map (lookup)
 import           Data.Maybe             (mapMaybe)
@@ -14,12 +14,11 @@ import qualified Data.Set               as Set (fromDistinctAscList, singleton)
 import           Data.Text              (Text, unpack)
 import qualified Data.Text              as Text (concat, null)
 import           Data.Text.Read         (decimal, signed)
-import           Data.Time              (UTCTime, addUTCTime, defaultTimeLocale,
-                                         parseTimeM)
-import           Control.Exception      (Exception, throw)
-import           Text.XML
+import           Data.Time              (UTCTime, addUTCTime, defaultTimeLocale, parseTimeM)
 import           EjStand.BaseModels
 import           EjStand.StandingModels (StandingSource (..))
+import           Prelude                hiding (readFile)
+import           Text.XML
 
 -- Exceptions
 
