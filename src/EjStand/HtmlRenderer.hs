@@ -11,6 +11,8 @@ import           Data.Ratio                    (Ratio, denominator, numerator)
 import qualified Data.Set                      as Set
 import           Data.Text                     (splitOn)
 import           Data.Text.Lazy                (Text)
+import           Data.Time                     (UTCTime, defaultTimeLocale)
+import           Data.Time.Format              (formatTime)
 import           EjStand.BaseModels
 import           EjStand.StandingBuilder       (takeFromSetBy)
 import           EjStand.StandingModels
@@ -37,6 +39,14 @@ instance (ToMarkup a, Integral a) => ToMarkup (Ratio a) where
                   sub (toMarkup b)
                 else
                   ""
+
+instance ToMarkup UTCTime where
+  toMarkup = toMarkup . formatTime defaultTimeLocale "%T %d.%m.%y"
+
+getRowCellByProblem :: StandingRow -> Problem -> (Problem, StandingCell)
+getRowCellByProblem row@StandingRow {..} prob@Problem {..} = case Map.lookup (problemContest, problemID) rowCells of
+  (Just cell) -> (prob, cell)
+  Nothing     -> error $ "Can't find standing cell for " ++ show prob ++ " in " ++ show row
 
 renderStanding :: Standing -> Text
 renderStanding Standing {..} = renderHtml ($(shamletFile "hamlet/main.hamlet"))

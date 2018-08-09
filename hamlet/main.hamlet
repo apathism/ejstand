@@ -29,3 +29,20 @@ $doctype 5
                     <td>#{contestantName $ rowContestant row}
                     <td class="solved">#{rowScore $ rowStats row}
                     <td class="solved">#{rowSuccesses $ rowStats row}
+                    <td class="lastacc">
+                        $case rowLastTimeSuccess $ rowStats row
+                            $of (Just time)
+                                #{time}
+                            $of _
+                                &nbsp;
+                    $forall (problem, cell) <- fmap (getRowCellByProblem row) $ standingProblems
+                        $case cellType cell
+                            $of Success
+                                $if cellIsOverdue cell
+                                    <td class="ac_f">+.</td>
+                                $else
+                                    <td class="ac">+</td>
+                            $of Mistake
+                                <td class="wa">-</td>
+                            $of _
+                                <td class="none">&nbsp;</td>

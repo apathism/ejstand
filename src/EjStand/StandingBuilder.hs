@@ -114,7 +114,8 @@ applicateRun cfg runT cell                                                     =
 
 buildCell :: StandingConfig -> StandingSource -> Problem -> Contestant -> StandingCell
 buildCell cfg@StandingConfig {..} src@StandingSource {..} prob@Problem {..} user@Contestant {..} =
-  let runsList  = filter ((== contestantID) . runContestant) $ Set.toList $ takeFromSetBy runContest problemContest runs
+  let filterCondition run@Run {..} = runProblem == Just problemID && runContestant == contestantID
+      runsList  = filter filterCondition $ Set.toList $ takeFromSetBy runContest problemContest runs
       deadline  = calculateDeadline cfg src prob user
       penalty   = getDeadlinePenalty cfg
       deadlineT = (\x -> (x, penalty)) <$> deadline
