@@ -1,0 +1,131 @@
+--|
+--|  This is EjStand local configuration file
+--|    Default location: %{StandingConfigurationsPath}/filename.cfg
+--|
+--|  Options specified here are only applicable to one standing table within
+--|  EjStand server. You can uncomment any of the given options to redefine
+--|  its default value. Some of the options are already uncommented because
+--|  they are mandatory and therefore have no default value.
+--|
+--|  Option "Name"
+--|    Required: mandatory
+--|
+--|    This option sets displayable name for the current standing.
+--|
+
+Name = EjStand Sample Standing
+
+--|
+--|  Option "Contests"
+--|    Required: mandatory
+--|
+--|    This options defines set of comma-seperated intervals for contest IDs
+--|    which are intended to be shown in the current standing table. Spaces
+--|    between intervals are optional.
+--|
+--|    Examples:
+--|      Contests = 1-25
+--|      Contests = 3, 8,11,12, 15
+--|      Contests = 1-10000, 20000-29999
+--|      Contests = 5
+--|
+
+Contests = 1,2,3
+
+--|
+--|  Option "InternalName"
+--|    Required: mandatory
+--|
+--|    Sets the routing path within EjStand server. If EjStand root on you
+--|    server is located in http://yourserver.com/ejstand/ and you set this
+--|    option to 2018/mytable, then your standing table will be located at
+--|    http://yourserver.com/ejstand/2018/mytable.
+--|
+
+InternalName = example
+
+--|
+--|  Option "ReversedContestOrder"
+--|    Required:      optional
+--|    Default value: False
+--|
+--|    If you prefer your standing oriented from earlier contests to older
+--|    ones, not the other way around, you can set this option to True.
+--|
+
+-- ReversedContestOrder = False
+
+--|
+--|  Option "EnableDeadlines"
+--|    Required:      optional
+--|    Default value: False
+--|
+--|    By default all runs in EjStand are equally scored, but potentially
+--|    you can set a specified deadline, after which overdue runs will be
+--|    scored differently (for example, for a 3/4 of its original score).
+--|    This option turns on deadlines. Default deadline for a contest is
+--|    the start time of the next one. You can redefine it later with
+--|    SetFixedDeadline sections.
+--|
+
+-- EnableDeadlines = False
+
+--|
+--|  Option "SetDeadlinePenalty"
+--|    Required: mandatory  (when EnableDeadlines = True)
+--|              prohibited (when EnableDeadlines = False)
+--|
+--|    This option can set penalty for a deadline submition. The score of
+--|    overdue submission is multiplied by coefficient from this option.
+--|    Option value can be an integer or a ratio, but not a floating-point
+--|    number. For example, 1/2 is a correct value, but 0.5 is not.
+--|
+
+-- SetDeadlinePenalty = 3/4
+
+--|
+--|  Section "SetFixedDeadline"
+--|
+--|    Required: optional (can be specified more than once)
+--|
+--|    What if you want to redefine deadline to another time for specific
+--|    contestant and/or contest? Fear not! We have a section just for you.
+--|    If there's several sections applied for the same contestant and
+--|    contest, the last one takes place.
+--|
+
+-- SetFixedDeadline {
+
+  --|
+  --|  Option: "Deadline"
+  --|    Required: mandatory (for each SetFixedDeadline section)
+  --|
+  --|    This option is used to set deadline time and date for a fixed
+  --|    deadline. Date format: YYYY-MM-DD HH:MM:SS
+  --|
+
+  -- Deadline = 2001-09-11 08:46:26
+
+  --|
+  --|  Option "ContestIDs"
+  --|    Required: mandatory (for each SetFixedDeadline section)
+  --|
+  --|    This option specifies contest IDs for which new deadline is
+  --|    applied. The value of this option is a set of intervals in a format
+  --|    similar to Contests option.
+  --|
+
+  -- ContestIDs = 1
+
+  --|
+  --|  Option "ContestantIDs"
+  --|    Required: optional (for each SetFixedDeadline section)
+  --|
+  --|    Almost the same as ContestIDs options, but for contestants.
+  --|    Can be used if you want to set a personal deadline for a
+  --|    student or a group of students.
+  --|
+
+  -- ContestantIDs = 2-15 
+
+-- }

@@ -42,6 +42,8 @@ $doctype 5
                                     <td class="ac_f">+.</td>
                                 $else
                                     <td class="ac">+</td>
+                            $of Rejected
+                                <td class="styleErr">-</ttd>
                             $of Mistake
                                 <td class="wa">-</td>
                             $of _

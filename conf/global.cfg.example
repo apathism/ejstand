@@ -1,0 +1,28 @@
+--|
+--|  This is EjStand global configuration file
+--|    Default location: /etc/ejstand.cfg
+--| 
+--|  You can modify EjStand options by uncommenting them, their functionality
+--|  will be applied to every standing table served by EjStand.
+--|
+--|  Option "XMLilePattern"
+--|    Required:      optional
+--|    Default value: /home/judges/%06d/var/status/dir/standings.xml
+--|
+--|    Option can be used to specify where ejudge XML files are located. The
+--|    only printf parameter is used to define contest ID.
+--|
+
+-- XMLFilePattern = /home/judges/%06d/var/status/dir/standings.xml
+
+--|
+--|  Option "StandingConfigurationsPath"
+--|    Required:      optional
+--|    Default value: /etc/ejstand/cfg
+--|
+--|    Path to the directory containing individual standing configuration
+--|    files. Each file must have .cfg extension and be read-accessible by
+--|    EjStand daemon.
+--|
+
+-- StandingConfigurationsPath = /etc/ejstand/cfg
