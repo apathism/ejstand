@@ -90,7 +90,7 @@ InternalName = example
 --|
 --|    What if you want to redefine deadline to another time for specific
 --|    contestant and/or contest? Fear not! We have a section just for you.
---|    If there's several sections applied for the same contestant and
+--|    If there are several sections applied for the same contestant and
 --|    contest, the last one takes place.
 --|
 
@@ -129,3 +129,46 @@ InternalName = example
   -- ContestantIDs = 2-15 
 
 -- }
+
+--|
+--| Option "ShowProblemStatistics"
+--|   Required:      optional
+--|   Default value: False
+--|
+--|   This option set to True enables displaying additional row with
+--|   problem statistics (submissions made, success rate, etc.)
+--|
+
+-- ShowProblemStatistics = False
+
+--|
+--|  Option "EnableScores"
+--|    Required:      optional
+--|    Default value: False
+--|
+--|    Enables partial scores for problems instead of binary grading.
+--|    Intended for OLYMPIAD/KIROV contest types in Ejudge.
+--|
+
+-- EnableScores = False
+
+--|
+--|  Option "OnlyScoreLastSubmit"
+--|    Required:      optional
+--|    Default value: False
+--|
+--|    If enabled ignores all submits except the last one. Should be used
+--|    for contests with offline scoring system.
+--|
+
+-- OnlyScoreLastSubmit = True
+
+--| Option "ShowLanguages"
+--|   Required:      optional
+--|   Default value: False
+--|
+--|   Makes it possible to see programming languages for standing cells in
+--|   popups.
+--|
+
+-- ShowLanguages = False
