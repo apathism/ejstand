@@ -14,7 +14,7 @@ main = do
   writeFile "/home/apathism/ejstand.html" $ renderStanding standing
 --}
 
-import           EjStand.WebApplication (runEjStand)
+import           EjStand.WebApplication (ejStand)
 
 main :: IO ()
-main = runEjStand
+main = ejStand

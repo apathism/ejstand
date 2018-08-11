@@ -232,7 +232,7 @@ buildStandingOptions = do
   enableDeadlines    <- takeUniqueValue ||> toTextValue ||> toBool |> skipKey (fromMaybe False) $ "EnableDeadlines"
   setDeadlinePenalty <- if enableDeadlines
     then takeMandatoryValue |> toTextValue |> toRatio $ "SetDeadlinePenalty"
-    else undefined
+    else return $ 0 % 1
   showProblemStatistics <-
     takeUniqueValue ||> toTextValue ||> toBool |> skipKey (fromMaybe False) $ "ShowProblemStatistics"
   enableScores        <- takeUniqueValue ||> toTextValue ||> toBool |> skipKey (fromMaybe False) $ "EnableScores"

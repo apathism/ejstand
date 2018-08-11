@@ -1,15 +1,22 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
-module EjStand.WebApplication where
+module EjStand.WebApplication
+  ( ejStand
+  )
+where
 
-import           Control.Exception        (Exception, SomeException, catch)
+import           Control.Exception        (Exception, SomeException, catch, throw)
 import           Data.Binary.Builder      (fromByteString)
+import           Data.ByteString          (ByteString)
+import qualified Data.ByteString.Char8    as BSC8
 import           Data.String              (IsString, fromString)
-import           Data.Text                (unpack)
+import           Data.Text                (Text, unpack)
+import           Data.Text.Encoding       (encodeUtf8)
 import           EjStand.ConfigParser
 import           EjStand.StandingModels
-import           Network.HTTP.Types       (status200, status500)
-import           Network.Wai              (Application, Response, ResponseReceived, rawPathInfo, responseBuilder)
+import           Network.HTTP.Types       (ResponseHeaders, Status, status200, status404, status500)
+import           Network.Wai              (Application, Request, Response, ResponseReceived, rawPathInfo,
+                                           responseBuilder)
 import           Network.Wai.Handler.Warp (defaultSettings, runSettings, setHost, setPort)
 
 -- IO Utilities (especially for error handling)
@@ -23,27 +30,53 @@ catch' = flip catch
 catchSomeException' :: (SomeException -> IO a) -> IO a -> IO a
 catchSomeException' = catch'
 
-buildExceptionTextMessage :: (IsString s, Exception e) => e -> s
+buildExceptionTextMessage :: (IsString s, Monoid s, Exception e) => e -> s
 buildExceptionTextMessage exception =
-  fromString
-    $  "EjStand got exception during standing table building.\n"
-    ++ "Please show this log to your server administrator.\n\n"
-    ++ "Exception details:\n"
-    ++ show exception
+  "500: Internal server error\n\n"
+    <> "EjStand got exception during standing table building.\n"
+    <> "Please show this log to your server administrator.\n\n"
+    <> "Exception details:\n"
+    <> fromString (show exception)
+
+buildNotFoundTextMessage :: (IsString s, Monoid s) => Request -> s
+buildNotFoundTextMessage _ = "404: Not found\n\nUnable to find a standing corresponding to your URL."
+
+responseBS :: Status -> ResponseHeaders -> ByteString -> Response
+responseBS status headers = responseBuilder status headers . fromByteString
 
 onExceptionRespond :: Exception e => (Response -> IO ResponseReceived) -> e -> IO ResponseReceived
 onExceptionRespond respond =
-  respond . responseBuilder status500 [("Content-Type", "text/plain")] . fromByteString . buildExceptionTextMessage
+  respond . responseBS status500 [("Content-Type", "text/plain")] . buildExceptionTextMessage
+
+-- Routing for URLs
+
+data RoutingException = DuplicateRoutes !ByteString
+
+instance Show RoutingException where
+    show (DuplicateRoutes text) = "Multiple routes for URL " ++ BSC8.unpack text
+
+instance Exception RoutingException
+
+isPathCorresponding :: ByteString -> StandingConfig -> Bool
+isPathCorresponding path StandingConfig {..} = encodeUtf8 internalName == path -- TODO: this is obviously not enough
 
 -- Main EjStand WAI
 
-ejStand :: GlobalConfiguration -> Application
-ejStand cfg@GlobalConfiguration {..} request respond = catchSomeException' (onExceptionRespond respond) $ do
-    standingConfigs <- retrieveStandingConfigs cfg
-    respond $ responseBuilder status200 [("Content-Type", "text/plain")] $ fromByteString $ rawPathInfo request
+runRoute :: GlobalConfiguration -> StandingConfig -> IO ByteString
+runRoute global local = undefined
 
-runEjStand :: IO ()
-runEjStand = do
-  cfg@GlobalConfiguration {..} <- retrieveGlobalConfiguration
+runEjStandRequest :: GlobalConfiguration -> [StandingConfig] -> Application
+runEjStandRequest global local request respond = catchSomeException' (onExceptionRespond respond) $ do
+  let path           = rawPathInfo request
+      possibleRoutes = filter (isPathCorresponding path) local
+  case possibleRoutes of
+    []      -> respond $ responseBS status404 [("Content-Type", "text/plain")] $ buildNotFoundTextMessage request
+    [route] -> runRoute global route >>= return . responseBS status200 [("Content-Type", "text/html")] >>= respond
+    _       -> throw $ DuplicateRoutes path
+
+ejStand :: IO ()
+ejStand = do
+  global@GlobalConfiguration {..} <- retrieveGlobalConfiguration
+  local                           <- retrieveStandingConfigs global
   let settings = setHost (fromString . unpack $ ejStandHostname) $ setPort ejStandPort $ defaultSettings
-  runSettings settings $ ejStand cfg
+  runSettings settings $ runEjStandRequest global local
