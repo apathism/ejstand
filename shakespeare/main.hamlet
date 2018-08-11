@@ -3,7 +3,7 @@ $doctype 5
     <head>
         <meta http-equiv="content-type" content="text/html; charset=UTF-8">
         <title>#{standingName standingConfig}
-        <link rel="stylesheet" href="stand.css"/>
+        <link rel="stylesheet" href="/ejstand.css">
     <body>
         <h1>
             #{standingName standingConfig}
@@ -39,12 +39,12 @@ $doctype 5
                         $case cellType cell
                             $of Success
                                 $if cellIsOverdue cell
-                                    <td class="ac_f">+.</td>
+                                    <td class="ac_f">+.
                                 $else
-                                    <td class="ac">+</td>
+                                    <td class="ac">+
                             $of Rejected
-                                <td class="styleErr">-</ttd>
+                                <td class="styleErr">-
                             $of Mistake
-                                <td class="wa">-</td>
+                                <td class="wa">-
                             $of _
-                                <td class="none">&nbsp;</td>
+                                <td class="none">&nbsp;

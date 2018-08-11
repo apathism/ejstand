@@ -3,6 +3,7 @@
 {-# LANGUAGE TemplateHaskell   #-}
 module EjStand.HtmlRenderer
   ( renderStanding
+  , renderCSS
   )
 where
 
@@ -20,6 +21,7 @@ import           Text.Blaze.Html               (Markup, ToMarkup, preEscapedToMa
 import           Text.Blaze.Html.Renderer.Text (renderHtml)
 import           Text.Blaze.Html5              (sub, sup)
 import           Text.Hamlet                   (shamletFile)
+import           Text.Lucius                   (luciusFile, renderCss)
 
 enumerate :: [a] -> [(Integer, a)]
 enumerate = zip [1 ..]
@@ -49,4 +51,7 @@ getRowCellByProblem row@StandingRow {..} prob@Problem {..} = case Map.lookup (pr
   Nothing     -> error $ "Can't find standing cell for " ++ show prob ++ " in " ++ show row
 
 renderStanding :: Standing -> Text
-renderStanding Standing {..} = renderHtml ($(shamletFile "hamlet/main.hamlet"))
+renderStanding Standing {..} = renderHtml ($(shamletFile "shakespeare/main.hamlet"))
+
+renderCSS :: Text
+renderCSS = renderCss ($(luciusFile "shakespeare/main.lucius") undefined)
