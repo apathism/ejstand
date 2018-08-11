@@ -26,3 +26,23 @@
 --|
 
 -- StandingConfigurationsPath = /etc/ejstand/cfg
+
+--|
+--|  Option "Port"
+--|    Required:      optional
+--|    Default value: 80
+--|
+
+-- Port = 80
+
+--|
+--|  Option "Hostname"
+--|    Required:      optional
+--|    Default value: 127.0.0.1
+--|
+--|    Option to specify which host to bind. Supports hostnames that Warp
+--|    supports. For more information read:
+--|    http://hackage.haskell.org/package/warp-3.2.23/docs/
+--|
+
+-- Hostname = 127.0.0.1

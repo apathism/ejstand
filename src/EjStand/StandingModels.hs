@@ -39,8 +39,10 @@ instance Semigroup StandingSource where
 instance Monoid StandingSource where
   mempty = StandingSource (mempty) (mempty) (mempty) (mempty) (mempty)
 
-data GlobalConfiguration = GlobalConfiguration { xmlFilePattern             :: Text,
-                                                 standingConfigurationsPath :: Text
+data GlobalConfiguration = GlobalConfiguration { xmlFilePattern             :: !Text,
+                                                 standingConfigurationsPath :: !Text,
+                                                 ejStandPort                :: !Int,
+                                                 ejStandHostname            :: !Text
                                                }
                                                deriving (Show)
 
@@ -48,6 +50,8 @@ defaultGlobalConfiguration :: GlobalConfiguration
 defaultGlobalConfiguration = GlobalConfiguration
   { xmlFilePattern             = "/home/judges/%06d/var/status/dir/standings.xml"
   , standingConfigurationsPath = "/etc/ejstand/cfg/"
+  , ejStandPort                = 80
+  , ejStandHostname            = "127.0.0.1"
   }
 
 data StandingConfig = StandingConfig { standingName     :: !Text,

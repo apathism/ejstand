@@ -155,7 +155,7 @@ toNestedConfig :: Text -> ConfigValue -> Configuration
 toNestedConfig _   (NestedConfig cfg) = cfg
 toNestedConfig key _                  = throw $ NestedConfigExpected key
 
-toInteger :: Text -> Text -> Integer
+toInteger :: Integral a => Text -> Text -> a
 toInteger key value = case decimal $ Text.strip value of
   Left  _              -> throw $ IntegerExpected key value
   Right (value', tail) -> if tail == "" then value' else throw $ IntegerExpected key value
@@ -279,11 +279,15 @@ buildGlobalConfiguration :: Configuration -> GlobalConfiguration
 buildGlobalConfiguration = evalState $ do
   xmlFilePattern <- takeUniqueValue ||> toTextValue |> skipKey (fromMaybe defaultXMLPath) $ "XMLFilePattern"
   standCfgPath   <- takeUniqueValue ||> toTextValue |> skipKey (fromMaybe defaultCfgPath) $ "StandingConfigurationsPath"
+  port           <- takeUniqueValue ||> toTextValue ||> toInteger |> skipKey (fromMaybe defaultPort) $ "Port"
+  hostname       <- takeUniqueValue ||> toTextValue |> skipKey (fromMaybe defaultHostname) $ "Hostname"
   !_             <- ensureEmptyState
-  return $ GlobalConfiguration xmlFilePattern standCfgPath
+  return $ GlobalConfiguration xmlFilePattern standCfgPath port hostname
  where
   defaultXMLPath = xmlFilePattern defaultGlobalConfiguration
   defaultCfgPath = standingConfigurationsPath defaultGlobalConfiguration
+  defaultPort = ejStandPort defaultGlobalConfiguration
+  defaultHostname = ejStandHostname defaultGlobalConfiguration
 
 parseGlobalConfiguration :: FilePath -> IO GlobalConfiguration
 parseGlobalConfiguration path = do
@@ -299,4 +303,4 @@ retrieveGlobalConfiguration' (file : rest) = catch (parseGlobalConfiguration fil
   noFileExceptionHandler rest _ = retrieveGlobalConfiguration' rest
 
 retrieveGlobalConfiguration :: IO GlobalConfiguration
-retrieveGlobalConfiguration = retrieveGlobalConfiguration' ["/etc/ejstand/ejstand.cfg", "./ejstand.cfg"]
+retrieveGlobalConfiguration = retrieveGlobalConfiguration' ["/etc/ejstand.cfg", "/etc/ejstand/ejstand.cfg", "./ejstand.cfg"]
