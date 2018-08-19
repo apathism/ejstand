@@ -1,68 +1,70 @@
-h1{
+h1 {
   font-family: Verdana, Arial, sans-serif;
   font-size: 12pt;
 }
-body{
+
+body {
   font-family: Arial, sans-serif;
   font-size: 10pt;
 }
-td{
+
+td, th {
   min-width: 20px;
   font-size: 10pt;
+  font-weight: normal;
 }
-table.results{
-  border-left:1px solid black;
-  border-top:1px solid black;
-  background:white;
-  margin-top:10px;
-  border-collapse:collapse;
+
+table.standing {
+  border-left: 1px solid black;
+  border-top: 1px solid black;
+  background: white;
+  margin-top: 10px;
+  border-collapse: collapse;
 }
-table.results td{
-  white-space:nowrap;
-  border-right:1px solid black;
-  border-bottom:1px solid black;
-  padding-left:2px;
-  padding-right:2px;
-  padding-top:1px;
-  padding-bottom:1px;
-  white-space:nowrap;
+
+table.standing td, table.standing th {
+  white-space: nowrap;
+  border-right: 1px solid black;
+  border-bottom: 1px solid black;
+  padding-left: 2px;
+  padding-right: 2px;
+  padding-top: 1px;
+  padding-bottom: 1px;
+  white-space: nowrap;
 }
-td.contest, td.problem{
-  text-align:center;
+
+.place, .total_score, .total_successes, .last_success_time, .contest, .problem, th {
+  text-align: center;
 }
-td.ac, td.wa, td.none, td.pending, td.styleErr, td.ac_f {
-  text-align:center;
+
+td.success, td.mistake, td.none, td.pending, td.rejected, td.overdue, td.disqualified {
+  text-align: center;
 }
-td.ac{
-  background:#99ff99;
+
+td.success {
+  background: #99ff99;
 }
-td.ac_f{
-  background:#99cc99;
+
+td.overdue {
+  background: #99cc99;
 }
-td.wa{
-  background:#ffaaaa;
+
+td.mistake {
+  background: #ffaaaa;
 }
-td.styleErr{
-  background:#aaaaff;
-}
-td.disqualified{
-  background:#000000;
-}
-td.solved, td.penalty, td.weight, td.styleErrs, td.lastacc{
-  text-align:center;
-}
-table.results td.name{
-  padding-right:10px;
-}
-td.weight{
-  font-weight: bold;
-}
-td.probstat{
-   text-align:center;
-}
+
 td.pending{
   background:#ffffaa;
 }
+
+td.rejected {
+  background: #aaaaff;
+}
+
+td.disqualified {
+  background: #000000;
+}
+
 sub, sup {
   font-size: 6pt;
 }

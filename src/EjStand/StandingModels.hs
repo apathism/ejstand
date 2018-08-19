@@ -5,6 +5,7 @@ module EjStand.StandingModels
   , StandingConfig(..)
   , StandingOption(..)
   , StandingCell(..)
+  , StandingColumn(..)
   , StandingRow(..)
   , StandingRowStats(..)
   , Standing(..)
@@ -12,6 +13,7 @@ module EjStand.StandingModels
   , defaultGlobalConfiguration
   , getRunStatusType
   , getStatusesByRunStatusType
+  , takeFromSetBy
   )
 where
 
@@ -22,6 +24,7 @@ import qualified Data.Set           as Set
 import           Data.Text          (Text)
 import           Data.Time          (UTCTime)
 import           EjStand.BaseModels
+import           Text.Blaze.Html    (Markup)
 
 data StandingSource = StandingSource { contests    :: !(Set Contest),
                                        contestants :: !(Set Contestant),
@@ -30,6 +33,9 @@ data StandingSource = StandingSource { contests    :: !(Set Contest),
                                        runs        :: !(Set Run)
                                      }
                      deriving (Show)
+
+takeFromSetBy :: Ord b => (a -> b) -> b -> Set a -> Set a
+takeFromSetBy f x = Set.takeWhileAntitone ((== x) . f) . Set.dropWhileAntitone ((< x) . f)
 
 instance Semigroup StandingSource where
   (<>) x y = fromTuple $ (toTuple x) <> (toTuple y) where
@@ -123,9 +129,13 @@ data StandingRow = StandingRow { rowContestant :: !Contestant,
                                }
                                deriving (Show)
 
+data StandingColumn = StandingColumn { columnCaption  :: !Markup
+                                     , columnRowValue :: !((Integer, StandingRow) -> Markup)
+                                     }
+
 data Standing = Standing { standingConfig   :: !StandingConfig,
                            standingSource   :: !StandingSource,
                            standingProblems :: ![Problem],
-                           standingRows     :: ![StandingRow]
+                           standingRows     :: ![StandingRow],
+                           standingColumns  :: ![StandingColumn]
                          }
-                         deriving (Show)

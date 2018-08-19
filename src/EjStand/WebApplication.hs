@@ -71,7 +71,7 @@ runRoute :: GlobalConfiguration -> StandingConfig -> IO LBS.ByteString
 runRoute global local = do
   source <- prepareStandingSource global local
   let standing = buildStanding local source
-  return . EncLazy.encodeUtf8 $ renderStanding standing
+  return . EncLazy.encodeUtf8 . renderStanding $ standing
 
 runEjStandRequest :: GlobalConfiguration -> [StandingConfig] -> Application
 runEjStandRequest global local request respond = catchSomeException' (onExceptionRespond respond) $ do

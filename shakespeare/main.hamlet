@@ -8,43 +8,36 @@ $doctype 5
         <h1>
             #{standingName standingConfig}
         Наведите курсор на ячейку, чтобы получить дополнительную информацию о задаче/участнике/посылке.
-        <table class="results"> 
+        <table class="standing"> 
             <tr>
-                <td rowspan="2">Место
-                <td rowspan="2" class="solved">Имя
-                <td rowspan="2" class="solved">&Sigma;
-                <td rowspan="2" class="solved">=
-                <td rowspan="2" class="solved">Время
+                $forall column <- standingColumns
+                    #{columnCaption column}
                 $forall contest@Contest{..} <- Set.toList $ contests standingSource
-                    <td colspan="#{Set.size $ takeFromSetBy problemContest contestID $ problems standingSource}" class="contest"
+                    <th colspan="#{Set.size $ takeFromSetBy problemContest contestID $ problems standingSource}" class="contest"
                     title="#{contestName}">
                         #{last $ splitOn " " $ contestName}
             <tr>
                 $forall problem@Problem{..} <- standingProblems
-                    <td class="problem" title="#{problemShortName}: #{problemLongName}">
+                    <th class="problem" title="#{problemShortName}: #{problemLongName}">
                         #{problemShortName}
-            $forall (place, row) <- enumerate standingRows
+            $forall tRow@(place, row) <- enumerate standingRows
                 <tr>
-                    <td>#{place}
-                    <td>#{contestantName $ rowContestant row}
-                    <td class="solved">#{rowScore $ rowStats row}
-                    <td class="solved">#{rowSuccesses $ rowStats row}
-                    <td class="lastacc">
-                        $case rowLastTimeSuccess $ rowStats row
-                            $of (Just time)
-                                #{time}
-                            $of _
-                                &nbsp;
+                    $forall column <- standingColumns
+                        #{columnRowValue column $ tRow}
                     $forall (problem, cell) <- fmap (getRowCellByProblem row) $ standingProblems
                         $case cellType cell
                             $of Success
                                 $if cellIsOverdue cell
-                                    <td class="ac_f">+.
+                                    <td class="overdue">+.
                                 $else
-                                    <td class="ac">+
+                                    <td class="success">+
                             $of Rejected
-                                <td class="styleErr">-
+                                <td class="rejected">-
+                            $of Pending
+                                <td class="pending">?
                             $of Mistake
-                                <td class="wa">-
+                                <td class="mistake">-
+                            $of Disqualified
+                                <td class="disqualified">
                             $of _
-                                <td class="none">&nbsp;
+                                <td class="none">

@@ -15,15 +15,12 @@ import qualified Data.Set               as Set
 import           Data.Text              (unpack)
 import           Data.Time              (UTCTime)
 import           EjStand.BaseModels
+import           EjStand.ConfigParser   ((==>))
 import           EjStand.DataParser
+import           EjStand.HtmlRenderer
 import           EjStand.StandingModels
 import           Safe                   (headMay, lastMay)
 import           Text.Printf            (printf)
-
--- Utilities
-
-takeFromSetBy :: Ord b => (a -> b) -> b -> Set a -> Set a
-takeFromSetBy f x = Set.takeWhileAntitone ((== x) . f) . Set.dropWhileAntitone ((< x) . f)
 
 -- Preparing data IO operations
 
@@ -158,8 +155,20 @@ sortRows = sortOn (comparator . calculateRowStats)
   comparator :: StandingRowStats -> (Rational, Integer, Maybe UTCTime)
   comparator StandingRowStats {..} = (negate rowScore, negate rowSuccesses, rowLastTimeSuccess)
 
+buildColumns :: StandingConfig -> StandingSource -> [StandingColumn]
+buildColumns StandingConfig {..} _ = mconcat
+  [ [placeColumn, contestantNameColumn, totalScoreColumn]
+  , (elem EnableDeadlines standingOptions || elem EnableScores standingOptions) ==> totalSuccessesColumn
+  , [lastSuccessTimeColumn]
+  ]
+
 buildStanding :: StandingConfig -> StandingSource -> Standing
 buildStanding cfg src =
   let problems = buildProblems cfg src
-      rows     = sortRows $ buildRows cfg src problems
-  in  Standing {standingConfig = cfg, standingSource = src, standingProblems = problems, standingRows = rows}
+  in  Standing
+        { standingConfig   = cfg
+        , standingSource   = src
+        , standingProblems = problems
+        , standingRows     = sortRows $ buildRows cfg src problems
+        , standingColumns  = buildColumns cfg src
+        }

@@ -7,6 +7,7 @@ module EjStand.ConfigParser
   , parseGlobalConfiguration
   , retrieveGlobalConfiguration
   , retrieveGlobalConfiguration'
+  , (==>)
   )
 where
 
