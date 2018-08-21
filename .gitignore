@@ -1,6 +1,20 @@
-*.ps
-*.sandbox.config
-.cabal-sandbox/**
-.stack-work/**
-xmls/**
+# No source configurations or data
+**/*.xml
 **/*.cfg
+
+# No Stack files
+.stack-work/**
+
+# No binary archives
+**/*.zip
+**/*.tar.xz
+**/*.tar.bz
+**/*.tar.gz
+
+# No logs
+**/*.log
+
+# No ArchLinux building files
+dist/archlinux/src/**
+dist/archlinux/pkg/**
+dist/archlinux/**/*.sig

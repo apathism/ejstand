@@ -2,29 +2,31 @@
 
 _pkgname=ejstand
 pkgname="${_pkgname}-static"
-pkgver=0.1.0
+pkgver=0.1.1
 pkgrel=1
 pkgdesc='Ejudge Configurable Web Standings Daemon for Multiple Contests'
 url="https://apathism.net/git/apathism/${_pkgname}"
 arch=('x86_64')
 license=('AGPL3')
+depends=('gmp')
 makedepends=('stack')
 source=("${_pkgname}-${pkgver}.zip"::"https://apathism.net/git/apathism/${_pkgname}/archive/${pkgver}.zip")
-sha256sums=('a1c9043365bbd660275da3ba6e2447d22ea257dea3b56a56131be9fcdaf3c1d0')
+sha256sums=('64f351190ba5912e47cc0dc176ddbd999f0d3363e2c9ccf9649b8bcb90a477ed')
+backup=('etc/ejstand.cfg')
 
 build() {
     cd "${srcdir}/${_pkgname}"
     mkdir -p "build/bin"
-    stack --local-bin-path "build/bin" install -- ${_pkgname}
+    stack --local-bin-path "build/bin" --force-dirty install -- ${_pkgname}
 }
 
 package() {
    cd "${srcdir}/${_pkgname}"
 
-   mkdir -p "${pkgdir}/etc/${_pkgname}/{cfg,examples}"
+   mkdir -p "${pkgdir}/etc/${_pkgname}"/{cfg,examples}
 
    install -Dm755 "build/bin/${_pkgname}" "${pkgdir}/usr/bin/${_pkgname}"
    install -Dm644 "conf/global.cfg.example" "${pkgdir}/etc/${_pkgname}.cfg"
-   install -Dm644 "conf/local.cfg.example" "${pkgdir}/etc/examples/standing.cfg.example"
-   install -Dm644 "dist/archlinux/${_pkgname}.service" "${pkgdir}/etc/systemd/system/${_pkgname}.service"
+   install -Dm644 "conf/local.cfg.example" "${pkgdir}/etc/${_pkgname}/examples/standing.cfg.example"
+   install -Dm644 "dist/archlinux/${_pkgname}.service" "${pkgdir}/usr/lib/systemd/system/${_pkgname}.service"
 }
