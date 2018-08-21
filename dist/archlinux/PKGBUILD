@@ -1,0 +1,30 @@
+# Maintainer: Ivan Koryabkin <apathism@apathism.net>
+
+_pkgname=ejstand
+pkgname="${_pkgname}-static"
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='Ejudge Configurable Web Standings Daemon for Multiple Contests'
+url="https://apathism.net/git/apathism/${_pkgname}"
+arch=('x86_64')
+license=('AGPL3')
+makedepends=('stack')
+source=("${_pkgname}-${pkgver}.zip"::"https://apathism.net/git/apathism/${_pkgname}/archive/${pkgver}.zip")
+sha256sums=('a1c9043365bbd660275da3ba6e2447d22ea257dea3b56a56131be9fcdaf3c1d0')
+
+build() {
+    cd "${srcdir}/${_pkgname}"
+    mkdir -p "build/bin"
+    stack --local-bin-path "build/bin" install -- ${_pkgname}
+}
+
+package() {
+   cd "${srcdir}/${_pkgname}"
+
+   mkdir -p "${pkgdir}/etc/${_pkgname}/{cfg,examples}"
+
+   install -Dm755 "build/bin/${_pkgname}" "${pkgdir}/usr/bin/${_pkgname}"
+   install -Dm644 "conf/global.cfg.example" "${pkgdir}/etc/${_pkgname}.cfg"
+   install -Dm644 "conf/local.cfg.example" "${pkgdir}/etc/examples/standing.cfg.example"
+   install -Dm644 "dist/archlinux/${_pkgname}.service" "${pkgdir}/etc/systemd/system/${_pkgname}.service"
+}

@@ -1,4 +1,3 @@
-dist/**
 *.ps
 *.sandbox.config
 .cabal-sandbox/**

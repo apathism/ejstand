@@ -1,0 +1,9 @@
+[Unit]
+Description=Ejudge Configurable Web Standings Daemon for Multiple Contests
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/ejstand
+
+[Install]
+WantedBy=multi-user.target
