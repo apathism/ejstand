@@ -25,19 +25,4 @@ $doctype 5
                     $forall column <- standingColumns
                         #{columnRowValue column $ tRow}
                     $forall (problem, cell) <- fmap (getRowCellByProblem row) $ standingProblems
-                        $case cellType cell
-                            $of Success
-                                $if cellIsOverdue cell
-                                    <td class="overdue">+.
-                                $else
-                                    <td class="success">+
-                            $of Rejected
-                                <td class="rejected">-
-                            $of Pending
-                                <td class="pending">?
-                            $of Mistake
-                                <td class="mistake">-
-                            $of Disqualified
-                                <td class="disqualified">
-                            $of _
-                                <td class="none">
+                        #{renderCell standingConfig cell}

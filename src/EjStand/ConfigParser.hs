@@ -217,6 +217,7 @@ buildStandingOptions = do
     takeUniqueValue ||> toTextValue ||> toBool |> skipKey (fromMaybe False) $ "ShowProblemStatistics"
   enableScores        <- takeUniqueValue ||> toTextValue ||> toBool |> skipKey (fromMaybe False) $ "EnableScores"
   onlyScoreLastSubmit <- takeUniqueValue ||> toTextValue ||> toBool |> skipKey (fromMaybe False) $ "OnlyScoreLastSubmit"
+  showAttemptsNumber  <- takeUniqueValue ||> toTextValue ||> toBool |> skipKey (fromMaybe True) $ "ShowAttemptsNumber"
   showLanguages       <- takeUniqueValue ||> toTextValue ||> toBool |> skipKey (fromMaybe False) $ "ShowLanguages"
   extraDeadlines      <- buildExtraDeadlines
   return $ mconcat
@@ -227,6 +228,7 @@ buildStandingOptions = do
     , enableScores ==> EnableScores
     , onlyScoreLastSubmit ==> OnlyScoreLastSubmit
     , showLanguages ==> ShowLanguages
+    , showAttemptsNumber ==> ShowAttemptsNumber
     , extraDeadlines
     ]
 

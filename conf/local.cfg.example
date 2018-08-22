@@ -161,7 +161,17 @@ InternalName = example
 --|    for contests with offline scoring system.
 --|
 
--- OnlyScoreLastSubmit = True
+-- OnlyScoreLastSubmit = False
+
+--|
+--|  Option "ShowAttemptsNumber"
+--|    Required:      optional
+--|    Default value: True
+--|
+--|    Enables displaying number of attempts made while trying to solve a task.
+--|
+
+-- ShowAttemptsNumber = True
 
 --| Option "ShowLanguages"
 --|   Required:      optional

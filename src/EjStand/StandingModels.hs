@@ -73,6 +73,7 @@ data StandingOption = ReversedContestOrder
                     | ShowProblemStatistics
                     | EnableScores
                     | OnlyScoreLastSubmit
+                    | ShowAttemptsNumber
                     | ShowLanguages
                     deriving (Show, Eq)
 
