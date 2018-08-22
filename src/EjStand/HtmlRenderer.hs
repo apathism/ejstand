@@ -20,6 +20,7 @@ import           Data.Text.Lazy                (Text)
 import           Data.Time                     (UTCTime, defaultTimeLocale)
 import           Data.Time.Format              (formatTime)
 import           EjStand.BaseModels
+import           EjStand.InternalsCore         (takeFromSetBy)
 import           EjStand.StandingModels
 import           Text.Blaze.Html               (Markup, ToMarkup, preEscapedToMarkup, toMarkup)
 import           Text.Blaze.Html.Renderer.Text (renderHtml)

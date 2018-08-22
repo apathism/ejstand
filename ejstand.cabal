@@ -23,6 +23,7 @@ executable ejstand
                        EjStand.ConfigParser
                        EjStand.DataParser
                        EjStand.HtmlRenderer
+                       EjStand.InternalsCore
                        EjStand.StandingBuilder
                        EjStand.StandingModels
                        EjStand.WebApplication

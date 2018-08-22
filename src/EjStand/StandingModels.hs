@@ -13,7 +13,6 @@ module EjStand.StandingModels
   , defaultGlobalConfiguration
   , getRunStatusType
   , getStatusesByRunStatusType
-  , takeFromSetBy
   )
 where
 
@@ -33,9 +32,6 @@ data StandingSource = StandingSource { contests    :: !(Set Contest),
                                        runs        :: !(Set Run)
                                      }
                      deriving (Show)
-
-takeFromSetBy :: Ord b => (a -> b) -> b -> Set a -> Set a
-takeFromSetBy f x = Set.takeWhileAntitone ((== x) . f) . Set.dropWhileAntitone ((< x) . f)
 
 instance Semigroup StandingSource where
   (<>) x y = fromTuple $ (toTuple x) <> (toTuple y) where

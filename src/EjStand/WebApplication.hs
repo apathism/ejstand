@@ -11,13 +11,13 @@ import           Data.ByteString          (ByteString)
 import qualified Data.ByteString.Char8    as BSC8
 import qualified Data.ByteString.Lazy     as LBS
 import           Data.String              (IsString, fromString)
-import           Data.Text                (Text, unpack)
+import           Data.Text                (unpack)
 import           Data.Text.Encoding       (encodeUtf8)
 import           Data.Text.Lazy           (toStrict)
 import qualified Data.Text.Lazy.Encoding  as EncLazy (encodeUtf8)
-import           EjStand.ConfigParser
-import           EjStand.HtmlRenderer
-import           EjStand.StandingBuilder
+import           EjStand.ConfigParser     (retrieveGlobalConfiguration, retrieveStandingConfigs)
+import           EjStand.HtmlRenderer     (renderCSS, renderStanding)
+import           EjStand.StandingBuilder  (buildStanding, prepareStandingSource)
 import           EjStand.StandingModels
 import           Network.HTTP.Types       (ResponseHeaders, Status, status200, status404, status500)
 import           Network.Wai              (Application, Request, Response, ResponseReceived, rawPathInfo,
@@ -80,8 +80,7 @@ runEjStandRequest global local request respond = catchSomeException' (onExceptio
   case (path, possibleRoutes) of
     ("/ejstand.css", _) ->
       respond $ responseLBS status200 [("Content-Type", "text/css")] $ EncLazy.encodeUtf8 renderCSS
-    (_, []) ->
-      respond $ responseBS status404 [("Content-Type", "text/plain")] $ buildNotFoundTextMessage request
+    (_, []) -> respond $ responseBS status404 [("Content-Type", "text/plain")] $ buildNotFoundTextMessage request
     (_, [route]) ->
       runRoute global route >>= return . responseLBS status200 [("Content-Type", "text/html")] >>= respond
     _ -> throw $ DuplicateRoutes path

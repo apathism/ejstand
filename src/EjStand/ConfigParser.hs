@@ -7,11 +7,9 @@ module EjStand.ConfigParser
   , parseGlobalConfiguration
   , retrieveGlobalConfiguration
   , retrieveGlobalConfiguration'
-  , (==>)
   )
 where
 
-import           Control.Applicative        (liftA2)
 import           Control.Exception          (Exception, IOException, catch, throw)
 import           Control.Monad.State.Strict (State, evalState, get, put)
 import qualified Data.ByteString            as B
@@ -28,18 +26,11 @@ import qualified Data.Text                  as Text
 import           Data.Text.Encoding         (decodeUtf8)
 import           Data.Text.Read             (decimal)
 import           Data.Time                  (UTCTime, defaultTimeLocale, parseTimeM)
+import           EjStand.InternalsCore      (skipKey, (==>), (|>), (||>), (|||))
 import           EjStand.StandingModels     (GlobalConfiguration (..), StandingConfig (..), StandingOption (..),
                                              defaultGlobalConfiguration)
 import           Prelude                    hiding (toInteger)
 import           System.Directory           (listDirectory)
-
--- Character types
-
-(|||) :: (a -> Bool) -> (a -> Bool) -> (a -> Bool)
-(|||) = liftA2 (||)
-
-isKeyCharacter :: Char -> Bool
-isKeyCharacter = isDigit ||| isLetter ||| (== '_')
 
 -- Exceptions
 
@@ -82,6 +73,9 @@ type ParsingState = State [Text]
 
 -- Configuration parser
 
+isKeyCharacter :: Char -> Bool
+isKeyCharacter = isDigit ||| isLetter ||| (== '_')
+
 takeOneIf :: (Char -> Bool) -> Text -> (Text, Text)
 takeOneIf pred str = case Text.uncons str of
   Nothing     -> ("", str)
@@ -98,8 +92,8 @@ buildConfig' :: Configuration -> ParsingState Configuration
 buildConfig' cfg = do
   buffer <- get
   case buffer of
-    []      -> return cfg
-    (h : t) -> do
+    []    -> return cfg
+    (h:t) -> do
       put t
       if h == "}"
         then return cfg
@@ -135,8 +129,8 @@ takeUniqueValue :: Text -> TraversingState (Maybe ConfigValue)
 takeUniqueValue key = unique <$> takeValuesByKey key
  where
   unique :: [a] -> Maybe a
-  unique (_ : _ : _) = throw $ DuplicateKey key
-  unique list        = listToMaybe list
+  unique (_:_:_) = throw $ DuplicateKey key
+  unique list    = listToMaybe list
 
 takeMandatoryValue :: Text -> TraversingState ConfigValue
 takeMandatoryValue key = fromMaybe (throw $ UndefinedKey key) <$> takeUniqueValue key
@@ -195,21 +189,6 @@ ensureEmptyState = do
   return $ case Map.lookupMin cfg of
     Nothing       -> ()
     Just (key, _) -> throw $ UnexpectedKey key
-
--- Utilities
-
-(|>) :: Functor f => (a -> f b) -> (a -> b -> c) -> a -> f c
-(|>) f1 f2 x = f2 x <$> f1 x
-
-(||>) :: (Functor f, Functor g) => (a -> f (g b)) -> (a -> b -> c) -> a -> f (g c)
-(||>) f1 f2 x = (f2 x <$>) <$> f1 x
-
-skipKey :: (b -> c) -> a -> b -> c
-skipKey f _ = f
-
-(==>) :: Bool -> a -> [a]
-(==>) False _ = []
-(==>) True  x = [x]
 
 -- Configuration readers
 
@@ -285,9 +264,9 @@ buildGlobalConfiguration = evalState $ do
   !_             <- ensureEmptyState
   return $ GlobalConfiguration xmlFilePattern standCfgPath port hostname
  where
-  defaultXMLPath = xmlFilePattern defaultGlobalConfiguration
-  defaultCfgPath = standingConfigurationsPath defaultGlobalConfiguration
-  defaultPort = ejStandPort defaultGlobalConfiguration
+  defaultXMLPath  = xmlFilePattern defaultGlobalConfiguration
+  defaultCfgPath  = standingConfigurationsPath defaultGlobalConfiguration
+  defaultPort     = ejStandPort defaultGlobalConfiguration
   defaultHostname = ejStandHostname defaultGlobalConfiguration
 
 parseGlobalConfiguration :: FilePath -> IO GlobalConfiguration
@@ -297,11 +276,12 @@ parseGlobalConfiguration path = do
   return $ buildGlobalConfiguration cfg
 
 retrieveGlobalConfiguration' :: [FilePath] -> IO GlobalConfiguration
-retrieveGlobalConfiguration' []            = return defaultGlobalConfiguration
-retrieveGlobalConfiguration' (file : rest) = catch (parseGlobalConfiguration file) (noFileExceptionHandler rest)
+retrieveGlobalConfiguration' []          = return defaultGlobalConfiguration
+retrieveGlobalConfiguration' (file:rest) = catch (parseGlobalConfiguration file) (noFileExceptionHandler rest)
  where
   noFileExceptionHandler :: [FilePath] -> IOException -> IO GlobalConfiguration
   noFileExceptionHandler rest _ = retrieveGlobalConfiguration' rest
 
 retrieveGlobalConfiguration :: IO GlobalConfiguration
-retrieveGlobalConfiguration = retrieveGlobalConfiguration' ["/etc/ejstand.cfg", "/etc/ejstand/ejstand.cfg", "./ejstand.cfg"]
+retrieveGlobalConfiguration =
+  retrieveGlobalConfiguration' ["/etc/ejstand.cfg", "/etc/ejstand/ejstand.cfg", "./ejstand.cfg"]
