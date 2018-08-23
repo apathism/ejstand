@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
 module EjStand.WebApplication
@@ -11,18 +12,20 @@ import           Data.ByteString          (ByteString)
 import qualified Data.ByteString.Char8    as BSC8
 import qualified Data.ByteString.Lazy     as LBS
 import           Data.String              (IsString, fromString)
-import           Data.Text                (unpack)
+import           Data.Text                (Text, pack, unpack)
 import           Data.Text.Encoding       (encodeUtf8)
 import           Data.Text.Lazy           (toStrict)
 import qualified Data.Text.Lazy.Encoding  as EncLazy (encodeUtf8)
 import           EjStand.ConfigParser     (retrieveGlobalConfiguration, retrieveStandingConfigs)
 import           EjStand.HtmlRenderer     (renderCSS, renderStanding)
+import           EjStand.InternalsCore    (textReplaceLast)
 import           EjStand.StandingBuilder  (buildStanding, prepareStandingSource)
 import           EjStand.StandingModels
 import           Network.HTTP.Types       (ResponseHeaders, Status, status200, status404, status500)
 import           Network.Wai              (Application, Request, Response, ResponseReceived, rawPathInfo,
                                            responseBuilder, responseLBS)
 import           Network.Wai.Handler.Warp (defaultSettings, runSettings, setHost, setPort)
+import           System.Clock             (Clock (..), TimeSpec, getTime, nsec, sec)
 
 -- IO Utilities (especially for error handling)
 
@@ -67,22 +70,33 @@ isPathCorresponding path StandingConfig {..} = encodeUtf8 internalName == path -
 
 -- Main EjStand WAI
 
-runRoute :: GlobalConfiguration -> StandingConfig -> IO LBS.ByteString
+runRoute :: GlobalConfiguration -> StandingConfig -> IO Text
 runRoute global local = do
   source <- prepareStandingSource global local
   let standing = buildStanding local source
-  return . EncLazy.encodeUtf8 . renderStanding $ standing
+  return . toStrict $ renderStanding standing
+
+timeSpecToMilliseconds :: TimeSpec -> Integer
+timeSpecToMilliseconds time = sum $ [(* 1000) . toInteger . sec, (`div` 1000000) . toInteger . nsec] <*> [time]
+
+insertPageGenerationTime :: Integer -> Text -> Text
+insertPageGenerationTime time = textReplaceLast "%%GENERATION_TIME%%" timeText where
+  timeText = pack $ show time
 
 runEjStandRequest :: GlobalConfiguration -> [StandingConfig] -> Application
 runEjStandRequest global local request respond = catchSomeException' (onExceptionRespond respond) $ do
+  !startTime <- getTime Monotonic
   let path           = rawPathInfo request
       possibleRoutes = filter (isPathCorresponding path) local
   case (path, possibleRoutes) of
     ("/ejstand.css", _) ->
       respond $ responseLBS status200 [("Content-Type", "text/css")] $ EncLazy.encodeUtf8 renderCSS
     (_, []) -> respond $ responseBS status404 [("Content-Type", "text/plain")] $ buildNotFoundTextMessage request
-    (_, [route]) ->
-      runRoute global route >>= return . responseLBS status200 [("Content-Type", "text/html")] >>= respond
+    (_, [route]) -> do
+      !pageContents <- runRoute global route
+      !finishTime <- getTime Monotonic
+      let !pageGenerationTime = timeSpecToMilliseconds finishTime - timeSpecToMilliseconds startTime
+      respond $ responseBS status200 [("Content-Type", "text/html")] $ encodeUtf8 $ insertPageGenerationTime pageGenerationTime $ pageContents
     _ -> throw $ DuplicateRoutes path
 
 ejStand :: IO ()

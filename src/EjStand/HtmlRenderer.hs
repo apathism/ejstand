@@ -20,6 +20,7 @@ import           Data.Text                     (splitOn)
 import           Data.Text.Lazy                (Text)
 import           Data.Time                     (UTCTime, defaultTimeLocale)
 import           Data.Time.Format              (formatTime)
+import           EjStand                       (getVersion)
 import           EjStand.BaseModels
 import           EjStand.InternalsCore         (takeFromSetBy, (==>))
 import           EjStand.StandingModels
@@ -37,13 +38,13 @@ import           Text.Lucius                   (luciusFile, renderCss)
 enumerate :: [a] -> [(Integer, a)]
 enumerate = zip [1 ..]
 
-count :: Eq a => a -> [a] -> Int
-count x = length . filter (== x)
-
 getRowCellByProblem :: StandingRow -> Problem -> (Problem, StandingCell)
 getRowCellByProblem row@StandingRow {..} prob@Problem {..} = case Map.lookup (problemContest, problemID) rowCells of
   (Just cell) -> (prob, cell)
   Nothing     -> error $ "Can't find standing cell for " ++ show prob ++ " in " ++ show row
+
+getTextVersion :: Text
+getTextVersion = getVersion
 
 -- Non-standart types rendering
 

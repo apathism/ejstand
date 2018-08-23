@@ -100,3 +100,21 @@ td.processing {
 sub, sup {
   font-size: 6pt;
 }
+
+.footer {
+  margin-top: 20px;
+  color: #333333;
+  font-size: 8pt;
+}
+
+.footer p {
+  margin: 0;
+}
+
+.footer a {
+  color: #333333;
+}
+
+.footer a:hover {
+  color: #aaaaaa;
+}
