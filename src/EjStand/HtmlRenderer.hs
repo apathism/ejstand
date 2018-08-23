@@ -146,7 +146,7 @@ renderCell cfg@StandingConfig {..} cell@StandingCell {..} = cellTag $ foldl (>>)
 -- Main entry points
 
 renderStanding :: Standing -> Text
-renderStanding Standing {..} = renderHtml ($(shamletFile "shakespeare/main.hamlet"))
+renderStanding Standing {..} = renderHtml ($(shamletFile "templates/main.hamlet"))
 
 renderCSS :: Text
-renderCSS = renderCss ($(luciusFile "shakespeare/main.lucius") undefined)
+renderCSS = renderCss ($(luciusFile "templates/main.lucius") undefined)
