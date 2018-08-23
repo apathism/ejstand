@@ -37,8 +37,25 @@ table.standing td, table.standing th {
   text-align: center;
 }
 
-td.success, td.mistake, td.none, td.pending, td.rejected, td.overdue, td.disqualified {
+td.success, td.mistake, td.none, td.pending, td.rejected, td.overdue,
+td.disqualified, td.error, td.processing {
   text-align: center;
+}
+
+.attempts {
+  quotes: " (" ")";
+}
+
+.attempts:before {
+  content: open-quote;
+}
+
+.attempts:after {
+  content: close-quote;
+}
+
+td.success .score, td.overdue .score {
+  font-weight: bold;
 }
 
 td.success {
@@ -54,7 +71,7 @@ td.mistake {
 }
 
 td.pending{
-  background:#ffffaa;
+  background: #ffff33;
 }
 
 td.rejected {
@@ -63,6 +80,21 @@ td.rejected {
 
 td.disqualified {
   background: #000000;
+}
+
+td.error {
+  color: red;
+  background: #ffff33;
+}
+
+@keyframes processing-animation {
+  0%   { background-color: #ffffaa; }
+  50%  { background-color: #ffff77; }
+  100% { background-color: #ffffaa; }
+}
+
+td.processing {
+  animation: processing-animation 2s infinite;
 }
 
 sub, sup {

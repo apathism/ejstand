@@ -102,7 +102,7 @@ lastSuccessTimeColumn = StandingColumn caption value
 type CellContentBuilder = StandingCell -> Markup
 
 scoreCellContent :: CellContentBuilder
-scoreCellContent StandingCell {..} = span ! class_ "score" $ toMarkup cellScore
+scoreCellContent StandingCell {..} = if cellType == Ignore then mempty else span ! class_ "score" $ toMarkup cellScore
 
 wrongAttemptsCellContent :: CellContentBuilder
 wrongAttemptsCellContent StandingCell {..} = case cellAttempts of
@@ -110,34 +110,38 @@ wrongAttemptsCellContent StandingCell {..} = case cellAttempts of
   _ -> span ! class_ "wrong_attempts" $ toMarkup cellAttempts
 
 attemptsCellContent :: CellContentBuilder
-attemptsCellContent StandingCell {..} = if count == 0 then mempty else span ! class_ "attempts" $ toMarkup count
+attemptsCellContent StandingCell {..} = if cellType == Ignore
+  then mempty
+  else span ! class_ "attempts" $ toMarkup count
  where
   count = case cellType of
-    Success -> cellAttempts + 1
-    Ignore  -> 0
-    _       -> cellAttempts
+    Mistake -> cellAttempts
+    _       -> cellAttempts + 1
 
 selectAdditionalCellContentBuilders :: StandingConfig -> [CellContentBuilder]
-selectAdditionalCellContentBuilders StandingConfig {..} =
-  mconcat [ elem EnableScores standingOptions ==> scoreCellContent
-          , elem ShowAttemptsNumber standingOptions ==> if elem EnableScores standingOptions then attemptsCellContent else wrongAttemptsCellContent]
+selectAdditionalCellContentBuilders StandingConfig {..} = mconcat
+  [ elem EnableScores       standingOptions ==> scoreCellContent
+  , elem ShowAttemptsNumber standingOptions
+    ==> if elem EnableScores standingOptions then attemptsCellContent else wrongAttemptsCellContent
+  ]
 
 renderCell :: StandingConfig -> CellContentBuilder
 renderCell cfg@StandingConfig {..} cell@StandingCell {..} = cellTag $ foldl (>>) cellValue additionalContent
  where
-  additionalContent = selectAdditionalCellContentBuilders cfg <*> [cell]
+  additionalContent = if allowCellContent then selectAdditionalCellContentBuilders cfg <*> [cell] else []
   addRunStatusCellText text = span ! class_ "run_status" $ text
-  cellValue             = if elem EnableScores standingOptions then mempty else cellValue'
-  (cellTag, cellValue') = case cellType of
+  ifNotScores x = if elem EnableScores standingOptions then mempty else x
+  (cellTag, cellValue, allowCellContent) = case cellType of
     Success -> case cellIsOverdue of
-      False -> (td ! class_ "success", addRunStatusCellText "+")
-      True  -> (td ! class_ "overdue", addRunStatusCellText "+.")
-    Pending      -> (td ! class_ "pending", addRunStatusCellText "?")
-    Rejected     -> (td ! class_ "rejected", addRunStatusCellText "-")
-    Mistake      -> (td ! class_ "mistake", addRunStatusCellText "-")
-    Ignore       -> (td ! class_ "none", "")
-    Disqualified -> (td ! class_ "disqualified", "")
-    Error        -> (td ! class_ "error", "")
+      False -> (td ! class_ "success", ifNotScores $ addRunStatusCellText "+", True)
+      True  -> (td ! class_ "overdue", ifNotScores $ addRunStatusCellText "+.", True)
+    Processing   -> (td ! class_ "processing", ifNotScores $ addRunStatusCellText "-", True)
+    Pending      -> (td ! class_ "pending", ifNotScores $ addRunStatusCellText "?", True)
+    Rejected     -> (td ! class_ "rejected", ifNotScores $ addRunStatusCellText "-", True)
+    Mistake      -> (td ! class_ "mistake", ifNotScores $ addRunStatusCellText "-", True)
+    Ignore       -> (td ! class_ "none", "", True)
+    Disqualified -> (td ! class_ "disqualified", "", False)
+    Error        -> (td ! class_ "error", addRunStatusCellText "✖", False)
 
 -- Main entry points
 

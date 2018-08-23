@@ -39,7 +39,7 @@ instance Semigroup StandingSource where
     fromTuple (a, b, c, d, e) = StandingSource a b c d e
 
 instance Monoid StandingSource where
-  mempty = StandingSource (mempty) (mempty) (mempty) (mempty) (mempty)
+  mempty = StandingSource mempty mempty mempty mempty mempty
 
 data GlobalConfiguration = GlobalConfiguration { xmlFilePattern             :: !Text,
                                                  standingConfigurationsPath :: !Text,

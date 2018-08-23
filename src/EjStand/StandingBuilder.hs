@@ -97,16 +97,17 @@ setCellMainRunMaybe = setCellMainRun False
 
 applicateRun :: StandingConfig -> (Run, Bool) -> StandingCell -> StandingCell
 -- 0 priority: Ignore
-applicateRun _   ((getRunStatusType . runStatus -> Ignore), _) cell            = cell
-applicateRun cfg runT cell@StandingCell { cellType = Ignore, ..}               = setCellMainRunForce cfg runT cell
+applicateRun _ ((getRunStatusType . runStatus -> Ignore), _) cell = cell
 -- 1 priority: Error
-applicateRun _   _    cell@StandingCell { cellType = Error, ..}                = cell
-applicateRun cfg runT@((getRunStatusType . runStatus -> Error), _) cell        = setCellMainRunForce cfg runT cell
+applicateRun _ _ cell@StandingCell { cellType = Error, ..} = cell
+applicateRun cfg runT@((getRunStatusType . runStatus -> Error), _) cell =
+  (setCellMainRunForce cfg runT cell) { cellScore = 0 }
 -- 2 priority: Disqualified
-applicateRun _   _    cell@StandingCell { cellType = Disqualified, ..}         = cell
-applicateRun cfg runT@((getRunStatusType . runStatus -> Disqualified), _) cell = setCellMainRunForce cfg runT cell
+applicateRun _ _ cell@StandingCell { cellType = Disqualified, ..} = cell
+applicateRun cfg runT@((getRunStatusType . runStatus -> Disqualified), _) cell =
+  (setCellMainRunForce cfg runT cell) { cellScore = 0 }
 -- Extra priorities: Other statuses
-applicateRun cfg runT cell                                                     = setCellMainRunMaybe cfg runT cell
+applicateRun cfg runT cell = setCellMainRunMaybe cfg runT cell
 
 buildCell :: StandingConfig -> StandingSource -> Problem -> Contestant -> StandingCell
 buildCell cfg@StandingConfig {..} src@StandingSource {..} prob@Problem {..} user@Contestant {..} =
