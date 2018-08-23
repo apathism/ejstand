@@ -2,7 +2,7 @@
 
 _pkgname=ejstand
 pkgname="${_pkgname}-static"
-pkgver=0.1.1
+pkgver=0.2.0
 pkgrel=1
 pkgdesc='Ejudge Configurable Web Standings Daemon for Multiple Contests'
 url="https://apathism.net/git/apathism/${_pkgname}"

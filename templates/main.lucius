@@ -10,9 +10,11 @@ body {
 
 td, th {
   min-width: 20px;
+  height: 20px;
   font-size: 10pt;
   font-weight: normal;
 }
+
 
 table.standing {
   border-left: 1px solid black;
@@ -26,8 +28,8 @@ table.standing td, table.standing th {
   white-space: nowrap;
   border-right: 1px solid black;
   border-bottom: 1px solid black;
-  padding-left: 2px;
-  padding-right: 2px;
+  padding-left: 4px;
+  padding-right: 4px;
   padding-top: 1px;
   padding-bottom: 1px;
   white-space: nowrap;
@@ -84,13 +86,13 @@ td.disqualified {
 
 td.error {
   color: red;
-  background: #ffff33;
+  animation: processing-animation 2s infinite;
 }
 
 @keyframes processing-animation {
-  0%   { background-color: #ffffaa; }
-  50%  { background-color: #ffff77; }
-  100% { background-color: #ffffaa; }
+  0%   { background-color: #ffffff; }
+  50%  { background-color: #dddddd; }
+  100% { background-color: #ffffff; }
 }
 
 td.processing {
