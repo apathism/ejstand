@@ -45,7 +45,7 @@ takeFromSetBy f x = Set.takeWhileAntitone ((== x) . f) . Set.dropWhileAntitone (
 
 textReplaceLast :: Text -> Text -> Text -> Text
 textReplaceLast needle replacement haystack = case breakOnEnd needle haystack of
-    ("", str) -> str
-    (first, second) -> case stripSuffix needle first of
-        Nothing       -> error "textReplaceLast: Unexpected behaviour during cutting off needle"
-        (Just first') -> mconcat [first', replacement, second]
+  (""   , str   ) -> str
+  (first, second) -> case stripSuffix needle first of
+    Nothing       -> error "textReplaceLast: Unexpected behaviour during cutting off needle"
+    (Just first') -> mconcat [first', replacement, second]

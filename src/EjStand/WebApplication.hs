@@ -80,8 +80,7 @@ timeSpecToMilliseconds :: TimeSpec -> Integer
 timeSpecToMilliseconds time = sum $ [(* 1000) . toInteger . sec, (`div` 1000000) . toInteger . nsec] <*> [time]
 
 insertPageGenerationTime :: Integer -> Text -> Text
-insertPageGenerationTime time = textReplaceLast "%%GENERATION_TIME%%" timeText where
-  timeText = pack $ show time
+insertPageGenerationTime time = textReplaceLast "%%GENERATION_TIME%%" timeText where timeText = pack $ show time
 
 runEjStandRequest :: GlobalConfiguration -> [StandingConfig] -> Application
 runEjStandRequest global local request respond = catchSomeException' (onExceptionRespond respond) $ do
@@ -91,12 +90,16 @@ runEjStandRequest global local request respond = catchSomeException' (onExceptio
   case (path, possibleRoutes) of
     ("/ejstand.css", _) ->
       respond $ responseLBS status200 [("Content-Type", "text/css")] $ EncLazy.encodeUtf8 renderCSS
-    (_, []) -> respond $ responseBS status404 [("Content-Type", "text/plain")] $ buildNotFoundTextMessage request
+    (_, []     ) -> respond $ responseBS status404 [("Content-Type", "text/plain")] $ buildNotFoundTextMessage request
     (_, [route]) -> do
       !pageContents <- runRoute global route
-      !finishTime <- getTime Monotonic
+      !finishTime   <- getTime Monotonic
       let !pageGenerationTime = timeSpecToMilliseconds finishTime - timeSpecToMilliseconds startTime
-      respond $ responseBS status200 [("Content-Type", "text/html")] $ encodeUtf8 $ insertPageGenerationTime pageGenerationTime $ pageContents
+      respond
+        $ responseBS status200 [("Content-Type", "text/html")]
+        $ encodeUtf8
+        $ insertPageGenerationTime pageGenerationTime
+        $ pageContents
     _ -> throw $ DuplicateRoutes path
 
 ejStand :: IO ()

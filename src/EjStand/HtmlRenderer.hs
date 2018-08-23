@@ -13,11 +13,12 @@ module EjStand.HtmlRenderer
 where
 
 import qualified Data.Map.Strict               as Map
+import           Data.Maybe                    (catMaybes)
 import           Data.Ratio                    (Ratio, denominator, numerator)
 import qualified Data.Set                      as Set
 import           Data.String                   (IsString)
-import           Data.Text                     (splitOn)
-import           Data.Text.Lazy                (Text)
+import           Data.Text                     (Text, intercalate, splitOn)
+import qualified Data.Text.Internal.Lazy       as LT
 import           Data.Time                     (UTCTime, defaultTimeLocale)
 import           Data.Time.Format              (formatTime)
 import           EjStand                       (getVersion)
@@ -28,7 +29,7 @@ import           Prelude                       hiding (div, span)
 import qualified Prelude                       (div)
 import           Text.Blaze.Html               (Markup, ToMarkup, preEscapedToMarkup, toMarkup)
 import           Text.Blaze.Html.Renderer.Text (renderHtml)
-import           Text.Blaze.Html5
+import           Text.Blaze.Html5              hiding (title)
 import           Text.Blaze.Html5.Attributes   hiding (span)
 import           Text.Hamlet                   (shamletFile)
 import           Text.Lucius                   (luciusFile, renderCss)
@@ -119,19 +120,30 @@ attemptsCellContent StandingCell {..} = if cellType == Ignore
     Mistake -> cellAttempts
     _       -> cellAttempts + 1
 
-selectAdditionalCellContentBuilders :: StandingConfig -> [CellContentBuilder]
-selectAdditionalCellContentBuilders StandingConfig {..} = mconcat
+selectAdditionalCellContentBuilders :: Standing -> [CellContentBuilder]
+selectAdditionalCellContentBuilders Standing { standingConfig = StandingConfig {..}, ..} = mconcat
   [ elem EnableScores       standingOptions ==> scoreCellContent
   , elem ShowAttemptsNumber standingOptions
     ==> if elem EnableScores standingOptions then attemptsCellContent else wrongAttemptsCellContent
   ]
 
-renderCell :: StandingConfig -> CellContentBuilder
-renderCell cfg@StandingConfig {..} cell@StandingCell {..} = cellTag $ foldl (>>) cellValue additionalContent
+buildCellTitle :: Standing -> StandingRow -> Problem -> StandingCell -> Text
+buildCellTitle Standing { standingConfig = StandingConfig {..}, standingSource = StandingSource {..}, ..} StandingRow {..} Problem {..} StandingCell {..}
+  = intercalate ", " $ mconcat
+    [ [contestantName rowContestant, mconcat [problemShortName, " (", problemLongName, ")"]]
+    , catMaybes
+      (elem ShowLanguages standingOptions ==> (languageLongName <$> (cellMainRun >>= runLanguage >>= findLanguageByID)))
+    ]
+  where findLanguageByID id = Set.lookupMin $ takeFromSetBy languageID id languages
+
+renderCell :: Standing -> StandingRow -> Problem -> CellContentBuilder
+renderCell st@Standing { standingConfig = StandingConfig {..}, ..} row problem cell@StandingCell {..} =
+  cellTag' $ foldl (>>) cellValue additionalContent
  where
-  additionalContent = if allowCellContent then selectAdditionalCellContentBuilders cfg <*> [cell] else []
+  additionalContent = if allowCellContent then selectAdditionalCellContentBuilders st <*> [cell] else []
   addRunStatusCellText text = span ! class_ "run_status" $ text
   ifNotScores x = if elem EnableScores standingOptions then mempty else x
+  cellTag' = cellTag ! title (toValue $ buildCellTitle st row problem cell)
   (cellTag, cellValue, allowCellContent) = case cellType of
     Success -> case cellIsOverdue of
       False -> (td ! class_ "success", ifNotScores $ addRunStatusCellText "+", True)
@@ -146,8 +158,8 @@ renderCell cfg@StandingConfig {..} cell@StandingCell {..} = cellTag $ foldl (>>)
 
 -- Main entry points
 
-renderStanding :: Standing -> Text
-renderStanding Standing {..} = renderHtml ($(shamletFile "templates/main.hamlet"))
+renderStanding :: Standing -> LT.Text
+renderStanding standing@Standing {..} = renderHtml ($(shamletFile "templates/main.hamlet"))
 
-renderCSS :: Text
+renderCSS :: LT.Text
 renderCSS = renderCss ($(luciusFile "templates/main.lucius") undefined)
