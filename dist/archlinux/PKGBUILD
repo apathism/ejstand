@@ -11,7 +11,7 @@ license=('AGPL3')
 depends=('gmp')
 makedepends=('stack')
 source=("${_pkgname}-${pkgver}.zip"::"https://apathism.net/git/apathism/${_pkgname}/archive/${pkgver}.zip")
-sha256sums=('64f351190ba5912e47cc0dc176ddbd999f0d3363e2c9ccf9649b8bcb90a477ed')
+sha256sums=('SKIP')
 backup=('etc/ejstand.cfg')
 
 build() {
