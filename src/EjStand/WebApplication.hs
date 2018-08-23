@@ -74,7 +74,7 @@ runRoute :: GlobalConfiguration -> StandingConfig -> IO Text
 runRoute global local = do
   source <- prepareStandingSource global local
   let standing = buildStanding local source
-  return . toStrict $ renderStanding standing
+  return . toStrict $ renderStanding global standing
 
 timeSpecToMilliseconds :: TimeSpec -> Integer
 timeSpecToMilliseconds time = sum $ [(* 1000) . toInteger . sec, (`div` 1000000) . toInteger . nsec] <*> [time]

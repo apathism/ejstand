@@ -132,7 +132,8 @@ buildCellTitle Standing { standingConfig = StandingConfig {..}, standingSource =
   = intercalate ", " $ mconcat
     [ [contestantName rowContestant, mconcat [problemShortName, " (", problemLongName, ")"]]
     , catMaybes
-      (elem ShowLanguages standingOptions ==> (languageLongName <$> (cellMainRun >>= runLanguage >>= findLanguageByID)))
+    $   elem ShowLanguages standingOptions
+    ==> (languageLongName <$> (cellMainRun >>= runLanguage >>= findLanguageByID))
     ]
   where findLanguageByID id = Set.lookupMin $ takeFromSetBy languageID id languages
 
@@ -158,8 +159,8 @@ renderCell st@Standing { standingConfig = StandingConfig {..}, ..} row problem c
 
 -- Main entry points
 
-renderStanding :: Standing -> LT.Text
-renderStanding standing@Standing {..} = renderHtml ($(shamletFile "templates/main.hamlet"))
+renderStanding :: GlobalConfiguration -> Standing -> LT.Text
+renderStanding GlobalConfiguration {..} standing@Standing {..} = renderHtml ($(shamletFile "templates/main.hamlet"))
 
 renderCSS :: LT.Text
 renderCSS = renderCss ($(luciusFile "templates/main.lucius") undefined)

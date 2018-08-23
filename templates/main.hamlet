@@ -3,7 +3,7 @@ $doctype 5
     <head>
         <meta http-equiv="content-type" content="text/html; charset=UTF-8">
         <title>#{standingName standingConfig}
-        <link rel="stylesheet" href="/ejstand.css">
+        <link rel="stylesheet" href="#{webRoot}ejstand.css">
     <body>
         <h1>
             #{standingName standingConfig}

@@ -44,16 +44,18 @@ instance Monoid StandingSource where
 data GlobalConfiguration = GlobalConfiguration { xmlFilePattern             :: !Text,
                                                  standingConfigurationsPath :: !Text,
                                                  ejStandPort                :: !Int,
-                                                 ejStandHostname            :: !Text
+                                                 ejStandHostname            :: !Text,
+                                                 webRoot                    :: !Text
                                                }
                                                deriving (Show)
 
 defaultGlobalConfiguration :: GlobalConfiguration
 defaultGlobalConfiguration = GlobalConfiguration
-  { xmlFilePattern             = "/home/judges/%06d/var/status/dir/standings.xml"
+  { xmlFilePattern             = "/home/judges/%06d/var/status/dir/external.xml"
   , standingConfigurationsPath = "/etc/ejstand/cfg/"
   , ejStandPort                = 80
   , ejStandHostname            = "127.0.0.1"
+  , webRoot                    = "/"
   }
 
 data StandingConfig = StandingConfig { standingName     :: !Text,

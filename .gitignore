@@ -15,6 +15,9 @@
 **/*.log
 
 # No ArchLinux building files
-dist/archlinux/src/**
-dist/archlinux/pkg/**
-dist/archlinux/**/*.sig
+dist/archlinux-static/src/**
+dist/archlinux-static/pkg/**
+dist/archlinux-static/**/*.sig
+
+# No ArchLinux non-static builds
+dist/archlinux/**

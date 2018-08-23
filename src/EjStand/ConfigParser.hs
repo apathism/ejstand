@@ -1,5 +1,6 @@
 {-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
 module EjStand.ConfigParser
   ( parseStandingConfig
   , parseStandingConfigDirectory
@@ -259,17 +260,15 @@ retrieveStandingConfigs = parseStandingConfigDirectory . unpack . standingConfig
 
 buildGlobalConfiguration :: Configuration -> GlobalConfiguration
 buildGlobalConfiguration = evalState $ do
-  xmlFilePattern <- takeUniqueValue ||> toTextValue |> skipKey (fromMaybe defaultXMLPath) $ "XMLFilePattern"
-  standCfgPath   <- takeUniqueValue ||> toTextValue |> skipKey (fromMaybe defaultCfgPath) $ "StandingConfigurationsPath"
-  port           <- takeUniqueValue ||> toTextValue ||> toInteger |> skipKey (fromMaybe defaultPort) $ "Port"
-  hostname       <- takeUniqueValue ||> toTextValue |> skipKey (fromMaybe defaultHostname) $ "Hostname"
-  !_             <- ensureEmptyState
-  return $ GlobalConfiguration xmlFilePattern standCfgPath port hostname
- where
-  defaultXMLPath  = xmlFilePattern defaultGlobalConfiguration
-  defaultCfgPath  = standingConfigurationsPath defaultGlobalConfiguration
-  defaultPort     = ejStandPort defaultGlobalConfiguration
-  defaultHostname = ejStandHostname defaultGlobalConfiguration
+  xmlPattern   <- takeUniqueValue ||> toTextValue |> skipKey (fromMaybe xmlFilePattern) $ "XMLFilePattern"
+  standCfgPath <-
+    takeUniqueValue ||> toTextValue |> skipKey (fromMaybe standingConfigurationsPath) $ "StandingConfigurationsPath"
+  port     <- takeUniqueValue ||> toTextValue ||> toInteger |> skipKey (fromMaybe ejStandPort) $ "Port"
+  hostname <- takeUniqueValue ||> toTextValue |> skipKey (fromMaybe ejStandHostname) $ "Hostname"
+  webroot  <- takeUniqueValue ||> toTextValue |> skipKey (fromMaybe webRoot) $ "WebRoot"
+  !_       <- ensureEmptyState
+  return $ GlobalConfiguration xmlPattern standCfgPath port hostname webroot
+  where GlobalConfiguration {..} = defaultGlobalConfiguration
 
 parseGlobalConfiguration :: FilePath -> IO GlobalConfiguration
 parseGlobalConfiguration path = do

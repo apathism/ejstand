@@ -7,13 +7,13 @@
 --|
 --|  Option "XMLilePattern"
 --|    Required:      optional
---|    Default value: /home/judges/%06d/var/status/dir/standings.xml
+--|    Default value: /home/judges/%06d/var/status/dir/external.xml
 --|
 --|    Option can be used to specify where ejudge XML files are located. The
 --|    only printf parameter is used to define contest ID.
 --|
 
--- XMLFilePattern = /home/judges/%06d/var/status/dir/standings.xml
+-- XMLFilePattern = /home/judges/%06d/var/status/dir/external.xml
 
 --|
 --|  Option "StandingConfigurationsPath"
@@ -46,3 +46,16 @@
 --|
 
 -- Hostname = 127.0.0.1
+
+--|
+--|  Option "WebRoot"
+--|    Required:      optional
+--|    Default value: /
+--|
+--|    This option defines the web root of EjStand application on your server.
+--|    For example, you should set this option to "/ejstand/" if you expect
+--|    your standings links to be like that:
+--|      http://www.yourserver.com/ejstand/...
+--|
+
+-- WebRoot = /
