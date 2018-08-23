@@ -10,6 +10,8 @@ arch=('x86_64')
 license=('AGPL3')
 depends=('gmp')
 makedepends=('stack')
+provides=("${_pkgname}=${pkgver}")
+conflicts=("${pkgname}")
 source=("${_pkgname}-${pkgver}.zip"::"https://apathism.net/git/apathism/${_pkgname}/archive/${pkgver}.zip")
 sha256sums=('SKIP')
 backup=('etc/ejstand.cfg')
@@ -28,5 +30,5 @@ package() {
    install -Dm755 "build/bin/${_pkgname}" "${pkgdir}/usr/bin/${_pkgname}"
    install -Dm644 "conf/global.cfg.example" "${pkgdir}/etc/${_pkgname}.cfg"
    install -Dm644 "conf/local.cfg.example" "${pkgdir}/etc/${_pkgname}/examples/standing.cfg.example"
-   install -Dm644 "dist/archlinux/${_pkgname}.service" "${pkgdir}/usr/lib/systemd/system/${_pkgname}.service"
+   install -Dm644 "dist/archlinux-static/${_pkgname}.service" "${pkgdir}/usr/lib/systemd/system/${_pkgname}.service"
 }
