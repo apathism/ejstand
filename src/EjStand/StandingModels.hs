@@ -10,9 +10,15 @@ module EjStand.StandingModels
   , StandingRowStats(..)
   , Standing(..)
   , RunStatusType(..)
+  , ComparisonSign(..)
+  , Comparison(..)
   , defaultGlobalConfiguration
   , getRunStatusType
   , getStatusesByRunStatusType
+  , signDisplay
+  , signFunction
+  , readSign
+  , checkComparison
   )
 where
 
@@ -20,6 +26,7 @@ import           Data.Map.Strict    (Map)
 import           Data.Semigroup     (Semigroup, (<>))
 import           Data.Set           (Set)
 import qualified Data.Set           as Set
+import           Data.String        (IsString)
 import           Data.Text          (Text)
 import           Data.Time          (UTCTime)
 import           EjStand.BaseModels
@@ -65,13 +72,46 @@ data StandingConfig = StandingConfig { standingName     :: !Text,
                                      }
                       deriving (Show)
 
+data ComparisonSign = Less | LessOrEq | Greater | GreaterOrEq | Equal | NotEqual
+  deriving (Show, Eq, Bounded, Enum)
+
+data Comparison t = Comparison !ComparisonSign !t
+  deriving (Show, Eq)
+
+signDisplay :: IsString s => ComparisonSign -> s
+signDisplay Less        = "<"
+signDisplay LessOrEq    = "<="
+signDisplay Greater     = ">"
+signDisplay GreaterOrEq = ">="
+signDisplay Equal       = "="
+signDisplay NotEqual    = "/="
+
+signFunction :: Ord t => ComparisonSign -> t -> t -> Bool
+signFunction Less        = (<)
+signFunction LessOrEq    = (<=)
+signFunction Greater     = (>)
+signFunction GreaterOrEq = (>=)
+signFunction Equal       = (==)
+signFunction NotEqual    = (/=)
+
+readSign :: Text -> Maybe ComparisonSign
+readSign text = case filter ((== text) . signDisplay) [minBound .. maxBound] of
+  [value] -> Just value
+  _       -> Nothing
+
+checkComparison :: Ord t => t -> Comparison t -> Bool
+checkComparison argument (Comparison sign value) = (signFunction sign) argument value
+
 data StandingOption = ReversedContestOrder
                     | EnableDeadlines
-                    | SetFixedDeadline { contestIDs    :: !(Set Integer),
-                                         deadline      :: !UTCTime,
-                                         contestantIDs :: !(Maybe (Set Integer))
+                    | SetFixedDeadline { contestIDs    :: !(Set Integer)
+                                       , deadline      :: !UTCTime
+                                       , contestantIDs :: !(Maybe (Set Integer))
                                        }
                     | SetDeadlinePenalty Rational
+                    | ConditionalStyle { conditions :: ![Comparison Rational]
+                                       , styleValue :: !Text
+                                       }
                     | ShowProblemStatistics
                     | EnableScores
                     | OnlyScoreLastSubmit

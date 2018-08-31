@@ -14,7 +14,7 @@ where
 
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                    (catMaybes)
-import           Data.Ratio                    (Ratio, denominator, numerator)
+import           Data.Ratio                    (Ratio, denominator, numerator, (%))
 import qualified Data.Set                      as Set
 import           Data.String                   (IsString)
 import           Data.Text                     (Text, intercalate, splitOn)
@@ -29,7 +29,7 @@ import           Prelude                       hiding (div, span)
 import qualified Prelude                       (div)
 import           Text.Blaze.Html               (Markup, ToMarkup, preEscapedToMarkup, toMarkup)
 import           Text.Blaze.Html.Renderer.Text (renderHtml)
-import           Text.Blaze.Html5              hiding (title)
+import           Text.Blaze.Html5              hiding (style, title)
 import           Text.Blaze.Html5.Attributes   hiding (span)
 import           Text.Hamlet                   (shamletFile)
 import           Text.Lucius                   (luciusFile, renderCss)
@@ -67,6 +67,13 @@ instance ToMarkup UTCTime where
 
 -- Columns rendering
 
+calculateConditionalStyle :: [StandingOption] -> Rational -> (Html -> Html) -> Html -> Html
+calculateConditionalStyle [] _ html = html
+calculateConditionalStyle ((ConditionalStyle conditions styleValue):tail) value html
+  | checkComparison value `all` conditions = html ! style (toValue styleValue)
+  | otherwise                              = calculateConditionalStyle tail value html
+calculateConditionalStyle (_:tail) value html = calculateConditionalStyle tail value html
+
 placeColumn :: StandingColumn
 placeColumn = StandingColumn caption value
  where
@@ -85,11 +92,17 @@ totalSuccessesColumn = StandingColumn caption value
   caption = th ! class_ "total_successes" ! rowspan "2" $ "="
   value (_, row) = td ! class_ "total_successes" $ toMarkup . rowSuccesses . rowStats $ row
 
-totalScoreColumn :: StandingColumn
-totalScoreColumn = StandingColumn caption value
+totalScoreColumn :: StandingConfig -> StandingColumn
+totalScoreColumn StandingConfig {..} = StandingColumn caption value
  where
   caption = th ! class_ "total_score" ! rowspan "2" $ preEscapedToMarkup ("&Sigma;" :: Text)
-  value (_, row) = td ! class_ "total_score" $ toMarkup . rowScore . rowStats $ row
+  value (_, StandingRow {..}) =
+    calculateConditionalStyle standingOptions relativeScore td ! class_ "total_score" $ toMarkup score
+   where
+    score         = rowScore rowStats
+    -- This is a very bold assumption, but we can't get more information through ejudge XML interface
+    maxScore      = toInteger $ if elem EnableScores standingOptions then Map.size rowCells * 100 else Map.size rowCells
+    relativeScore = score / (maxScore % 1)
 
 lastSuccessTimeColumn :: StandingColumn
 lastSuccessTimeColumn = StandingColumn caption value
