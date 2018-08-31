@@ -95,7 +95,7 @@ signFunction Equal       = (==)
 signFunction NotEqual    = (/=)
 
 readSign :: Text -> Maybe ComparisonSign
-readSign text = case filter ((==text) . signDisplay) [minBound..maxBound] of
+readSign text = case filter ((== text) . signDisplay) [minBound .. maxBound] of
   [value] -> Just value
   _       -> Nothing
 

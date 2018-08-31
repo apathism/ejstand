@@ -177,12 +177,13 @@ toUTC key value = case parseTimeM True defaultTimeLocale "%F %R" $ unpack value 
   Nothing      -> throw $ TimeExpected key value
 
 toComparison :: Text -> Text -> Comparison Rational
-toComparison key value = let (op, arg) = Text.break isDigit $ Text.filter (/= ' ') value
-                             !sign = case readSign op of
-                               Nothing -> throw $ InvalidCondition key value
-                               Just s -> s
-                             !ratio = toRatio key arg
-                          in Comparison sign ratio
+toComparison key value =
+  let (op, arg) = Text.break isDigit $ Text.filter (/= ' ') value
+      !sign     = case readSign op of
+        Nothing -> throw $ InvalidCondition key value
+        Just s  -> s
+      !ratio = toRatio key arg
+  in  Comparison sign ratio
 
 toComparisons :: Text -> Text -> [Comparison Rational]
 toComparisons key value = case Text.splitOn "," value of
@@ -219,7 +220,7 @@ buildConditionalStyle :: Configuration -> StandingOption
 buildConditionalStyle = evalState $ do
   styleValue <- takeMandatoryValue |> toTextValue $ "StyleValue"
   conditions <- takeMandatoryValue |> toTextValue $ "Conditions"
-  !_ <- ensureEmptyState
+  !_         <- ensureEmptyState
   return $ ConditionalStyle undefined styleValue
 
 buildNestedOptions :: (Configuration -> StandingOption) -> Text -> TraversingState [StandingOption]
@@ -229,20 +230,18 @@ buildNestedOptions builder optionName = do
 
 buildStandingOptions :: TraversingState [StandingOption]
 buildStandingOptions = do
-  reversedContestOrder <-
-    takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ReversedContestOrder"
-  enableDeadlines    <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "EnableDeadlines"
-  setDeadlinePenalty <- if enableDeadlines
+  reversedContestOrder <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ReversedContestOrder"
+  enableDeadlines      <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "EnableDeadlines"
+  setDeadlinePenalty   <- if enableDeadlines
     then takeMandatoryValue |> toTextValue |> toRatio $ "SetDeadlinePenalty"
     else return $ 0 % 1
-  showProblemStatistics <-
-    takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ShowProblemStatistics"
-  enableScores        <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "EnableScores"
-  onlyScoreLastSubmit <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "OnlyScoreLastSubmit"
-  showAttemptsNumber  <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe True $ "ShowAttemptsNumber"
-  showLanguages       <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ShowLanguages"
-  extraDeadlines      <- buildNestedOptions buildExtraDeadline "SetFixedDeadline"
-  conditionalStyles   <- buildNestedOptions buildConditionalStyle "ConditionalStyle"
+  showProblemStatistics <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ShowProblemStatistics"
+  enableScores          <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "EnableScores"
+  onlyScoreLastSubmit   <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "OnlyScoreLastSubmit"
+  showAttemptsNumber    <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe True $ "ShowAttemptsNumber"
+  showLanguages         <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ShowLanguages"
+  extraDeadlines        <- buildNestedOptions buildExtraDeadline "SetFixedDeadline"
+  conditionalStyles     <- buildNestedOptions buildConditionalStyle "ConditionalStyle"
   return $ mconcat
     [ reversedContestOrder ==> ReversedContestOrder
     , enableDeadlines ==> EnableDeadlines
@@ -284,12 +283,11 @@ retrieveStandingConfigs = parseStandingConfigDirectory . unpack . standingConfig
 buildGlobalConfiguration :: Configuration -> GlobalConfiguration
 buildGlobalConfiguration = evalState $ do
   xmlPattern   <- takeUniqueValue ||> toTextValue .> fromMaybe xmlFilePattern $ "XMLFilePattern"
-  standCfgPath <-
-    takeUniqueValue ||> toTextValue .> fromMaybe standingConfigurationsPath $ "StandingConfigurationsPath"
-  port     <- takeUniqueValue ||> toTextValue ||> toInteger .> fromMaybe ejStandPort $ "Port"
-  hostname <- takeUniqueValue ||> toTextValue .> fromMaybe ejStandHostname $ "Hostname"
-  webroot  <- takeUniqueValue ||> toTextValue .> fromMaybe webRoot $ "WebRoot"
-  !_       <- ensureEmptyState
+  standCfgPath <- takeUniqueValue ||> toTextValue .> fromMaybe standingConfigurationsPath $ "StandingConfigurationsPath"
+  port         <- takeUniqueValue ||> toTextValue ||> toInteger .> fromMaybe ejStandPort $ "Port"
+  hostname     <- takeUniqueValue ||> toTextValue .> fromMaybe ejStandHostname $ "Hostname"
+  webroot      <- takeUniqueValue ||> toTextValue .> fromMaybe webRoot $ "WebRoot"
+  !_           <- ensureEmptyState
   return $ GlobalConfiguration xmlPattern standCfgPath port hostname webroot
   where GlobalConfiguration {..} = defaultGlobalConfiguration
 
