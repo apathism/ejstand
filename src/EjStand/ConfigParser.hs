@@ -219,9 +219,9 @@ buildExtraDeadline = evalState $ do
 buildConditionalStyle :: Configuration -> StandingOption
 buildConditionalStyle = evalState $ do
   styleValue <- takeMandatoryValue |> toTextValue $ "StyleValue"
-  conditions <- takeMandatoryValue |> toTextValue $ "Conditions"
+  conditions <- takeMandatoryValue |> toTextValue |> toComparisons $ "Conditions"
   !_         <- ensureEmptyState
-  return $ ConditionalStyle undefined styleValue
+  return $ ConditionalStyle conditions styleValue
 
 buildNestedOptions :: (Configuration -> StandingOption) -> Text -> TraversingState [StandingOption]
 buildNestedOptions builder optionName = do

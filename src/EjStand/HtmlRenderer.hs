@@ -14,7 +14,7 @@ where
 
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                    (catMaybes)
-import           Data.Ratio                    (Ratio, denominator, numerator)
+import           Data.Ratio                    (Ratio, denominator, numerator, (%))
 import qualified Data.Set                      as Set
 import           Data.String                   (IsString)
 import           Data.Text                     (Text, intercalate, splitOn)
@@ -96,8 +96,13 @@ totalScoreColumn :: StandingConfig -> StandingColumn
 totalScoreColumn StandingConfig {..} = StandingColumn caption value
  where
   caption = th ! class_ "total_score" ! rowspan "2" $ preEscapedToMarkup ("&Sigma;" :: Text)
-  value (_, row) = calculateConditionalStyle standingOptions score td ! class_ "total_score" $ toMarkup score
-    where score = rowScore . rowStats $ row
+  value (_, StandingRow {..}) =
+    calculateConditionalStyle standingOptions relativeScore td ! class_ "total_score" $ toMarkup score
+   where
+    score         = rowScore rowStats
+    -- This is a very bold assumption, but we can't get more information through ejudge XML interface
+    maxScore      = toInteger $ if elem EnableScores standingOptions then Map.size rowCells * 100 else Map.size rowCells
+    relativeScore = score / (maxScore % 1)
 
 lastSuccessTimeColumn :: StandingColumn
 lastSuccessTimeColumn = StandingColumn caption value
