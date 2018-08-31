@@ -1,10 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 module EjStand.InternalsCore(
+    (.>),
     (|>),
     (||>),
     (==>),
     (|||),
-    skipKey,
     takeFromSetBy,
     textReplaceLast
 ) where
@@ -16,14 +16,14 @@ import           Data.Text           (Text, breakOnEnd, stripSuffix)
 
 -- Function tools
 
+(.>) :: Functor f => (a -> f b) -> (b -> c) -> a -> f c
+(.>) f1 f2 x = f2 <$> f1 x
+
 (|>) :: Functor f => (a -> f b) -> (a -> b -> c) -> a -> f c
-(|>) f1 f2 x = f2 x <$> f1 x
+(|>) f1 f2 x = (f1 .> f2 x) x
 
 (||>) :: (Functor f, Functor g) => (a -> f (g b)) -> (a -> b -> c) -> a -> f (g c)
 (||>) f1 f2 x = (f2 x <$>) <$> f1 x
-
-skipKey :: (b -> c) -> a -> b -> c
-skipKey f _ = f
 
 -- Character predicates
 

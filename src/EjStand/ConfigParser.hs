@@ -27,9 +27,8 @@ import qualified Data.Text                  as Text
 import           Data.Text.Encoding         (decodeUtf8)
 import           Data.Text.Read             (decimal)
 import           Data.Time                  (UTCTime, defaultTimeLocale, parseTimeM)
-import           EjStand.InternalsCore      (skipKey, (==>), (|>), (||>), (|||))
-import           EjStand.StandingModels     (GlobalConfiguration (..), StandingConfig (..), StandingOption (..),
-                                             defaultGlobalConfiguration)
+import           EjStand.InternalsCore      ((==>), (.>), (|>), (||>), (|||))
+import           EjStand.StandingModels
 import           Prelude                    hiding (toInteger)
 import           System.Directory           (listDirectory)
 
@@ -45,6 +44,7 @@ data ParsingException = NoValue Text
                       | RationalExpected Text Text
                       | TimeExpected Text Text
                       | InvalidInterval Text
+                      | InvalidCondition Text Text
                       | UnexpectedKey Text
 
 instance Exception ParsingException
@@ -59,6 +59,7 @@ instance Show ParsingException where
   show (BoolExpected key value)     = "Bool expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
   show (RationalExpected key value) = "Rational expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
   show (TimeExpected key value)     = "Time expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
+  show (InvalidCondition key value) = "Condition expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
   show (InvalidInterval key)        = "Invalid interval on key \"" ++ unpack key ++ "\""
   show (UnexpectedKey key)          = "Unexpected key \"" ++ unpack key ++ "\""
 
@@ -175,6 +176,19 @@ toUTC key value = case parseTimeM True defaultTimeLocale "%F %R" $ unpack value 
   (Just value) -> value
   Nothing      -> throw $ TimeExpected key value
 
+toComparison :: Text -> Text -> Comparison Rational
+toComparison key value = let (op, arg) = Text.break isDigit $ Text.filter (/= ' ') value
+                             !sign = case readSign op of
+                               Nothing -> throw $ InvalidCondition key value
+                               Just s -> s
+                             !ratio = toRatio key arg
+                          in Comparison sign ratio
+
+toComparisons :: Text -> Text -> [Comparison Rational]
+toComparisons key value = case Text.splitOn "," value of
+  []  -> throw $ InvalidCondition key value
+  lst -> toComparison key <$> lst
+
 toIntervalValue :: Text -> Text -> Set Integer
 toIntervalValue key =
   mconcat . map (readInterval key . map (toInteger key . Text.strip) . Text.splitOn "-") . Text.splitOn ","
@@ -201,26 +215,34 @@ buildExtraDeadline = evalState $ do
   !_                 <- ensureEmptyState
   return $ SetFixedDeadline valueContestIDs valueDeadline valueContestantIDs
 
-buildExtraDeadlines :: TraversingState [StandingOption]
-buildExtraDeadlines = do
-  deadlines <- takeValuesByKey ||> toNestedConfig $ "SetFixedDeadline"
-  return $ fmap buildExtraDeadline $ deadlines
+buildConditionalStyle :: Configuration -> StandingOption
+buildConditionalStyle = evalState $ do
+  styleValue <- takeMandatoryValue |> toTextValue $ "StyleValue"
+  conditions <- takeMandatoryValue |> toTextValue $ "Conditions"
+  !_ <- ensureEmptyState
+  return $ ConditionalStyle undefined styleValue
+
+buildNestedOptions :: (Configuration -> StandingOption) -> Text -> TraversingState [StandingOption]
+buildNestedOptions builder optionName = do
+  nested <- takeValuesByKey ||> toNestedConfig $ optionName
+  return $ fmap builder $ nested
 
 buildStandingOptions :: TraversingState [StandingOption]
 buildStandingOptions = do
   reversedContestOrder <-
-    takeUniqueValue ||> toTextValue ||> toBool |> skipKey (fromMaybe False) $ "ReversedContestOrder"
-  enableDeadlines    <- takeUniqueValue ||> toTextValue ||> toBool |> skipKey (fromMaybe False) $ "EnableDeadlines"
+    takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ReversedContestOrder"
+  enableDeadlines    <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "EnableDeadlines"
   setDeadlinePenalty <- if enableDeadlines
     then takeMandatoryValue |> toTextValue |> toRatio $ "SetDeadlinePenalty"
     else return $ 0 % 1
   showProblemStatistics <-
-    takeUniqueValue ||> toTextValue ||> toBool |> skipKey (fromMaybe False) $ "ShowProblemStatistics"
-  enableScores        <- takeUniqueValue ||> toTextValue ||> toBool |> skipKey (fromMaybe False) $ "EnableScores"
-  onlyScoreLastSubmit <- takeUniqueValue ||> toTextValue ||> toBool |> skipKey (fromMaybe False) $ "OnlyScoreLastSubmit"
-  showAttemptsNumber  <- takeUniqueValue ||> toTextValue ||> toBool |> skipKey (fromMaybe True) $ "ShowAttemptsNumber"
-  showLanguages       <- takeUniqueValue ||> toTextValue ||> toBool |> skipKey (fromMaybe False) $ "ShowLanguages"
-  extraDeadlines      <- buildExtraDeadlines
+    takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ShowProblemStatistics"
+  enableScores        <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "EnableScores"
+  onlyScoreLastSubmit <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "OnlyScoreLastSubmit"
+  showAttemptsNumber  <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe True $ "ShowAttemptsNumber"
+  showLanguages       <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ShowLanguages"
+  extraDeadlines      <- buildNestedOptions buildExtraDeadline "SetFixedDeadline"
+  conditionalStyles   <- buildNestedOptions buildConditionalStyle "ConditionalStyle"
   return $ mconcat
     [ reversedContestOrder ==> ReversedContestOrder
     , enableDeadlines ==> EnableDeadlines
@@ -231,6 +253,7 @@ buildStandingOptions = do
     , showLanguages ==> ShowLanguages
     , showAttemptsNumber ==> ShowAttemptsNumber
     , extraDeadlines
+    , conditionalStyles
     ]
 
 buildStandingConfig :: Configuration -> StandingConfig
@@ -260,12 +283,12 @@ retrieveStandingConfigs = parseStandingConfigDirectory . unpack . standingConfig
 
 buildGlobalConfiguration :: Configuration -> GlobalConfiguration
 buildGlobalConfiguration = evalState $ do
-  xmlPattern   <- takeUniqueValue ||> toTextValue |> skipKey (fromMaybe xmlFilePattern) $ "XMLFilePattern"
+  xmlPattern   <- takeUniqueValue ||> toTextValue .> fromMaybe xmlFilePattern $ "XMLFilePattern"
   standCfgPath <-
-    takeUniqueValue ||> toTextValue |> skipKey (fromMaybe standingConfigurationsPath) $ "StandingConfigurationsPath"
-  port     <- takeUniqueValue ||> toTextValue ||> toInteger |> skipKey (fromMaybe ejStandPort) $ "Port"
-  hostname <- takeUniqueValue ||> toTextValue |> skipKey (fromMaybe ejStandHostname) $ "Hostname"
-  webroot  <- takeUniqueValue ||> toTextValue |> skipKey (fromMaybe webRoot) $ "WebRoot"
+    takeUniqueValue ||> toTextValue .> fromMaybe standingConfigurationsPath $ "StandingConfigurationsPath"
+  port     <- takeUniqueValue ||> toTextValue ||> toInteger .> fromMaybe ejStandPort $ "Port"
+  hostname <- takeUniqueValue ||> toTextValue .> fromMaybe ejStandHostname $ "Hostname"
+  webroot  <- takeUniqueValue ||> toTextValue .> fromMaybe webRoot $ "WebRoot"
   !_       <- ensureEmptyState
   return $ GlobalConfiguration xmlPattern standCfgPath port hostname webroot
   where GlobalConfiguration {..} = defaultGlobalConfiguration
