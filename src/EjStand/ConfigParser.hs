@@ -187,9 +187,10 @@ toIntervalValue key =
 ensureEmptyState :: TraversingState ()
 ensureEmptyState = do
   cfg <- get
-  return $ case Map.lookupMin cfg of
-    Nothing       -> ()
-    Just (key, _) -> throw $ UnexpectedKey key
+  return $ if Map.null cfg then () else
+    case Map.lookupMin cfg of
+      Nothing       -> ()
+      Just (key, _) -> throw $ UnexpectedKey key
 
 -- Configuration readers
 
