@@ -82,9 +82,10 @@ timeSpecToMilliseconds time = sum $ [(* 1000) . toInteger . sec, (`div` 1000000)
 insertPageGenerationTime :: Integer -> Text -> Text
 insertPageGenerationTime time = textReplaceLast "%%GENERATION_TIME%%" timeText where timeText = pack $ show time
 
-runEjStandRequest :: GlobalConfiguration -> [StandingConfig] -> Application
-runEjStandRequest global local request respond = catchSomeException' (onExceptionRespond respond) $ do
+runEjStandRequest :: GlobalConfiguration -> Application
+runEjStandRequest global request respond = catchSomeException' (onExceptionRespond respond) $ do
   !startTime <- getTime Monotonic
+  local <- retrieveStandingConfigs global
   let path           = rawPathInfo request
       possibleRoutes = filter (isPathCorresponding path) local
   case (path, possibleRoutes) of
@@ -105,6 +106,5 @@ runEjStandRequest global local request respond = catchSomeException' (onExceptio
 ejStand :: IO ()
 ejStand = do
   global@GlobalConfiguration {..} <- retrieveGlobalConfiguration
-  local                           <- retrieveStandingConfigs global
   let settings = setHost (fromString . unpack $ ejStandHostname) $ setPort ejStandPort $ defaultSettings
-  runSettings settings $ runEjStandRequest global local
+  runSettings settings $ runEjStandRequest global
