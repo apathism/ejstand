@@ -18,3 +18,9 @@
 dist/archlinux*/src/**
 dist/archlinux*/pkg/**
 dist/archlinux*/**/*.sig
+
+# Profiling garbage
+**/*.aux
+**/*.hp
+**/*.prof
+**/*.ps
