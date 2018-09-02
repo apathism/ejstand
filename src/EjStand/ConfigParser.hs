@@ -27,7 +27,7 @@ import qualified Data.Text                  as Text
 import           Data.Text.Encoding         (decodeUtf8)
 import           Data.Text.Read             (decimal)
 import           Data.Time                  (UTCTime, defaultTimeLocale, parseTimeM)
-import           EjStand.InternalsCore      ((==>), (.>), (|>), (||>), (|||))
+import           EjStand.InternalsCore      ((.>), (==>), (|>), (||>), (|||))
 import           EjStand.StandingModels
 import           Prelude                    hiding (toInteger)
 import           System.Directory           (listDirectory)

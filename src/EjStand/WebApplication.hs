@@ -85,7 +85,7 @@ insertPageGenerationTime time = textReplaceLast "%%GENERATION_TIME%%" timeText w
 runEjStandRequest :: GlobalConfiguration -> Application
 runEjStandRequest global request respond = catchSomeException' (onExceptionRespond respond) $ do
   !startTime <- getTime Monotonic
-  local <- retrieveStandingConfigs global
+  local      <- retrieveStandingConfigs global
   let path           = rawPathInfo request
       possibleRoutes = filter (isPathCorresponding path) local
   case (path, possibleRoutes) of

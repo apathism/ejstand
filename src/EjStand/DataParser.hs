@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell   #-}
 module EjStand.DataParser
   ( ParsingException(..)
   , parseEjudgeXML
@@ -6,18 +7,20 @@ module EjStand.DataParser
   )
 where
 
-import           Control.Exception      (Exception, throw)
-import           Data.Map.Strict        (Map)
-import qualified Data.Map.Strict        as Map (lookup)
-import           Data.Maybe             (mapMaybe)
-import qualified Data.Set               as Set (fromDistinctAscList, singleton)
-import           Data.Text              (Text, unpack)
-import qualified Data.Text              as Text (concat, null)
-import           Data.Text.Read         (decimal, signed)
-import           Data.Time              (UTCTime, addUTCTime, defaultTimeLocale, parseTimeM)
+import           Control.Exception          (Exception, throw)
+import           Data.Map.Strict            (Map)
+import qualified Data.Map.Strict            as Map
+import           Data.Maybe                 (mapMaybe)
+import qualified Data.Set                   as Set (fromDistinctAscList, singleton)
+import           Data.Text                  (Text, pack, unpack)
+import qualified Data.Text                  as Text (concat, null)
+import           Data.Text.Read             (decimal, signed)
+import           Data.Time                  (UTCTime, addUTCTime, defaultTimeLocale, parseTimeM)
 import           EjStand.BaseModels
-import           EjStand.StandingModels (StandingSource (..))
-import           Prelude                hiding (readFile)
+import           EjStand.StandingModels     (StandingSource (..))
+import           Instances.TH.Lift
+import           Language.Haskell.TH.Syntax (lift)
+import           Prelude                    hiding (readFile)
 import           Text.XML
 
 -- Exceptions
@@ -29,6 +32,7 @@ data ParsingException = UndefinedAttribute Name
                       | UndefinedChild Name
                       | AmbiguousChild Name
                       | InvalidInteger Text
+                      | InvalidRunStatus Text
                       | RunsInNotStartedContest
 
 instance Exception ParsingException
@@ -38,6 +42,7 @@ instance Show ParsingException where
   show (UndefinedChild     value) = "Child element \"" ++ nameToString value ++ "\" not found"
   show (AmbiguousChild     value) = "Ambiguous child element \"" ++ nameToString value ++ "\" instances"
   show (InvalidInteger     value) = "Can't convert string \"" ++ unpack value ++ "\" to integer type"
+  show (InvalidRunStatus   value) = "Can't convert string \"" ++ unpack value ++ "\" to run status"
   show RunsInNotStartedContest    = "There are runs in a contest which has not started yet"
 
 -- Attribute and Node extraction functions
@@ -53,6 +58,14 @@ getAttributeValue attr elem = case getMaybeAttributeValue attr elem of
 toElement :: Node -> Maybe Element
 toElement (NodeElement e) = Just e
 toElement _               = Nothing
+
+runStatusReadingMap :: Map Text Int
+runStatusReadingMap = $(lift $ Map.fromList $ fmap (\x -> (pack . show $ x, fromEnum x)) [(minBound :: RunStatus)..])
+
+readStatus :: Text -> RunStatus
+readStatus text = case Map.lookup text runStatusReadingMap of
+  Nothing       -> throw $ InvalidRunStatus text
+  (Just status) -> toEnum status
 
 getChilds :: Name -> Element -> [Element]
 getChilds name = filter ((== name) . elementName) . mapMaybe toElement . elementNodes
@@ -133,7 +146,7 @@ readRun contest elem = Run runID runContest runContestant runProblem runTime run
   runProblem    = readIntegral <$> getMaybeAttributeValue "prob_id" elem
   runTime =
     makeContestTime contest (readIntegral $ getAttributeValue "time" elem, readIntegral $ getAttributeValue "nsec" elem)
-  runStatus   = read . unpack $ getAttributeValue "status" elem
+  runStatus   = readStatus $ getAttributeValue "status" elem
   runLanguage = readIntegral <$> getMaybeAttributeValue "lang_id" elem
   runScore    = fromInteger <$> readIntegral <$> getMaybeAttributeValue "score" elem
   runTest     = readIntegral <$> getMaybeAttributeValue "test" elem
