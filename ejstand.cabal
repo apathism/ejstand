@@ -15,7 +15,7 @@ executable ejstand
   main-is:             Main.hs
   build-depends:       base, time, containers, text, mtl, bytestring, xml-conduit, mtl,
                        directory, safe, shakespeare, blaze-html, wai, warp, http-types,
-                       binary, clock
+                       binary, clock, template-haskell, th-lift-instances
   ghc-options:         -O2
   hs-source-dirs:      src
   other-modules:       EjStand
