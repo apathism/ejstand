@@ -39,6 +39,19 @@ import           Text.Lucius                   (luciusFile, renderCss)
 enumerate :: [a] -> [(Integer, a)]
 enumerate = zip [1 ..]
 
+buildContestList :: StandingSource -> [Problem] -> [(Maybe Contest, Int)]
+buildContestList StandingSource {..} problemList =
+  groupSame $ Set.lookupMin <$> flip (takeFromSetBy contestID) contests <$> problemContest <$> problemList
+
+groupSame :: Eq a => [a] -> [(a, Int)]
+groupSame []           = []
+groupSame (fst : tail) = let (e, tail') = takeSame fst 1 $! tail in (e : (groupSame $! tail'))
+ where
+  takeSame :: Eq a => a -> Int -> [a] -> ((a, Int), [a])
+  takeSame x k [] = ((x, k), [])
+  takeSame x k lst@(e : tail) | x == e    = takeSame x (k + 1) $! tail
+                              | otherwise = ((x, k), lst)
+
 getRowCellByProblem :: StandingRow -> Problem -> (Problem, StandingCell)
 getRowCellByProblem row@StandingRow {..} prob@Problem {..} = case Map.lookup (problemContest, problemID) rowCells of
   (Just cell) -> (prob, cell)
@@ -69,10 +82,10 @@ instance ToMarkup UTCTime where
 
 calculateConditionalStyle :: [StandingOption] -> Rational -> (Html -> Html) -> Html -> Html
 calculateConditionalStyle [] _ html = html
-calculateConditionalStyle ((ConditionalStyle conditions styleValue):tail) value html
+calculateConditionalStyle ((ConditionalStyle conditions styleValue) : tail) value html
   | checkComparison value `all` conditions = html ! style (toValue styleValue)
   | otherwise                              = calculateConditionalStyle tail value html
-calculateConditionalStyle (_:tail) value html = calculateConditionalStyle tail value html
+calculateConditionalStyle (_ : tail) value html = calculateConditionalStyle tail value html
 
 placeColumn :: StandingColumn
 placeColumn = StandingColumn caption value
@@ -135,7 +148,7 @@ attemptsCellContent StandingCell {..} = if cellType == Ignore
 
 selectAdditionalCellContentBuilders :: Standing -> [CellContentBuilder]
 selectAdditionalCellContentBuilders Standing { standingConfig = StandingConfig {..}, ..} = mconcat
-  [ elem EnableScores       standingOptions ==> scoreCellContent
+  [ elem EnableScores standingOptions ==> scoreCellContent
   , elem ShowAttemptsNumber standingOptions
     ==> if elem EnableScores standingOptions then attemptsCellContent else wrongAttemptsCellContent
   ]
@@ -157,7 +170,7 @@ renderCell st@Standing { standingConfig = StandingConfig {..}, ..} row problem c
   additionalContent = if allowCellContent then selectAdditionalCellContentBuilders st <*> [cell] else []
   addRunStatusCellText text = span ! class_ "run_status" $ text
   ifNotScores x = if elem EnableScores standingOptions then mempty else x
-  cellTag' = cellTag ! title (toValue $ buildCellTitle st row problem cell)
+  cellTag'                               = cellTag ! title (toValue $ buildCellTitle st row problem cell)
   (cellTag, cellValue, allowCellContent) = case cellType of
     Success -> case cellIsOverdue of
       False -> (td ! class_ "success", ifNotScores $ addRunStatusCellText "+", True)

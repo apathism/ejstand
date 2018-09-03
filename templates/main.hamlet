@@ -12,10 +12,14 @@ $doctype 5
             <tr>
                 $forall column <- standingColumns
                     #{columnCaption column}
-                $forall contest@Contest{..} <- Set.toList $ contests standingSource
-                    <th colspan="#{Set.size $ takeFromSetBy problemContest contestID $ problems standingSource}" class="contest"
-                    title="#{contestName}">
-                        #{last $ splitOn " " $ contestName}
+                $forall maybeContest <- buildContestList standingSource standingProblems
+                    $case maybeContest
+                        $of (Nothing, cols)
+                            <th class="contest" colspan="#{cols}" title="???">
+                                ???
+                        $of (Just contest@Contest{..}, cols)
+                            <th colspan="#{cols}" class="contest" title="#{contestName}">
+                                #{last $ splitOn " " $ contestName}
             <tr>
                 $forall problem@Problem{..} <- standingProblems
                     <th class="problem" title="#{problemShortName}: #{problemLongName}">
