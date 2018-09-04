@@ -1,6 +1,4 @@
-resolver: lts-12.8
+resolver: lts-12.9
 
-build:
-  split-objs: true
 packages:
 - .
