@@ -20,9 +20,9 @@ import           Data.Text           (Text, breakOnEnd, stripSuffix)
 
 -- List expressions
 
-(==>) :: Bool -> a -> [a]
-(==>) False _ = []
-(==>) True  x = [x]
+(==>) :: Monad m => Bool -> a -> m a
+(==>) False _ = fail ""
+(==>) True  x = return x
 
 allValues :: (Bounded a, Enum a) => [a]
 allValues = [minBound .. maxBound]

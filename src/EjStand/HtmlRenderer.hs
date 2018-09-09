@@ -183,10 +183,32 @@ renderCell st@Standing { standingConfig = StandingConfig {..}, ..} row problem c
     Disqualified -> (td ! class_ "disqualified", "", False)
     Error        -> (td ! class_ "error", addRunStatusCellText "✖", False)
 
+renderProblemSuccesses :: Standing -> Problem -> Markup
+renderProblemSuccesses Standing {..} prob@Problem {..} =
+  let countProblemSuccesses =
+        length
+          .   filter ((== Success) . cellType)
+          .   catMaybes
+          $   Map.lookup (problemContest, problemID)
+          .   rowCells
+          <$> standingRows
+  in  td ! class_ "problem_successes row_value" $ toMarkup countProblemSuccesses
+
+renderStandingProblemSuccesses :: Standing -> Markup
+renderStandingProblemSuccesses standing@Standing {..} =
+  let header =
+        td
+          ! class_ "problem_successes row_header"
+          ! colspan (toValue . length $ standingColumns)
+          $ "Правильных решений:"
+  in  foldl (>>) header $ renderProblemSuccesses standing <$> standingProblems
+
 -- Main entry points
 
 renderStanding :: GlobalConfiguration -> Standing -> LT.Text
-renderStanding GlobalConfiguration {..} standing@Standing {..} = renderHtml ($(shamletFile "templates/main.hamlet"))
+renderStanding GlobalConfiguration {..} standing@Standing { standingConfig = StandingConfig {..}, ..} =
+  let problemSuccesses = elem ShowProblemStatistics standingOptions ==> renderStandingProblemSuccesses standing
+  in  renderHtml ($(shamletFile "templates/main.hamlet"))
 
 renderCSS :: LT.Text
 renderCSS = renderCss ($(luciusFile "templates/main.lucius") undefined)

@@ -44,7 +44,7 @@ instance.
 Personally i'd start my own ejstand configuration with
 ```bash
 sudo install -Dm644 conf/global.cfg.example /etc/ejstand.cfg
-${EDITOR} /etc/ejstand.cfg
+"${EDITOR}" /etc/ejstand.cfg
 ```
 
 ### Setting Up WebServer

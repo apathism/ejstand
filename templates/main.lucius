@@ -35,8 +35,12 @@ table.standing td, table.standing th {
   white-space: nowrap;
 }
 
-.place, .total_score, .total_successes, .last_success_time, .contest, .problem, th {
+.place, .total_score, .total_successes, .last_success_time, .contest, .problem, th, .row_value {
   text-align: center;
+}
+
+.row_header {
+  text-align: right;
 }
 
 td.success, td.mistake, td.none, td.pending, td.rejected, td.overdue,
