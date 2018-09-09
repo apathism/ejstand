@@ -13,9 +13,17 @@ cabal-version:       >=1.10
 
 executable ejstand
   main-is:             Main.hs
-  build-depends:       base, time, containers, text, mtl, bytestring, xml-conduit, mtl,
-                       directory, safe, shakespeare, blaze-html, wai, warp, http-types,
-                       binary, clock
+  build-depends:
+                       -- Basic data types & utilities
+                       base, bytestring, containers, safe, text,
+                       -- Time measuring
+                       clock, time,
+                       -- Filesystem & Network tools
+                       directory, http-types, wai, warp,
+                       -- Parsers & Template Engines
+                       blaze-html, shakespeare, xml-conduit,
+                       -- Other
+                       binary, mtl
   ghc-options:         -O2
   hs-source-dirs:      src
   other-modules:       EjStand
