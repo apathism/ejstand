@@ -7,4 +7,4 @@ where
 import           Data.String (IsString)
 
 getVersion :: IsString a => a
-getVersion = "0.2.0"
+getVersion = "0.3.0"
