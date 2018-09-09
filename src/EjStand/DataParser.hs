@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell   #-}
 module EjStand.DataParser
   ( ParsingException(..)
   , parseEjudgeXML
@@ -7,20 +6,19 @@ module EjStand.DataParser
   )
 where
 
-import           Control.Exception          (Exception, throw)
-import           Data.Map.Strict            (Map)
-import qualified Data.Map.Strict            as Map
-import           Data.Maybe                 (mapMaybe)
-import qualified Data.Set                   as Set (fromDistinctAscList, singleton)
-import           Data.Text                  (Text, pack, unpack)
-import qualified Data.Text                  as Text (concat, null)
-import           Data.Text.Read             (decimal, signed)
-import           Data.Time                  (UTCTime, addUTCTime, defaultTimeLocale, parseTimeM)
+import           Control.Exception      (Exception, throw)
+import           Data.Map.Strict        (Map)
+import qualified Data.Map.Strict        as Map
+import           Data.Maybe             (mapMaybe)
+import qualified Data.Set               as Set (fromDistinctAscList, singleton)
+import           Data.Text              (Text, pack, unpack)
+import qualified Data.Text              as Text (concat, null)
+import           Data.Text.Read         (decimal, signed)
+import           Data.Time              (UTCTime, addUTCTime, defaultTimeLocale, parseTimeM)
 import           EjStand.BaseModels
-import           EjStand.StandingModels     (StandingSource (..))
-import           Instances.TH.Lift
-import           Language.Haskell.TH.Syntax (lift)
-import           Prelude                    hiding (readFile)
+import           EjStand.InternalsCore
+import           EjStand.StandingModels (StandingSource (..))
+import           Prelude                hiding (readFile)
 import           Text.XML
 
 -- Exceptions
@@ -60,7 +58,7 @@ toElement (NodeElement e) = Just e
 toElement _               = Nothing
 
 runStatusReadingMap :: Map Text Int
-runStatusReadingMap = $(lift $ Map.fromList $ fmap (\x -> (pack . show $ x, fromEnum x)) [(minBound :: RunStatus)..])
+runStatusReadingMap = Map.fromList $ fmap (\x -> (pack . show $ x, fromEnum x)) (allValues :: [RunStatus])
 
 readStatus :: Text -> RunStatus
 readStatus text = case Map.lookup text runStatusReadingMap of

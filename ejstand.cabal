@@ -1,5 +1,5 @@
 name:                ejstand
-version:             0.1
+version:             0.2
 homepage:            https://apathism.net/git/apathism/ejstand
 bug-reports:         https://apathism.net/git/apathism/ejstand/issues
 license:             AGPL-3
@@ -15,7 +15,7 @@ executable ejstand
   main-is:             Main.hs
   build-depends:       base, time, containers, text, mtl, bytestring, xml-conduit, mtl,
                        directory, safe, shakespeare, blaze-html, wai, warp, http-types,
-                       binary, clock, template-haskell, th-lift-instances
+                       binary, clock
   ghc-options:         -O2
   hs-source-dirs:      src
   other-modules:       EjStand

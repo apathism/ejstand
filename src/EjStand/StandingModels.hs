@@ -22,15 +22,17 @@ module EjStand.StandingModels
   )
 where
 
-import           Data.Map.Strict    (Map)
-import           Data.Semigroup     (Semigroup, (<>))
-import           Data.Set           (Set)
-import qualified Data.Set           as Set
-import           Data.String        (IsString)
-import           Data.Text          (Text)
-import           Data.Time          (UTCTime)
+import           Data.Map.Strict       (Map)
+import qualified Data.Map.Strict       as Map
+import           Data.Semigroup        (Semigroup, (<>))
+import           Data.Set              (Set)
+import qualified Data.Set              as Set
+import           Data.String           (IsString)
+import           Data.Text             (Text, pack)
+import           Data.Time             (UTCTime)
 import           EjStand.BaseModels
-import           Text.Blaze.Html    (Markup)
+import           EjStand.InternalsCore
+import           Text.Blaze.Html       (Markup)
 
 data StandingSource = StandingSource { contests    :: !(Set Contest),
                                        contestants :: !(Set Contestant),
@@ -95,7 +97,7 @@ signFunction Equal       = (==)
 signFunction NotEqual    = (/=)
 
 readSign :: Text -> Maybe ComparisonSign
-readSign text = case filter ((== text) . signDisplay) [minBound .. maxBound] of
+readSign text = case filter ((== text) . signDisplay) allValues of
   [value] -> Just value
   _       -> Nothing
 
@@ -133,7 +135,7 @@ getStatusesByRunStatusType Rejected     = [SV, RJ, SM]
 getStatusesByRunStatusType Disqualified = [DQ]
 
 getRunStatusType :: RunStatus -> RunStatusType
-getRunStatusType status = case filter (elem status . getStatusesByRunStatusType) [minBound .. maxBound] of
+getRunStatusType status = case filter (elem status . getStatusesByRunStatusType) allValues of
   [x] -> x
   _   -> error $ "Unable to find run status type for run status " ++ show status
 

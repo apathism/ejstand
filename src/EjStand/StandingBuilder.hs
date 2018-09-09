@@ -63,11 +63,11 @@ applyRunDeadline (Just (time, penalty)) run@Run {..}
   | otherwise      = (run { runScore = runScore >>= return . (* penalty) }, True)
 
 getRunScore :: StandingConfig -> (Run, Bool) -> Rational
-getRunScore cfg@(elem EnableScores . standingOptions -> True) ((runScore -> Nothing                    ), _    ) = 0
-getRunScore cfg@(elem EnableScores . standingOptions -> True) ((runScore -> Just score                 ), _    ) = score
-getRunScore cfg ((getRunStatusType . runStatus -> Success), False) = 1
-getRunScore cfg ((getRunStatusType . runStatus -> Success), True ) = getDeadlinePenalty cfg
-getRunScore _   _ = 0
+getRunScore cfg@(elem EnableScores . standingOptions -> True) ((runScore -> Nothing), _)    = 0
+getRunScore cfg@(elem EnableScores . standingOptions -> True) ((runScore -> Just score), _) = score
+getRunScore cfg ((getRunStatusType . runStatus -> Success), False)                          = 1
+getRunScore cfg ((getRunStatusType . runStatus -> Success), True)                           = getDeadlinePenalty cfg
+getRunScore _   _                                                                           = 0
 
 recalculateCellAttempts :: StandingConfig -> (Run, Bool) -> StandingCell -> StandingCell
 recalculateCellAttempts _ runT@(run@Run {..}, overdue) cell@StandingCell {..}

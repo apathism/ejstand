@@ -27,7 +27,7 @@ import qualified Data.Text                  as Text
 import           Data.Text.Encoding         (decodeUtf8)
 import           Data.Text.Read             (decimal)
 import           Data.Time                  (UTCTime, defaultTimeLocale, parseTimeM)
-import           EjStand.InternalsCore      ((.>), (==>), (|>), (||>), (|||))
+import           EjStand.InternalsCore
 import           EjStand.StandingModels
 import           Prelude                    hiding (toInteger)
 import           System.Directory           (listDirectory)
@@ -63,6 +63,17 @@ instance Show ParsingException where
   show (InvalidInterval key)        = "Invalid interval on key \"" ++ unpack key ++ "\""
   show (UnexpectedKey key)          = "Unexpected key \"" ++ unpack key ++ "\""
 
+-- Function tools
+
+(.>) :: Functor f => (a -> f b) -> (b -> c) -> a -> f c
+(.>) f1 f2 x = f2 <$> f1 x
+
+(|>) :: Functor f => (a -> f b) -> (a -> b -> c) -> a -> f c
+(|>) f1 f2 x = (f1 .> f2 x) x
+
+(||>) :: (Functor f, Functor g) => (a -> f (g b)) -> (a -> b -> c) -> a -> f (g c)
+(||>) f1 f2 x = (f2 x <$>) <$> f1 x
+
 -- Internal representation of configuration tree
 
 data ConfigValue = TextValue Text
@@ -94,8 +105,8 @@ buildConfig' :: Configuration -> ParsingState Configuration
 buildConfig' cfg = do
   buffer <- get
   case buffer of
-    []    -> return cfg
-    (h:t) -> do
+    []      -> return cfg
+    (h : t) -> do
       put t
       if h == "}"
         then return cfg
@@ -131,8 +142,8 @@ takeUniqueValue :: Text -> TraversingState (Maybe ConfigValue)
 takeUniqueValue key = unique <$> takeValuesByKey key
  where
   unique :: [a] -> Maybe a
-  unique (_:_:_) = throw $ DuplicateKey key
-  unique list    = listToMaybe list
+  unique (_ : _ : _) = throw $ DuplicateKey key
+  unique list        = listToMaybe list
 
 takeMandatoryValue :: Text -> TraversingState ConfigValue
 takeMandatoryValue key = fromMaybe (throw $ UndefinedKey key) <$> takeUniqueValue key
@@ -300,8 +311,8 @@ parseGlobalConfiguration path = do
   return $ buildGlobalConfiguration cfg
 
 retrieveGlobalConfiguration' :: [FilePath] -> IO GlobalConfiguration
-retrieveGlobalConfiguration' []          = return defaultGlobalConfiguration
-retrieveGlobalConfiguration' (file:rest) = catch (parseGlobalConfiguration file) (noFileExceptionHandler rest)
+retrieveGlobalConfiguration' []            = return defaultGlobalConfiguration
+retrieveGlobalConfiguration' (file : rest) = catch (parseGlobalConfiguration file) (noFileExceptionHandler rest)
  where
   noFileExceptionHandler :: [FilePath] -> IOException -> IO GlobalConfiguration
   noFileExceptionHandler rest _ = retrieveGlobalConfiguration' rest
