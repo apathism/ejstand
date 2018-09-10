@@ -29,7 +29,7 @@ executable ejstand
                        blaze-html, shakespeare, xml-conduit,
                        -- Other
                        binary, mtl
-  ghc-options:         -O2
+  ghc-options:         -O2 -Wall
   hs-source-dirs:      src
   other-modules:       EjStand
                        EjStand.BaseModels
