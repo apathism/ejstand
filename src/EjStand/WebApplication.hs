@@ -19,6 +19,7 @@ import qualified Data.Text.Lazy.Encoding  as EncLazy (encodeUtf8)
 import           EjStand.ConfigParser     (retrieveGlobalConfiguration, retrieveStandingConfigs)
 import           EjStand.HtmlRenderer     (renderCSS, renderStanding)
 import           EjStand.InternalsCore    (textReplaceLast)
+import           EjStand.LegalCredits     (renderLegalCredits)
 import           EjStand.StandingBuilder  (buildStanding, prepareStandingSource)
 import           EjStand.StandingModels
 import           Network.HTTP.Types       (ResponseHeaders, Status, status200, status404, status500)
@@ -89,6 +90,8 @@ runEjStandRequest global request respond = catchSomeException' (onExceptionRespo
   let path           = rawPathInfo request
       possibleRoutes = filter (isPathCorresponding path) local
   case (path, possibleRoutes) of
+    ("/credits.html", _) ->
+      respond $ responseLBS status200 [("Content-Type", "text/html")] $ EncLazy.encodeUtf8 $ renderLegalCredits global
     ("/ejstand.css", _) ->
       respond $ responseLBS status200 [("Content-Type", "text/css")] $ EncLazy.encodeUtf8 renderCSS
     (_, []     ) -> respond $ responseBS status404 [("Content-Type", "text/plain")] $ buildNotFoundTextMessage request

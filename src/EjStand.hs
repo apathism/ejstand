@@ -4,7 +4,9 @@ module EjStand
   )
 where
 
-import           Data.String (IsString)
+import           Data.String   (IsString, fromString)
+import           Data.Version  (showVersion)
+import           Paths_ejstand (version)
 
 getVersion :: IsString a => a
-getVersion = "0.3.0"
+getVersion = fromString . showVersion $ version

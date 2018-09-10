@@ -1,6 +1,6 @@
-# ejstand
+# EjStand
 
-ejstand is a simple and configurable web standings daemon for ejudge contest
+EjStand is a simple and configurable web standings daemon for ejudge contest
 management system. Its intended to use in situations when standing contains
 results from different contests or when standing needs some additional display
 options not supported by ejudge.
@@ -9,7 +9,7 @@ options not supported by ejudge.
 
 ### Installing
 
-ejstand is written in Haskell programming language and can be easily
+EjStand is written in Haskell programming language and can be easily
 built with [Stack tool](https://www.haskellstack.org/).
 
 ```bash
@@ -17,7 +17,7 @@ cd ejstand
 stack build
 ```
 
-If you wish to install ejstand locally (to `~/.local/bin`), you can use 
+If you wish to install EjStand locally (to `~/.local/bin`), you can use 
 ```bash
 stack install
 ```
@@ -28,20 +28,20 @@ source in `dist` directory.
 
 ### Configuration
 
-ejstand has two different types of configuration files: _global_ and _local_.
+EjStand has two different types of configuration files: _global_ and _local_.
 
 Global configuration file is unique and contains options which are applied for
-all standings served by ejstand. For example, two of the most important options
+all standings served by ejStand. For example, two of the most important options
 in that file is hostname/IP and port to bind an application webserver.
 
 Local configuration files define settings for different standing tables and
 therefore aren't unique.
 
 Examples with detailed descriptions for each option are presented in the
-`conf` directory. You can use this examples as templates for your own ejstand
+`conf` directory. You can use this examples as templates for your own EjStand
 instance.
 
-Personally i'd start my own ejstand configuration with
+Personally i'd start my own EjStand configuration with
 ```bash
 sudo install -Dm644 conf/global.cfg.example /etc/ejstand.cfg
 "${EDITOR}" /etc/ejstand.cfg
@@ -49,9 +49,9 @@ sudo install -Dm644 conf/global.cfg.example /etc/ejstand.cfg
 
 ### Setting Up WebServer
 
-Most of the time it makes sense to set up ejstand next to ejudge, and that means
+Most of the time it makes sense to set up EjStand next to ejudge, and that means
 that you're probably want some kind of directory (for example, /ejstand) on
-your Apache/nginx/whatever-you-use to be proxied to ejstand.
+your Apache/nginx/whatever-you-use to be proxied to EjStand.
 
 This [article](https://www.nginx.com/resources/wiki/start/topics/examples/likeapache/)
 can help you to setup your global server in a proper way.
@@ -77,6 +77,9 @@ code upstream are:
 This project is licensed under the
 [GNU AGPL license](https://www.gnu.org/licenses/agpl-3.0.en.html) version 3.
 See LICENSE file for more details.
+
+EjStand uses a lot of third-party libraries licensed under BSD2/BSD3/MIT licenses.
+You can review third-party licenses in `third-party/licenses` directory.
 
 If you want to use this program under other license, you can contact
 [me](https://apathism.net/contacts) personally, and we'll discuss conditions

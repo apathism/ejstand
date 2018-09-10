@@ -1,0 +1,18 @@
+$doctype 5
+<html lang="ru">
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+        <title>Лицензии вспомогательных библиотек
+        <link rel="stylesheet" href="#{webRoot}ejstand.css">
+    <body>
+        <h1>
+            Лицензии вспомогательных библиотек
+        В данном разделе представлена информация о лицензиях вспомогательных библиотек,
+        использованных при создании EjStand. Более подробную информацию можно найти по
+        ссылкам в Hackage.
+        $forall package <- getCabalPackages
+            <h2>
+                <a href="https://hackage.haskell.org/package/#{packageName package}" target="_blank">
+                    #{packageName package}
+            <pre>
+                #{packageLicenseText package}

@@ -1,15 +1,20 @@
-name:                ejstand
-version:             0.3.0
-homepage:            https://apathism.net/git/apathism/ejstand
-bug-reports:         https://apathism.net/git/apathism/ejstand/issues
-license:             AGPL-3
-license-file:        LICENSE
-author:              Ivan Koryabkin
-maintainer:          Ivan Koryabkin <apathism@apathism.net>
-synopsis:            Ejudge Configurable Web Standings Daemon for Multiple Contests
-category:            Web
-build-type:          Simple
-cabal-version:       >=1.10
+name:                  ejstand
+version:               0.3.0
+synopsis:              Ejudge Configurable Web Standings Daemon for Multiple Contests
+homepage:              https://apathism.net/git/apathism/ejstand
+bug-reports:           https://apathism.net/git/apathism/ejstand/issues
+license:               AGPL-3
+license-file:          LICENSE
+author:                Ivan Koryabkin <apathism@apathism.net>
+maintainer:            Ivan Koryabkin <apathism@apathism.net>
+copyright:             (c) 2018 Ivan Koryabkin
+category:              Web
+build-type:            Simple
+cabal-version:         >=1.10
+
+source-repository head
+  type:                git
+  location:            https://apathism.net/git/apathism/ejstand.git
 
 executable ejstand
   main-is:             Main.hs
@@ -19,7 +24,7 @@ executable ejstand
                        -- Time measuring
                        clock, time,
                        -- Filesystem & Network tools
-                       directory, http-types, wai, warp,
+                       directory, file-embed, http-types, wai, warp,
                        -- Parsers & Template Engines
                        blaze-html, shakespeare, xml-conduit,
                        -- Other
@@ -32,7 +37,9 @@ executable ejstand
                        EjStand.DataParser
                        EjStand.HtmlRenderer
                        EjStand.InternalsCore
+                       EjStand.LegalCredits
                        EjStand.StandingBuilder
                        EjStand.StandingModels
                        EjStand.WebApplication
+                       Paths_ejstand
   default-language:    Haskell2010

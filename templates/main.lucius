@@ -3,6 +3,16 @@ h1 {
   font-size: 12pt;
 }
 
+h2 {
+  font-family: Verdana, Arial, sans-serif;
+  font-size: 10pt;
+}
+
+pre {
+  border: 1px solid black;
+  background-color: #eeeeee;
+}
+
 body {
   font-family: Arial, sans-serif;
   font-size: 10pt;
@@ -117,10 +127,10 @@ sub, sup {
   margin: 0;
 }
 
-.footer a {
+a {
   color: #333333;
 }
 
-.footer a:hover {
+a:hover {
   color: #aaaaaa;
 }
