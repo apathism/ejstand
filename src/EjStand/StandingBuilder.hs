@@ -9,7 +9,6 @@ where
 import           Data.List              (sortOn)
 import qualified Data.Map.Strict        as Map
 import           Data.Maybe             (catMaybes, fromMaybe)
-import           Data.Set               (Set)
 import qualified Data.Set               as Set
 import           Data.Text              (unpack)
 import           Data.Time              (UTCTime)
@@ -63,17 +62,16 @@ applyRunDeadline (Just (time, penalty)) run@Run {..}
   | otherwise      = (run { runScore = runScore >>= return . (* penalty) }, True)
 
 getRunScore :: StandingConfig -> (Run, Bool) -> Rational
-getRunScore cfg@(elem EnableScores . standingOptions -> True) ((runScore -> Nothing), _)    = 0
-getRunScore cfg@(elem EnableScores . standingOptions -> True) ((runScore -> Just score), _) = score
-getRunScore cfg ((getRunStatusType . runStatus -> Success), False)                          = 1
-getRunScore cfg ((getRunStatusType . runStatus -> Success), True)                           = getDeadlinePenalty cfg
-getRunScore _   _                                                                           = 0
+getRunScore (elem EnableScores . standingOptions -> True) ((runScore -> Nothing), _)    = 0
+getRunScore (elem EnableScores . standingOptions -> True) ((runScore -> Just score), _) = score
+getRunScore _ ((getRunStatusType . runStatus -> Success), False)                        = 1
+getRunScore cfg ((getRunStatusType . runStatus -> Success), True)                       = getDeadlinePenalty cfg
+getRunScore _   _                                                                       = 0
 
 recalculateCellAttempts :: StandingConfig -> (Run, Bool) -> StandingCell -> StandingCell
-recalculateCellAttempts _ runT@(run@Run {..}, overdue) cell@StandingCell {..}
-  | cellType >= Pending                   = cell
-  | getRunStatusType runStatus /= Mistake = cell
-  | otherwise                             = cell { cellAttempts = cellAttempts + 1 }
+recalculateCellAttempts _ (Run {..}, _) cell@StandingCell {..} | cellType >= Pending = cell
+                                                               | getRunStatusType runStatus /= Mistake = cell
+                                                               | otherwise = cell { cellAttempts = cellAttempts + 1 }
 
 setCellMainRun :: Bool -> StandingConfig -> (Run, Bool) -> StandingCell -> StandingCell
 setCellMainRun forceFlag cfg@StandingConfig {..} runT@(run@Run {..}, overdue) cell@StandingCell {..} =
@@ -111,7 +109,7 @@ applicateRun cfg runT cell = setCellMainRunMaybe cfg runT cell
 
 buildCell :: StandingConfig -> StandingSource -> Problem -> Contestant -> StandingCell
 buildCell cfg@StandingConfig {..} src@StandingSource {..} prob@Problem {..} user@Contestant {..} =
-  let filterCondition run@Run {..} = runProblem == Just problemID && runContestant == contestantID
+  let filterCondition Run {..} = runProblem == Just problemID && runContestant == contestantID
       runsList  = filter filterCondition $ Set.toList $ takeFromSetBy runContest problemContest runs
       deadline  = calculateDeadline cfg src prob user
       penalty   = getDeadlinePenalty cfg

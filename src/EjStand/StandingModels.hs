@@ -23,12 +23,10 @@ module EjStand.StandingModels
 where
 
 import           Data.Map.Strict       (Map)
-import qualified Data.Map.Strict       as Map
 import           Data.Semigroup        (Semigroup, (<>))
 import           Data.Set              (Set)
-import qualified Data.Set              as Set
 import           Data.String           (IsString)
-import           Data.Text             (Text, pack)
+import           Data.Text             (Text)
 import           Data.Time             (UTCTime)
 import           EjStand.BaseModels
 import           EjStand.InternalsCore

@@ -16,7 +16,6 @@ import qualified Data.Map.Strict               as Map
 import           Data.Maybe                    (catMaybes)
 import           Data.Ratio                    (Ratio, denominator, numerator, (%))
 import qualified Data.Set                      as Set
-import           Data.String                   (IsString)
 import           Data.Text                     (Text, intercalate, splitOn)
 import qualified Data.Text.Internal.Lazy       as LT
 import           Data.Time                     (UTCTime, defaultTimeLocale)
@@ -184,7 +183,7 @@ renderCell st@Standing { standingConfig = StandingConfig {..}, ..} row problem c
     Error        -> (td ! class_ "error", addRunStatusCellText "✖", False)
 
 renderProblemSuccesses :: Standing -> Problem -> Markup
-renderProblemSuccesses Standing {..} prob@Problem {..} =
+renderProblemSuccesses Standing {..} Problem {..} =
   let countProblemSuccesses =
         length
           .   filter ((== Success) . cellType)

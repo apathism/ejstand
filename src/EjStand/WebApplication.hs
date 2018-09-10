@@ -10,7 +10,6 @@ import           Control.Exception        (Exception, SomeException, catch, thro
 import           Data.Binary.Builder      (fromByteString)
 import           Data.ByteString          (ByteString)
 import qualified Data.ByteString.Char8    as BSC8
-import qualified Data.ByteString.Lazy     as LBS
 import           Data.String              (IsString, fromString)
 import           Data.Text                (Text, pack, unpack)
 import           Data.Text.Encoding       (encodeUtf8)
@@ -29,9 +28,6 @@ import           Network.Wai.Handler.Warp (defaultSettings, runSettings, setHost
 import           System.Clock             (Clock (..), TimeSpec, getTime, nsec, sec)
 
 -- IO Utilities (especially for error handling)
-
-emptyIO :: IO ()
-emptyIO = return ()
 
 catch' :: Exception e => (e -> IO a) -> IO a -> IO a
 catch' = flip catch

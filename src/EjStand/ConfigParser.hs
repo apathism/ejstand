@@ -86,9 +86,6 @@ type ParsingState = State [Text]
 
 -- Configuration parser
 
-isKeyCharacter :: Char -> Bool
-isKeyCharacter = isDigit ||| isLetter ||| (== '_')
-
 takeOneIf :: (Char -> Bool) -> Text -> (Text, Text)
 takeOneIf pred str = case Text.uncons str of
   Nothing     -> ("", str)
@@ -147,13 +144,6 @@ takeUniqueValue key = unique <$> takeValuesByKey key
 
 takeMandatoryValue :: Text -> TraversingState ConfigValue
 takeMandatoryValue key = fromMaybe (throw $ UndefinedKey key) <$> takeUniqueValue key
-
-ensureNoValue :: Text -> TraversingState ()
-ensureNoValue key = do
-  value <- takeUniqueValue key
-  case value of
-    Nothing -> return ()
-    _       -> throw $ UnexpectedKey key
 
 toTextValue :: Text -> ConfigValue -> Text
 toTextValue _   (TextValue txt) = txt

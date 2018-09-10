@@ -17,14 +17,14 @@ $doctype 5
                         $of (Nothing, cols)
                             <th class="contest" colspan="#{cols}" title="???">
                                 ???
-                        $of (Just contest@Contest{..}, cols)
+                        $of (Just Contest{contestName}, cols)
                             <th colspan="#{cols}" class="contest" title="#{contestName}">
                                 #{last $ splitOn " " $ contestName}
             <tr>
-                $forall problem@Problem{..} <- standingProblems
+                $forall Problem{problemShortName, problemLongName} <- standingProblems
                     <th class="problem" title="#{problemShortName}: #{problemLongName}">
                         #{problemShortName}
-            $forall tRow@(place, row) <- enumerate standingRows
+            $forall tRow@(_, row) <- enumerate standingRows
                 <tr>
                     $forall column <- standingColumns
                         #{columnRowValue column $ tRow}
