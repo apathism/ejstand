@@ -8,7 +8,7 @@ module EjStand.InternalsCore
   )
 where
 
-import           Control.Applicative (liftA2)
+import           Control.Applicative (Alternative (..), liftA2)
 import           Data.Set            (Set)
 import qualified Data.Set            as Set
 import           Data.Text           (Text, breakOnEnd, stripSuffix)
@@ -20,9 +20,9 @@ import           Data.Text           (Text, breakOnEnd, stripSuffix)
 
 -- List expressions
 
-(==>) :: Monad m => Bool -> a -> m a
-(==>) False _ = fail ""
-(==>) True  x = return x
+(==>) :: Alternative f => Bool -> a -> f a
+(==>) False _ = empty
+(==>) True  x = pure x
 
 allValues :: (Bounded a, Enum a) => [a]
 allValues = [minBound .. maxBound]
