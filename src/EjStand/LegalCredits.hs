@@ -38,7 +38,6 @@ getDependenciesStringList =
   , "warp"
   , "blaze-html"
   , "shakespeare"
-  , "xml-conduit"
   , "binary"
   , "mtl"
   ]
