@@ -38,7 +38,7 @@ getDependenciesStringList =
   , "warp"
   , "blaze-html"
   , "shakespeare"
-  , "xml-conduit"
+  , "xeno"
   , "binary"
   , "mtl"
   ]

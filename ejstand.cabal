@@ -26,7 +26,7 @@ executable ejstand
                        -- Filesystem & Network tools
                        directory, file-embed, http-types, wai, warp,
                        -- Parsers & Template Engines
-                       blaze-html, shakespeare, xml-conduit,
+                       blaze-html, shakespeare, xeno,
                        -- Other
                        binary, mtl
   ghc-options:         -O2 -Wall -Wno-name-shadowing -Wno-orphans

@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
 module EjStand.DataParser
   ( ParsingException(..)
   , parseEjudgeXML
@@ -6,127 +7,108 @@ module EjStand.DataParser
   )
 where
 
-import           Control.Exception      (Exception, throw)
-import           Data.Map.Strict        (Map)
-import qualified Data.Map.Strict        as Map
-import           Data.Maybe             (mapMaybe)
-import qualified Data.Set               as Set (fromDistinctAscList, singleton)
-import           Data.Text              (Text, pack, unpack)
-import qualified Data.Text              as Text (concat, null)
-import           Data.Text.Read         (decimal, signed)
-import           Data.Time              (UTCTime, addUTCTime, defaultTimeLocale, parseTimeM)
+import           Control.Exception          (Exception, throw)
+import           Control.Monad              (unless)
+import           Control.Monad.State.Strict (State, execState, get, modify, put)
+import           Data.ByteString            (ByteString)
+import qualified Data.ByteString            as BS
+import           Data.Function              (on)
+import           Data.Map.Strict            (Map)
+import qualified Data.Map.Strict            as Map
+import           Data.Maybe                 (isNothing)
+import qualified Data.Set                   as Set
+import           Data.Text                  (Text)
+import qualified Data.Text                  as Text
+import           Data.Text.Encoding         (decodeUtf8)
+import           Data.Text.Read             (decimal, signed)
+import           Data.Time                  (UTCTime, addUTCTime, defaultTimeLocale, parseTimeM)
 import           EjStand.BaseModels
 import           EjStand.InternalsCore
-import           EjStand.StandingModels (StandingSource (..))
-import           Prelude                hiding (readFile)
-import           Text.XML
+import           EjStand.StandingModels     (StandingSource (..))
+import qualified Xeno.SAX                   as Xeno
+
+-- Text casts
+
+mconcat' :: [Text] -> String
+mconcat' = Text.unpack . mconcat
+
+wrap1BS :: (Text -> v) -> ByteString -> v
+wrap1BS f = f . decodeUtf8
+
+wrap2BS :: (Text -> Text -> v) -> ByteString -> ByteString -> v
+wrap2BS f = f `on` decodeUtf8
 
 -- Exceptions
 
-nameToString :: Name -> String
-nameToString = unpack . nameLocalName
-
-data ParsingException = UndefinedAttribute Name
-                      | UndefinedChild Name
-                      | AmbiguousChild Name
-                      | InvalidInteger Text
-                      | InvalidRunStatus Text
+data ParsingException = DuplicateKey         !Text
+                      | MissingKey           !Text
+                      | InvalidInteger       !Text
+                      | InvalidRunStatus     !Text
+                      | InvalidContestNumber !Int
                       | RunsInNotStartedContest
 
 instance Exception ParsingException
 
 instance Show ParsingException where
-  show (UndefinedAttribute value) = "Undefined attribute \"" ++ nameToString value ++ "\""
-  show (UndefinedChild     value) = "Child element \"" ++ nameToString value ++ "\" not found"
-  show (AmbiguousChild     value) = "Ambiguous child element \"" ++ nameToString value ++ "\" instances"
-  show (InvalidInteger     value) = "Can't convert string \"" ++ unpack value ++ "\" to integer type"
-  show (InvalidRunStatus   value) = "Can't convert string \"" ++ unpack value ++ "\" to run status"
-  show RunsInNotStartedContest    = "There are runs in a contest which has not started yet"
+  show (DuplicateKey key)       = mconcat' ["Duplicate value for key \"", key, "\" for the same tag"]
+  show (MissingKey key)         = mconcat' ["Key \"", key, "\" expected, but not found"]
+  show (InvalidInteger str)     = mconcat' ["Can't convert string value \"", str, "\" to integer"]
+  show (InvalidContestNumber n) = concat ["There must be only one contest in XML file, but ", show n, " got"]
+  show (InvalidRunStatus str)   = mconcat' ["Can't convert string \"", str, "\" to run status"]
+  show RunsInNotStartedContest  = "There are runs in a contest which has not started yet"
 
--- Attribute and Node extraction functions
+-- Map operations
 
-getMaybeAttributeValue :: Name -> Element -> Maybe Text
-getMaybeAttributeValue attr = Map.lookup attr . elementAttributes
+(!?) :: Ord k => k -> Map k v -> Maybe v
+(!?) = Map.lookup
 
-getAttributeValue :: Name -> Element -> Text
-getAttributeValue attr elem = case getMaybeAttributeValue attr elem of
-  Nothing  -> throw $ UndefinedAttribute attr
-  Just val -> val
+(!) :: Text -> Map Text v -> v
+key ! mp = case key !? mp of
+  Nothing      -> throw $ MissingKey key
+  (Just value) -> value
 
-toElement :: Node -> Maybe Element
-toElement (NodeElement e) = Just e
-toElement _               = Nothing
+-- Parsing state
+
+data ParsingState = ParsingState { lastOpenedTag    :: !(Maybe Text)
+                                 , argumentList     :: !(Map Text Text)
+                                 , textContents     :: !Text
+                                 , stateContests    :: ![Contest]
+                                 , stateContestants :: ![Contestant]
+                                 , stateProblems    :: ![Problem]
+                                 , stateLanguages   :: ![Language]
+                                 , stateRuns        :: ![Run]
+                                 }
+                    deriving (Show)
+
+emptyPS :: ParsingState
+emptyPS = ParsingState Nothing Map.empty "" [] [] [] [] []
+
+type ParsingStateM = State ParsingState
+
+-- Data type readers
+
+readInteger :: Text -> Integer
+readInteger str = case (signed decimal) str of
+  Left  _             -> throw $ InvalidInteger str
+  Right (value, tail) -> if Text.null tail then value else throw $ InvalidInteger str
+
+readUTC :: Monad a => Text -> a UTCTime
+readUTC = parseTimeM True defaultTimeLocale "%Y/%m/%d %T" . Text.unpack
 
 runStatusReadingMap :: Map Text Int
-runStatusReadingMap = Map.fromList $ fmap (\x -> (pack . show $ x, fromEnum x)) (allValues :: [RunStatus])
+runStatusReadingMap = Map.fromList $ fmap (\x -> (Text.pack . show $ x, fromEnum x)) (allValues :: [RunStatus])
 
 readStatus :: Text -> RunStatus
 readStatus text = case Map.lookup text runStatusReadingMap of
   Nothing       -> throw $ InvalidRunStatus text
   (Just status) -> toEnum status
 
-getChilds :: Name -> Element -> [Element]
-getChilds name = filter ((== name) . elementName) . mapMaybe toElement . elementNodes
+-- Parsing state folding
 
-getChild :: Name -> Element -> Element
-getChild name elem = case getChilds name elem of
-  [value] -> value
-  []      -> throw $ UndefinedChild name
-  _       -> throw $ AmbiguousChild name
-
-readIntegral :: Text -> Integer
-readIntegral str = case (signed decimal) str of
-  Left  _             -> throw $ InvalidInteger str
-  Right (value, tail) -> if Text.null tail then value else throw $ InvalidInteger str
-
-getTextContents :: Element -> Text
-getTextContents = Text.concat . map getTextContents' . elementNodes
- where
-  getTextContents' :: Node -> Text
-  getTextContents' (NodeContent txt) = txt
-  getTextContents' _                 = ""
-
-toUTC :: Monad a => Text -> a UTCTime
-toUTC = parseTimeM True defaultTimeLocale "%Y/%m/%d %T" . unpack
-
--- Parsing Models
-
-readContest :: Element -> Contest
-readContest root = Contest contestID contestName contestStartTime
- where
-  contestID        = readIntegral $ getAttributeValue "contest_id" root
-  contestName      = getTextContents . getChild "name" $ root
-  contestStartTime = getMaybeAttributeValue "start_time" root >>= toUTC
-
-readContestant :: Element -> Contestant
-readContestant elem = Contestant contestantID contestantName
- where
-  contestantID   = readIntegral $ getAttributeValue "id" elem
-  contestantName = getAttributeValue "name" elem
-
-readContestants :: Element -> [Contestant]
-readContestants = map readContestant . getChilds "user" . getChild "users"
-
-readLanguage :: Element -> Language
-readLanguage elem = Language languageID languageShortName languageLongName
- where
-  languageID        = readIntegral $ getAttributeValue "id" elem
-  languageShortName = getAttributeValue "short_name" elem
-  languageLongName  = getAttributeValue "long_name" elem
-
-readLanguages :: Element -> [Language]
-readLanguages = map readLanguage . getChilds "language" . getChild "languages"
-
-readProblem :: Contest -> Element -> Problem
-readProblem contest elem = Problem problemID problemContest problemShortName problemLongName
- where
-  problemID        = readIntegral $ getAttributeValue "id" elem
-  problemContest   = contestID contest
-  problemShortName = getAttributeValue "short_name" elem
-  problemLongName  = getAttributeValue "long_name" elem
-
-readProblems :: Contest -> Element -> [Problem]
-readProblems contest = map (readProblem contest) . getChilds "problem" . getChild "problems"
+getStateContest :: ParsingState -> Contest
+getStateContest state = case stateContests state of
+  [contest] -> contest
+  _         -> throw . InvalidContestNumber . length . stateContests $ state
 
 makeContestTime :: Contest -> (Integer, Integer) -> UTCTime
 makeContestTime contest (sec, nsec) = makeContestTime' (contestStartTime contest) (fromIntegral sec, fromIntegral nsec)
@@ -135,35 +117,117 @@ makeContestTime contest (sec, nsec) = makeContestTime' (contestStartTime contest
   makeContestTime' Nothing     _           = throw RunsInNotStartedContest
   makeContestTime' (Just time) (sec, nsec) = addUTCTime (realToFrac (nsec * 1e-9 + sec)) time
 
-readRun :: Contest -> Element -> Run
-readRun contest elem = Run runID runContest runContestant runProblem runTime runStatus runLanguage runScore runTest
- where
-  runID         = readIntegral $ getAttributeValue "run_id" elem
-  runContest    = contestID contest
-  runContestant = readIntegral $ getAttributeValue "user_id" elem
-  runProblem    = readIntegral <$> getMaybeAttributeValue "prob_id" elem
-  runTime =
-    makeContestTime contest (readIntegral $ getAttributeValue "time" elem, readIntegral $ getAttributeValue "nsec" elem)
-  runStatus   = readStatus $ getAttributeValue "status" elem
-  runLanguage = readIntegral <$> getMaybeAttributeValue "lang_id" elem
-  runScore    = fromInteger <$> readIntegral <$> getMaybeAttributeValue "score" elem
-  runTest     = readIntegral <$> getMaybeAttributeValue "test" elem
 
-readRuns :: Contest -> Element -> [Run]
-readRuns contest = map (readRun contest) . getChilds "run" . getChild "runs"
+foldPSRunlog :: ParsingState -> ParsingState
+foldPSRunlog state@ParsingState {..} =
+  let contestID        = readInteger $ "contest_id" ! argumentList
+      contestStartTime = "start_time" !? argumentList >>= readUTC
+      contest          = Contest contestID "" contestStartTime
+  in  state { stateContests = (contest : stateContests) }
 
--- Parser Frontend
+foldPSContestName :: ParsingState -> ParsingState
+foldPSContestName state =
+  state { stateContests = (\x -> x { contestName = textContents state }) <$> stateContests state }
+
+foldPSContestant :: ParsingState -> ParsingState
+foldPSContestant state@ParsingState {..} =
+  let contestantID   = readInteger $ "id" ! argumentList
+      contestantName = "name" ! argumentList
+      contestant     = Contestant contestantID contestantName
+  in  state { stateContestants = (contestant : stateContestants) }
+
+foldPSProblem :: ParsingState -> ParsingState
+foldPSProblem state@ParsingState {..} =
+  let problemContest   = contestID $ getStateContest state
+      problemID        = readInteger $ "id" ! argumentList
+      problemShortName = "short_name" ! argumentList
+      problemLongName  = "long_name" ! argumentList
+      problem          = Problem problemID problemContest problemShortName problemLongName
+  in  state { stateProblems = (problem : stateProblems) }
+
+foldPSLanguage :: ParsingState -> ParsingState
+foldPSLanguage state@ParsingState {..} =
+  let languageID        = readInteger $ "id" ! argumentList
+      languageShortName = "short_name" ! argumentList
+      languageLongName  = "long_name" ! argumentList
+      language          = Language languageID languageShortName languageLongName
+  in  state { stateLanguages = (language : stateLanguages) }
+
+foldPSRun :: ParsingState -> ParsingState
+foldPSRun state@ParsingState {..} =
+  let contest       = getStateContest state
+      runID         = readInteger $ "run_id" ! argumentList
+      runContest    = contestID contest
+      runContestant = readInteger $ "user_id" ! argumentList
+      runProblem    = readInteger <$> "prob_id" !? argumentList
+      runTime       = makeContestTime contest (readInteger $ "time" ! argumentList, readInteger $ "nsec" ! argumentList)
+      runStatus     = readStatus $ "status" ! argumentList
+      runLanguage   = readInteger <$> "lang_id" !? argumentList
+      runScore      = fromInteger . readInteger <$> "score" !? argumentList
+      runTest       = readInteger <$> "test" !? argumentList
+      run           = Run runID runContest runContestant runProblem runTime runStatus runLanguage runScore runTest
+  in  state { stateRuns = (run : stateRuns) }
+
+foldPS :: ParsingState -> ParsingState
+foldPS state@ParsingState { lastOpenedTag = tag, ..} = case tag of
+  Nothing           -> state
+  (Just "runlog"  ) -> foldPSRunlog state
+  (Just "name"    ) -> foldPSContestName state
+  (Just "user"    ) -> foldPSContestant state
+  (Just "problem" ) -> foldPSProblem state
+  (Just "language") -> foldPSLanguage state
+  (Just "run"     ) -> foldPSRun state
+  (Just _         ) -> state
+
+-- Parsing
+
+skipXenoEvent :: Monad m => e -> m ()
+skipXenoEvent _ = return ()
+
+clearTagData :: ParsingStateM ()
+clearTagData = do
+  state <- foldPS <$> get
+  put $ state { lastOpenedTag = Nothing, argumentList = Map.empty, textContents = "" }
+
+openTag :: Text -> ParsingStateM ()
+openTag tagName = do
+  tag <- lastOpenedTag <$> get
+  unless (isNothing tag) clearTagData
+  modify (\state -> state { lastOpenedTag = Just tagName })
+
+closeTag :: e -> ParsingStateM ()
+closeTag _ = clearTagData
+
+textInsideTag :: Text -> ParsingStateM ()
+textInsideTag text = modify (\state -> state { textContents = mconcat [textContents state, text] })
+
+processTagAttribute :: Text -> Text -> ParsingStateM ()
+processTagAttribute key value = do
+  state <- get
+  let onDuplicate _ _ = throw $ DuplicateKey key
+  let newArgumentList = Map.insertWith onDuplicate key value $ argumentList state
+  put state { argumentList = newArgumentList }
+
+stateToStandingSource :: ParsingState -> StandingSource
+stateToStandingSource ParsingState {..} = StandingSource (Set.fromList stateContests)
+                                                         (Set.fromList stateContestants)
+                                                         (Set.fromList stateLanguages)
+                                                         (Set.fromList stateProblems)
+                                                         (Set.fromList stateRuns)
+
+processRawXML :: ByteString -> StandingSource
+processRawXML raw = stateToStandingSource $ (flip execState) emptyPS $ Xeno.process (wrap1BS openTag)
+                                                                                    (wrap2BS processTagAttribute)
+                                                                                    skipXenoEvent
+                                                                                    (wrap1BS textInsideTag)
+                                                                                    closeTag
+                                                                                    skipXenoEvent
+                                                                                    raw
+
+-- Main entry points
 
 parseEjudgeXML :: FilePath -> IO StandingSource
-parseEjudgeXML file = do
-  root <- documentRoot <$> readFile def file
-  let contest    = readContest root
-      usersSet   = Set.fromDistinctAscList $ readContestants root
-      langsSet   = Set.fromDistinctAscList $ readLanguages root
-      probsSet   = Set.fromDistinctAscList $ readProblems contest root
-      runsSet    = Set.fromDistinctAscList $ readRuns contest root
-      contestSet = Set.singleton $ contest
-  return $ StandingSource contestSet usersSet langsSet probsSet runsSet
+parseEjudgeXML file = processRawXML <$> BS.readFile file
 
 parseEjudgeXMLs :: [FilePath] -> IO StandingSource
 parseEjudgeXMLs filelist = do
