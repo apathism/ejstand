@@ -227,10 +227,15 @@ processRawXML raw = stateToStandingSource $ (flip execState) emptyPS $ Xeno.proc
 -- Main entry points
 
 parseEjudgeXML :: FilePath -> IO (Maybe StandingSource)
-parseEjudgeXML file = catch (Just . processRawXML <$> BS.readFile file) handleNothing
+parseEjudgeXML file = catch (onlyIfStarted <$> processRawXML <$> BS.readFile file) handleNothing
  where
   handleNothing :: IOException -> IO (Maybe a)
   handleNothing _ = return Nothing
+
+  onlyIfStarted :: StandingSource -> Maybe StandingSource
+  onlyIfStarted src = case filter (isNothing . contestStartTime) $ Set.toList $ contests src of
+    [] -> Just src
+    _  -> Nothing
 
 parseEjudgeXMLs :: [FilePath] -> IO StandingSource
 parseEjudgeXMLs filelist = do
