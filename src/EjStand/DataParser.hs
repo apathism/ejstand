@@ -7,7 +7,7 @@ module EjStand.DataParser
   )
 where
 
-import           Control.Exception          (Exception, throw)
+import           Control.Exception          (Exception, IOException, catch, throw)
 import           Control.Monad              (unless)
 import           Control.Monad.State.Strict (State, execState, get, modify, put)
 import           Data.ByteString            (ByteString)
@@ -15,7 +15,7 @@ import qualified Data.ByteString            as BS
 import           Data.Function              (on)
 import           Data.Map.Strict            (Map)
 import qualified Data.Map.Strict            as Map
-import           Data.Maybe                 (isNothing)
+import           Data.Maybe                 (catMaybes, isNothing)
 import qualified Data.Set                   as Set
 import           Data.Text                  (Text)
 import qualified Data.Text                  as Text
@@ -226,10 +226,13 @@ processRawXML raw = stateToStandingSource $ (flip execState) emptyPS $ Xeno.proc
 
 -- Main entry points
 
-parseEjudgeXML :: FilePath -> IO StandingSource
-parseEjudgeXML file = processRawXML <$> BS.readFile file
+parseEjudgeXML :: FilePath -> IO (Maybe StandingSource)
+parseEjudgeXML file = catch (Just . processRawXML <$> BS.readFile file) handleNothing
+ where
+  handleNothing :: IOException -> IO (Maybe a)
+  handleNothing _ = return Nothing
 
 parseEjudgeXMLs :: [FilePath] -> IO StandingSource
 parseEjudgeXMLs filelist = do
-  sources <- sequence $ map parseEjudgeXML filelist
-  return $ mconcat sources
+  sources <- sequence $ parseEjudgeXML <$> filelist
+  return . mconcat . catMaybes $ sources
