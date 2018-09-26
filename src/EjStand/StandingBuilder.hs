@@ -8,7 +8,7 @@ where
 
 import           Data.List              (sortOn)
 import qualified Data.Map.Strict        as Map
-import           Data.Maybe             (catMaybes, fromMaybe)
+import           Data.Maybe             (catMaybes)
 import qualified Data.Set               as Set
 import           Data.Text              (unpack)
 import           Data.Time              (UTCTime)
@@ -28,26 +28,21 @@ prepareStandingSource GlobalConfiguration {..} StandingConfig {..} =
 
 -- Deadlines computations
 
-isAppliableDeadlineOption :: Problem -> Contestant -> StandingOption -> Bool
-isAppliableDeadlineOption Problem {..} Contestant {..} SetFixedDeadline {..}
-  | not $ Set.member problemContest contestIDs = False
-  | otherwise = case contestantIDs of
+isAppliableDeadlineOption :: Problem -> Contestant -> FixedDeadline -> Bool
+isAppliableDeadlineOption Problem {..} Contestant {..} FixedDeadline {..}
+  | Set.member problemContest contestIDs = case contestantIDs of
     Nothing  -> True
     Just ids -> Set.member contestantID ids
-isAppliableDeadlineOption _ _ _ = False
+  | otherwise = False
 
 calculateDeadline :: StandingConfig -> StandingSource -> Problem -> Contestant -> Maybe UTCTime
-calculateDeadline StandingConfig {..} StandingSource {..} prob@Problem {..} user@Contestant {..} =
-  if (elem EnableDeadlines standingOptions)
-    then
-      let nextContest     = Set.lookupMin $ Set.dropWhileAntitone ((<= problemContest) . contestID) contests
-          defaultDeadline = nextContest >>= contestStartTime
-          customDeadline  = fmap deadline $ lastMay $ filter (isAppliableDeadlineOption prob user) $ standingOptions
-      in  headMay $ catMaybes [customDeadline, defaultDeadline]
-    else Nothing
-
-getDeadlinePenalty :: StandingConfig -> Rational
-getDeadlinePenalty cfg = fromMaybe 1 $ headMay $ [ penalty | SetDeadlinePenalty penalty <- standingOptions cfg ]
+calculateDeadline StandingConfig {..} StandingSource {..} prob@Problem {..} user@Contestant {..} = if enableDeadlines
+  then
+    let nextContest     = Set.lookupMin $ Set.dropWhileAntitone ((<= problemContest) . contestID) contests
+        defaultDeadline = nextContest >>= contestStartTime
+        customDeadline  = fmap deadline $ lastMay $ filter (isAppliableDeadlineOption prob user) fixedDeadlines
+    in  headMay $ catMaybes [customDeadline, defaultDeadline]
+  else Nothing
 
 -- Standing building
 
@@ -62,11 +57,11 @@ applyRunDeadline (Just (time, penalty)) run@Run {..}
   | otherwise      = (run { runScore = runScore >>= return . (* penalty) }, True)
 
 getRunScore :: StandingConfig -> (Run, Bool) -> Rational
-getRunScore (elem EnableScores . standingOptions -> True) ((runScore -> Nothing), _)    = 0
-getRunScore (elem EnableScores . standingOptions -> True) ((runScore -> Just score), _) = score
-getRunScore _ ((getRunStatusType . runStatus -> Success), False)                        = 1
-getRunScore cfg ((getRunStatusType . runStatus -> Success), True)                       = getDeadlinePenalty cfg
-getRunScore _   _                                                                       = 0
+getRunScore (enableScores -> True) ((runScore -> Nothing), _)     = 0
+getRunScore (enableScores -> True) ((runScore -> Just score), _)  = score
+getRunScore _ ((getRunStatusType . runStatus -> Success), False)  = 1
+getRunScore cfg ((getRunStatusType . runStatus -> Success), True) = deadlinePenalty cfg
+getRunScore _                      _                              = 0
 
 recalculateCellAttempts :: StandingConfig -> (Run, Bool) -> StandingCell -> StandingCell
 recalculateCellAttempts _ (Run {..}, _) cell@StandingCell {..} | cellType >= Pending = cell
@@ -77,7 +72,7 @@ setCellMainRun :: Bool -> StandingConfig -> (Run, Bool) -> StandingCell -> Stand
 setCellMainRun forceFlag cfg@StandingConfig {..} runT@(run@Run {..}, overdue) cell@StandingCell {..} =
   let score = getRunScore cfg runT
       cell' = recalculateCellAttempts cfg runT cell
-  in  if forceFlag || elem OnlyScoreLastSubmit standingOptions || cellScore < score
+  in  if forceFlag || onlyScoreLastSubmit || cellScore < score
         then cell' { cellType      = getRunStatusType runStatus
                    , cellIsOverdue = overdue
                    , cellMainRun   = Just run
@@ -112,8 +107,7 @@ buildCell cfg@StandingConfig {..} src@StandingSource {..} prob@Problem {..} user
   let filterCondition Run {..} = runProblem == Just problemID && runContestant == contestantID
       runsList  = filter filterCondition $ Set.toList $ takeFromSetBy runContest problemContest runs
       deadline  = calculateDeadline cfg src prob user
-      penalty   = getDeadlinePenalty cfg
-      deadlineT = (\x -> (x, penalty)) <$> deadline
+      deadlineT = (\x -> (x, deadlinePenalty)) <$> deadline
   in  foldl (flip $ applicateRun cfg) defaultCell $ fmap (applyRunDeadline deadlineT) $ runsList
 
 calculateCellStats :: StandingCell -> StandingRowStats
@@ -143,9 +137,9 @@ buildRows :: StandingConfig -> StandingSource -> [Problem] -> [StandingRow]
 buildRows cfg src probs = buildRow cfg src probs <$> (Set.toList $ contestants src)
 
 buildProblems :: StandingConfig -> StandingSource -> [Problem]
-buildProblems cfg | elem ReversedContestOrder $ standingOptions cfg = sortOn cmp . Set.toList . problems
-                  | otherwise = Set.toList . problems
+buildProblems (reversedContestOrder -> True) = sortOn cmp . Set.toList . problems
   where cmp = ([negate . problemContest, problemID] <*>) . return
+buildProblems _ = Set.toList . problems
 
 sortRows :: [StandingRow] -> [StandingRow]
 sortRows = sortOn (comparator . calculateRowStats)
@@ -156,7 +150,7 @@ sortRows = sortOn (comparator . calculateRowStats)
 buildColumns :: StandingConfig -> StandingSource -> [StandingColumn]
 buildColumns cfg@StandingConfig {..} _ = mconcat
   [ [placeColumn, contestantNameColumn, totalScoreColumn cfg]
-  , (elem EnableDeadlines standingOptions || elem EnableScores standingOptions) ==> totalSuccessesColumn
+  , (enableDeadlines || enableScores) ==> totalSuccessesColumn
   , [lastSuccessTimeColumn]
   ]
 

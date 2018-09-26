@@ -211,67 +211,65 @@ ensureEmptyState = do
 
 -- Configuration readers
 
-buildExtraDeadline :: Configuration -> StandingOption
+buildExtraDeadline :: Configuration -> FixedDeadline
 buildExtraDeadline = evalState $ do
   valueContestIDs    <- takeMandatoryValue |> toTextValue |> toIntervalValue $ "ContestIDs"
   valueContestantIDs <- takeUniqueValue ||> toTextValue ||> toIntervalValue $ "ContestantIDs"
   valueDeadline      <- takeMandatoryValue |> toTextValue |> toUTC $ "Deadline"
   !_                 <- ensureEmptyState
-  return $ SetFixedDeadline valueContestIDs valueDeadline valueContestantIDs
+  return $ FixedDeadline valueContestIDs valueDeadline valueContestantIDs
 
-buildConditionalStyle :: Configuration -> StandingOption
+buildConditionalStyle :: Configuration -> ConditionalStyle
 buildConditionalStyle = evalState $ do
   styleValue <- takeMandatoryValue |> toTextValue $ "StyleValue"
   conditions <- takeMandatoryValue |> toTextValue |> toComparisons $ "Conditions"
   !_         <- ensureEmptyState
   return $ ConditionalStyle conditions styleValue
 
-buildNestedOptions :: (Configuration -> StandingOption) -> Text -> TraversingState [StandingOption]
+buildNestedOptions :: (Configuration -> a) -> Text -> TraversingState [a]
 buildNestedOptions builder optionName = do
   nested <- takeValuesByKey ||> toNestedConfig $ optionName
   return $ fmap builder $ nested
 
-buildStandingOptions :: TraversingState [StandingOption]
-buildStandingOptions = do
+buildStandingConfig :: TraversingState StandingConfig
+buildStandingConfig = do
+  name                 <- takeMandatoryValue |> toTextValue $ "Name"
+  contests             <- takeMandatoryValue |> toTextValue |> toIntervalValue $ "Contests"
+  internalName         <- takeMandatoryValue |> toTextValue $ "InternalName"
   reversedContestOrder <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ReversedContestOrder"
   enableDeadlines      <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "EnableDeadlines"
-  setDeadlinePenalty   <- if enableDeadlines
-    then takeMandatoryValue |> toTextValue |> toRatio $ "SetDeadlinePenalty"
+  deadlinePenalty      <- if enableDeadlines
+    then takeMandatoryValue |> toTextValue |> toRatio $ "DeadlinePenalty"
     else return $ 0 % 1
   showProblemStatistics <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ShowProblemStatistics"
   enableScores          <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "EnableScores"
   onlyScoreLastSubmit   <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "OnlyScoreLastSubmit"
   showAttemptsNumber    <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe True $ "ShowAttemptsNumber"
   showLanguages         <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ShowLanguages"
-  extraDeadlines        <- buildNestedOptions buildExtraDeadline "SetFixedDeadline"
+  fixedDeadlines        <- buildNestedOptions buildExtraDeadline "SetFixedDeadline"
   conditionalStyles     <- buildNestedOptions buildConditionalStyle "ConditionalStyle"
-  return $ mconcat
-    [ reversedContestOrder ==> ReversedContestOrder
-    , enableDeadlines ==> EnableDeadlines
-    , enableDeadlines ==> SetDeadlinePenalty setDeadlinePenalty
-    , showProblemStatistics ==> ShowProblemStatistics
-    , enableScores ==> EnableScores
-    , onlyScoreLastSubmit ==> OnlyScoreLastSubmit
-    , showLanguages ==> ShowLanguages
-    , showAttemptsNumber ==> ShowAttemptsNumber
-    , extraDeadlines
-    , conditionalStyles
-    ]
-
-buildStandingConfig :: Configuration -> StandingConfig
-buildStandingConfig = evalState $ do
-  standName         <- takeMandatoryValue |> toTextValue $ "Name"
-  standContests     <- takeMandatoryValue |> toTextValue |> toIntervalValue $ "Contests"
-  standInternalName <- takeMandatoryValue |> toTextValue $ "InternalName"
-  standOptions      <- buildStandingOptions
-  !_                <- ensureEmptyState
-  return $ StandingConfig standName standContests standInternalName standOptions
+  !_                    <- ensureEmptyState
+  return $ StandingConfig
+    { standingName          = name
+    , standingContests      = contests
+    , internalName          = internalName
+    , reversedContestOrder  = reversedContestOrder
+    , enableDeadlines       = enableDeadlines
+    , deadlinePenalty       = deadlinePenalty
+    , showProblemStatistics = showProblemStatistics
+    , enableScores          = enableScores
+    , onlyScoreLastSubmit   = onlyScoreLastSubmit
+    , showAttemptsNumber    = showAttemptsNumber
+    , fixedDeadlines        = fixedDeadlines
+    , conditionalStyles     = conditionalStyles
+    , showLanguages         = showLanguages
+    }
 
 parseStandingConfig :: FilePath -> IO StandingConfig
 parseStandingConfig path = do
   contents <- decodeUtf8 <$> B.readFile path
   let cfg = buildConfig contents
-  return $ buildStandingConfig cfg
+  return $ evalState buildStandingConfig cfg
 
 parseStandingConfigDirectory :: FilePath -> IO [StandingConfig]
 parseStandingConfigDirectory path = do

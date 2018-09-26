@@ -79,12 +79,11 @@ instance ToMarkup UTCTime where
 
 -- Columns rendering
 
-calculateConditionalStyle :: [StandingOption] -> Rational -> (Html -> Html) -> Html -> Html
+calculateConditionalStyle :: [ConditionalStyle] -> Rational -> (Html -> Html) -> Html -> Html
 calculateConditionalStyle [] _ html = html
-calculateConditionalStyle ((ConditionalStyle conditions styleValue) : tail) value html
+calculateConditionalStyle (ConditionalStyle {..} : tail) value html
   | checkComparison value `all` conditions = html ! style (toValue styleValue)
   | otherwise                              = calculateConditionalStyle tail value html
-calculateConditionalStyle (_ : tail) value html = calculateConditionalStyle tail value html
 
 placeColumn :: StandingColumn
 placeColumn = StandingColumn caption value
@@ -109,11 +108,11 @@ totalScoreColumn StandingConfig {..} = StandingColumn caption value
  where
   caption = th ! class_ "total_score" ! rowspan "2" $ preEscapedToMarkup ("&Sigma;" :: Text)
   value (_, StandingRow {..}) =
-    calculateConditionalStyle standingOptions relativeScore td ! class_ "total_score" $ toMarkup score
+    calculateConditionalStyle conditionalStyles relativeScore td ! class_ "total_score" $ toMarkup score
    where
     score         = rowScore rowStats
     -- This is a very bold assumption, but we can't get more information through ejudge XML interface
-    maxScore      = toInteger $ if elem EnableScores standingOptions then Map.size rowCells * 100 else Map.size rowCells
+    maxScore      = toInteger $ if enableScores then Map.size rowCells * 100 else Map.size rowCells
     relativeScore = score / (maxScore % 1)
 
 lastSuccessTimeColumn :: StandingColumn
@@ -147,18 +146,15 @@ attemptsCellContent StandingCell {..} = if cellType == Ignore
 
 selectAdditionalCellContentBuilders :: Standing -> [CellContentBuilder]
 selectAdditionalCellContentBuilders Standing { standingConfig = StandingConfig {..}, ..} = mconcat
-  [ elem EnableScores standingOptions ==> scoreCellContent
-  , elem ShowAttemptsNumber standingOptions
-    ==> if elem EnableScores standingOptions then attemptsCellContent else wrongAttemptsCellContent
+  [ enableScores ==> scoreCellContent
+  , showAttemptsNumber ==> if enableScores then attemptsCellContent else wrongAttemptsCellContent
   ]
 
 buildCellTitle :: Standing -> StandingRow -> Problem -> StandingCell -> Text
 buildCellTitle Standing { standingConfig = StandingConfig {..}, standingSource = StandingSource {..}, ..} StandingRow {..} Problem {..} StandingCell {..}
   = intercalate ", " $ mconcat
     [ [contestantName rowContestant, mconcat [problemShortName, " (", problemLongName, ")"]]
-    , catMaybes
-    $   elem ShowLanguages standingOptions
-    ==> (languageLongName <$> (cellMainRun >>= runLanguage >>= findLanguageByID))
+    , catMaybes $ showLanguages ==> (languageLongName <$> (cellMainRun >>= runLanguage >>= findLanguageByID))
     ]
   where findLanguageByID id = Set.lookupMin $ takeFromSetBy languageID id languages
 
@@ -168,7 +164,7 @@ renderCell st@Standing { standingConfig = StandingConfig {..}, ..} row problem c
  where
   additionalContent = if allowCellContent then selectAdditionalCellContentBuilders st <*> [cell] else []
   addRunStatusCellText text = span ! class_ "run_status" $ text
-  ifNotScores x = if elem EnableScores standingOptions then mempty else x
+  ifNotScores x = if enableScores then mempty else x
   cellTag'                               = cellTag ! title (toValue $ buildCellTitle st row problem cell)
   (cellTag, cellValue, allowCellContent) = case cellType of
     Success -> case cellIsOverdue of
@@ -206,7 +202,7 @@ renderStandingProblemSuccesses standing@Standing {..} =
 
 renderStanding :: GlobalConfiguration -> Standing -> LT.Text
 renderStanding GlobalConfiguration {..} standing@Standing { standingConfig = StandingConfig {..}, ..} =
-  let problemSuccesses = elem ShowProblemStatistics standingOptions ==> renderStandingProblemSuccesses standing
+  let problemSuccesses = showProblemStatistics ==> renderStandingProblemSuccesses standing
   in  renderHtml ($(shamletFile "templates/main.hamlet"))
 
 renderCSS :: LT.Text

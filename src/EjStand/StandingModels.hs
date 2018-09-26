@@ -3,13 +3,14 @@ module EjStand.StandingModels
   ( GlobalConfiguration(..)
   , StandingSource(..)
   , StandingConfig(..)
-  , StandingOption(..)
   , StandingCell(..)
   , StandingColumn(..)
   , StandingRow(..)
   , StandingRowStats(..)
   , Standing(..)
   , RunStatusType(..)
+  , FixedDeadline(..)
+  , ConditionalStyle(..)
   , ComparisonSign(..)
   , Comparison(..)
   , defaultGlobalConfiguration
@@ -65,13 +66,6 @@ defaultGlobalConfiguration = GlobalConfiguration
   , webRoot                    = "/"
   }
 
-data StandingConfig = StandingConfig { standingName     :: !Text,
-                                       standingContests :: !(Set Integer),
-                                       internalName     :: !Text,
-                                       standingOptions  :: ![StandingOption]
-                                     }
-                      deriving (Show)
-
 data ComparisonSign = Less | LessOrEq | Greater | GreaterOrEq | Equal | NotEqual
   deriving (Show, Eq, Bounded, Enum)
 
@@ -102,22 +96,32 @@ readSign text = case filter ((== text) . signDisplay) allValues of
 checkComparison :: Ord t => t -> Comparison t -> Bool
 checkComparison argument (Comparison sign value) = (signFunction sign) argument value
 
-data StandingOption = ReversedContestOrder
-                    | EnableDeadlines
-                    | SetFixedDeadline { contestIDs    :: !(Set Integer)
-                                       , deadline      :: !UTCTime
-                                       , contestantIDs :: !(Maybe (Set Integer))
-                                       }
-                    | SetDeadlinePenalty Rational
-                    | ConditionalStyle { conditions :: ![Comparison Rational]
-                                       , styleValue :: !Text
-                                       }
-                    | ShowProblemStatistics
-                    | EnableScores
-                    | OnlyScoreLastSubmit
-                    | ShowAttemptsNumber
-                    | ShowLanguages
-                    deriving (Show, Eq)
+data FixedDeadline = FixedDeadline { contestIDs    :: !(Set Integer)
+                                   , deadline      :: !UTCTime
+                                   , contestantIDs :: !(Maybe (Set Integer))
+                                   }
+                                   deriving (Show)
+
+data ConditionalStyle = ConditionalStyle { conditions :: ![Comparison Rational]
+                                         , styleValue :: !Text
+                                         }
+                                         deriving (Show)
+
+data StandingConfig = StandingConfig { standingName          :: !Text
+                                     , standingContests      :: !(Set Integer)
+                                     , internalName          :: !Text
+                                     , reversedContestOrder  :: !Bool
+                                     , enableDeadlines       :: !Bool
+                                     , deadlinePenalty       :: !Rational
+                                     , showProblemStatistics :: !Bool
+                                     , enableScores          :: !Bool
+                                     , onlyScoreLastSubmit   :: !Bool
+                                     , showAttemptsNumber    :: !Bool
+                                     , showLanguages         :: !Bool
+                                     , fixedDeadlines        :: ![FixedDeadline]
+                                     , conditionalStyles     :: ![ConditionalStyle]
+                                     }
+                      deriving (Show)
 
 data RunStatusType =  Ignore | Mistake | Rejected | Processing | Pending | Success | Disqualified | Error
   deriving (Show, Eq, Ord, Bounded, Enum)
@@ -137,18 +141,18 @@ getRunStatusType status = case filter (elem status . getStatusesByRunStatusType)
   [x] -> x
   _   -> error $ "Unable to find run status type for run status " ++ show status
 
-data StandingCell = StandingCell { cellType      :: !RunStatusType,
-                                   cellIsOverdue :: !Bool,
-                                   cellScore     :: !Rational,
-                                   cellAttempts  :: !Integer,
-                                   cellMainRun   :: !(Maybe Run)
+data StandingCell = StandingCell { cellType      :: !RunStatusType
+                                 , cellIsOverdue :: !Bool
+                                 , cellScore     :: !Rational
+                                 , cellAttempts  :: !Integer
+                                 , cellMainRun   :: !(Maybe Run)
                                  }
                                  deriving (Show)
 
-data StandingRowStats = StandingRowStats { rowSuccesses       :: !Integer,
-                                           rowAttempts        :: !Integer,
-                                           rowLastTimeSuccess :: !(Maybe UTCTime),
-                                           rowScore           :: !Rational
+data StandingRowStats = StandingRowStats { rowSuccesses       :: !Integer
+                                         , rowAttempts        :: !Integer
+                                         , rowLastTimeSuccess :: !(Maybe UTCTime)
+                                         , rowScore           :: !Rational
                                          }
                                          deriving (Show, Eq)
 
@@ -162,9 +166,9 @@ instance Semigroup StandingRowStats where
 instance Monoid StandingRowStats where
   mempty = StandingRowStats 0 0 Nothing 0
 
-data StandingRow = StandingRow { rowContestant :: !Contestant,
-                                 rowCells      :: !(Map (Integer, Integer) StandingCell),
-                                 rowStats      :: !StandingRowStats
+data StandingRow = StandingRow { rowContestant :: !Contestant
+                               , rowCells      :: !(Map (Integer, Integer) StandingCell)
+                               , rowStats      :: !StandingRowStats
                                }
                                deriving (Show)
 
@@ -172,9 +176,9 @@ data StandingColumn = StandingColumn { columnCaption  :: !Markup
                                      , columnRowValue :: !((Integer, StandingRow) -> Markup)
                                      }
 
-data Standing = Standing { standingConfig   :: !StandingConfig,
-                           standingSource   :: !StandingSource,
-                           standingProblems :: ![Problem],
-                           standingRows     :: ![StandingRow],
-                           standingColumns  :: ![StandingColumn]
+data Standing = Standing { standingConfig   :: !StandingConfig
+                         , standingSource   :: !StandingSource
+                         , standingProblems :: ![Problem]
+                         , standingRows     :: ![StandingRow]
+                         , standingColumns  :: ![StandingColumn]
                          }

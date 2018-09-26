@@ -71,7 +71,7 @@ InternalName = example
 -- EnableDeadlines = False
 
 --|
---|  Option "SetDeadlinePenalty"
+--|  Option "DeadlinePenalty"
 --|    Required: mandatory  (when EnableDeadlines = True)
 --|              prohibited (when EnableDeadlines = False)
 --|
@@ -81,7 +81,7 @@ InternalName = example
 --|    number. For example, 1/2 is a correct value, but 0.5 is not.
 --|
 
--- SetDeadlinePenalty = 3/4
+-- DeadlinePenalty = 3/4
 
 --|
 --|  Section "SetFixedDeadline"
