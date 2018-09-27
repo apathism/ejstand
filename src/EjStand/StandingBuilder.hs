@@ -54,7 +54,7 @@ applyRunDeadline :: Maybe (UTCTime, Rational) -> Run -> (Run, Bool)
 applyRunDeadline Nothing run = (run, False)
 applyRunDeadline (Just (time, penalty)) run@Run {..}
   | runTime < time = (run, False)
-  | otherwise      = (run { runScore = runScore >>= return . (* penalty) }, True)
+  | otherwise      = (run { runScore = (* penalty) <$> runScore }, True)
 
 getRunScore :: StandingConfig -> (Run, Bool) -> Rational
 getRunScore (enableScores -> True) ((runScore -> Nothing), _)     = 0
