@@ -33,11 +33,11 @@ import           EjStand.BaseModels
 import           EjStand.InternalsCore
 import           Text.Blaze.Html       (Markup)
 
-data StandingSource = StandingSource { contests    :: !(Set Contest),
-                                       contestants :: !(Set Contestant),
-                                       languages   :: !(Set Language),
-                                       problems    :: !(Set Problem),
-                                       runs        :: !(Set Run)
+data StandingSource = StandingSource { contests    :: !(Set Contest)
+                                     , contestants :: !(Set Contestant)
+                                     , languages   :: !(Set Language)
+                                     , problems    :: !(Set Problem)
+                                     , runs        :: !(Set Run)
                                      }
                      deriving (Show)
 
@@ -49,11 +49,11 @@ instance Semigroup StandingSource where
 instance Monoid StandingSource where
   mempty = StandingSource mempty mempty mempty mempty mempty
 
-data GlobalConfiguration = GlobalConfiguration { xmlFilePattern             :: !Text,
-                                                 standingConfigurationsPath :: !Text,
-                                                 ejStandPort                :: !Int,
-                                                 ejStandHostname            :: !Text,
-                                                 webRoot                    :: !Text
+data GlobalConfiguration = GlobalConfiguration { xmlFilePattern             :: !Text
+                                               , standingConfigurationsPath :: !Text
+                                               , ejStandPort                :: !Int
+                                               , ejStandHostname            :: !Text
+                                               , webRoot                    :: !Text
                                                }
                                                deriving (Show)
 
@@ -157,10 +157,10 @@ data StandingRowStats = StandingRowStats { rowSuccesses       :: !Integer
                                          deriving (Show, Eq)
 
 instance Semigroup StandingRowStats where
-  statA <> statB = StandingRowStats { rowSuccesses = rowSuccesses statA + rowSuccesses statB,
-                                      rowAttempts  = rowAttempts statA + rowAttempts statB,
-                                      rowLastTimeSuccess = rowLastTimeSuccess statA `max` rowLastTimeSuccess statB,
-                                      rowScore = rowScore statA + rowScore statB
+  statA <> statB = StandingRowStats { rowSuccesses = rowSuccesses statA + rowSuccesses statB
+                                    , rowAttempts  = rowAttempts statA + rowAttempts statB
+                                    , rowLastTimeSuccess = rowLastTimeSuccess statA `max` rowLastTimeSuccess statB
+                                    , rowScore = rowScore statA + rowScore statB
                                     }
 
 instance Monoid StandingRowStats where
