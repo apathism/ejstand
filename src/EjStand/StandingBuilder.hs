@@ -38,7 +38,7 @@ isAppliableDeadlineOption Problem {..} Contestant {..} FixedDeadline {..}
 calculateDeadline :: StandingConfig -> StandingSource -> Problem -> Contestant -> Maybe UTCTime
 calculateDeadline StandingConfig {..} StandingSource {..} prob@Problem {..} user@Contestant {..} = if enableDeadlines
   then
-    let nextContest     = Set.lookupMin $ Set.dropWhileAntitone ((<= problemContest) . contestID) contests
+    let nextContest     = snd <$> Map.lookupGT problemContest contests
         defaultDeadline = nextContest >>= contestStartTime
         customDeadline  = fmap deadline $ lastMay $ filter (isAppliableDeadlineOption prob user) fixedDeadlines
     in  headMay $ catMaybes [customDeadline, defaultDeadline]

@@ -12,6 +12,7 @@ module EjStand.HtmlRenderer
   )
 where
 
+import           Data.Map.Strict               ((!?))
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                    (catMaybes)
 import           Data.Ratio                    (Ratio, denominator, numerator, (%))
@@ -28,7 +29,7 @@ import           Prelude                       hiding (div, span)
 import qualified Prelude                       (div)
 import           Text.Blaze.Html               (Markup, ToMarkup, preEscapedToMarkup, toMarkup)
 import           Text.Blaze.Html.Renderer.Text (renderHtml)
-import           Text.Blaze.Html5              hiding (style, title)
+import           Text.Blaze.Html5              hiding (style, title, (!?))
 import           Text.Blaze.Html5.Attributes   hiding (span)
 import           Text.Hamlet                   (shamletFile)
 import           Text.Lucius                   (luciusFile, renderCss)
@@ -39,8 +40,7 @@ enumerate :: [a] -> [(Integer, a)]
 enumerate = zip [1 ..]
 
 buildContestList :: StandingSource -> [Problem] -> [(Maybe Contest, Int)]
-buildContestList StandingSource {..} problemList =
-  groupSame $ Set.lookupMin <$> flip (takeFromSetBy contestID) contests <$> problemContest <$> problemList
+buildContestList StandingSource {..} problemList = groupSame $ (contests !?) . problemContest <$> problemList
 
 groupSame :: Eq a => [a] -> [(a, Int)]
 groupSame []           = []

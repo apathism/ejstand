@@ -209,7 +209,7 @@ processTagAttribute key value = do
   put state { argumentList = newArgumentList }
 
 stateToStandingSource :: ParsingState -> StandingSource
-stateToStandingSource ParsingState {..} = StandingSource (Set.fromList stateContests)
+stateToStandingSource ParsingState {..} = StandingSource (fromIdentifiableList stateContests)
                                                          (Set.fromList stateContestants)
                                                          (Set.fromList stateLanguages)
                                                          (Set.fromList stateProblems)
@@ -233,9 +233,11 @@ parseEjudgeXML file = catch (onlyIfStarted <$> processRawXML <$> BS.readFile fil
   handleNothing _ = return Nothing
 
   onlyIfStarted :: StandingSource -> Maybe StandingSource
-  onlyIfStarted src = case filter (isNothing . contestStartTime) $ Set.toList $ contests src of
-    [] -> Just src
-    _  -> Nothing
+  onlyIfStarted src = case Map.elems $ contests src of
+    [contest] -> case contestStartTime contest of
+      Nothing -> Nothing
+      _       -> Just src
+    lst -> throw $ InvalidContestNumber $ length lst
 
 parseEjudgeXMLs :: [FilePath] -> IO StandingSource
 parseEjudgeXMLs filelist = do

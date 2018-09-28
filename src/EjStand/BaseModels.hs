@@ -9,23 +9,30 @@ module EjStand.BaseModels
   , Language(..)
   , RunStatus(..)
   , Run(..)
+  , IdentifiableBy(..)
+  , fromIdentifiableList
   )
 where
 
-import           Data.Function (on)
-import           Data.Text     (Text)
-import           Data.Time     (UTCTime)
+import           Data.Function   (on)
+import           Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
+import           Data.Text       (Text)
+import           Data.Time       (UTCTime)
 
 -- Identifiable typeclass and some related operations
 
-class Identifiable k a | a -> k where
+class IdentifiableBy k a | a -> k where
   getID :: a -> k
 
-instance {-# OVERLAPPABLE #-} (Eq k, Identifiable k a) => Eq a where
+instance {-# OVERLAPPABLE #-} (Eq k, IdentifiableBy k a) => Eq a where
   (==) = (==) `on` getID
 
-instance {-# OVERLAPPABLE #-} (Eq a, Ord k, Identifiable k a) => Ord a where
+instance {-# OVERLAPPABLE #-} (Ord k, IdentifiableBy k a) => Ord a where
   compare = compare `on` getID
+
+fromIdentifiableList :: (Ord k, IdentifiableBy k a) => [a] -> Map k a
+fromIdentifiableList lst = Map.fromList $ (\x -> (getID x, x)) <$> lst
 
 -- Models
 
@@ -33,7 +40,7 @@ data Contestant = Contestant { contestantID   :: !Integer
                              , contestantName :: !Text
                              } deriving (Show)
 
-instance Identifiable Integer Contestant where
+instance IdentifiableBy Integer Contestant where
   getID = contestantID
 
 data Contest = Contest { contestID        :: !Integer
@@ -41,7 +48,7 @@ data Contest = Contest { contestID        :: !Integer
                        , contestStartTime :: !(Maybe UTCTime)
                        } deriving (Show)
 
-instance Identifiable Integer Contest where
+instance IdentifiableBy Integer Contest where
   getID = contestID
 
 data Problem = Problem { problemID        :: !Integer
@@ -50,7 +57,7 @@ data Problem = Problem { problemID        :: !Integer
                        , problemLongName  :: !Text
                        } deriving (Show)
 
-instance Identifiable (Integer, Integer) Problem where
+instance IdentifiableBy (Integer, Integer) Problem where
   getID problem = (problemContest problem, problemID problem)
 
 data Language = Language { languageID        :: !Integer
@@ -58,7 +65,7 @@ data Language = Language { languageID        :: !Integer
                          , languageLongName  :: !Text
                          } deriving (Show)
 
-instance Identifiable Integer Language where
+instance IdentifiableBy Integer Language where
   getID = languageID
 
 data RunStatus = OK | CE | RT | TL | PE | WA | CF | PT | AC | IG | DQ
@@ -77,5 +84,5 @@ data Run = Run { runID         :: !Integer
                , runTest       :: !(Maybe Integer)
                } deriving (Show)
 
-instance Identifiable (Integer, Integer) Run where
+instance IdentifiableBy (Integer, Integer) Run where
   getID run = (runContest run, runID run)
