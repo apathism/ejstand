@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell   #-}
 module EjStand.StandingModels
   ( GlobalConfiguration(..)
   , StandingSource(..)
@@ -15,7 +16,6 @@ module EjStand.StandingModels
   , Comparison(..)
   , defaultGlobalConfiguration
   , getRunStatusType
-  , getStatusesByRunStatusType
   , signDisplay
   , signFunction
   , readSign
@@ -23,7 +23,8 @@ module EjStand.StandingModels
   )
 where
 
-import           Data.Map.Strict       (Map)
+import           Data.Map.Strict       (Map, (!))
+import qualified Data.Map.Strict       as Map
 import           Data.Semigroup        (Semigroup, (<>))
 import           Data.Set              (Set)
 import           Data.String           (IsString)
@@ -126,20 +127,29 @@ data StandingConfig = StandingConfig { standingName          :: !Text
 data RunStatusType =  Ignore | Mistake | Rejected | Processing | Pending | Success | Disqualified | Error
   deriving (Show, Eq, Ord, Bounded, Enum)
 
-getStatusesByRunStatusType :: RunStatusType -> [RunStatus]
-getStatusesByRunStatusType Success      = [OK]
-getStatusesByRunStatusType Ignore       = [CE, IG, SK, EM, VS, VT]
-getStatusesByRunStatusType Mistake      = [RT, TL, PE, WA, PT, ML, SE, WT, SY]
-getStatusesByRunStatusType Error        = [CF]
-getStatusesByRunStatusType Processing   = [AC, PD, RU, CD, CG, AV]
-getStatusesByRunStatusType Pending      = [PR]
-getStatusesByRunStatusType Rejected     = [SV, RJ, SM]
-getStatusesByRunStatusType Disqualified = [DQ]
+runStatusTypeMap :: Map RunStatus RunStatusType
+runStatusTypeMap = $( [| runStatusTypeMap' |] )
+ where
+  runStatusTypeMap' :: Map RunStatus RunStatusType
+  runStatusTypeMap' = Map.fromList $ (\x -> (x, searchForRunStatusType x)) <$> allValues
+
+  searchForRunStatusType :: RunStatus -> RunStatusType
+  searchForRunStatusType status = fst . head $ filter (elem status . snd) runStatusTypeRelations
+
+  runStatusTypeRelations :: [(RunStatusType, [RunStatus])]
+  runStatusTypeRelations =
+    [ (Success     , [OK])
+    , (Ignore      , [CE, IG, SK, EM, VS, VT])
+    , (Mistake, [RT, TL, PE, WA, PT, ML, SE, WT, SY])
+    , (Error       , [CF])
+    , (Processing  , [AC, PD, RU, CD, CG, AV])
+    , (Pending     , [PR])
+    , (Rejected    , [SV, RJ, SM])
+    , (Disqualified, [DQ])
+    ]
 
 getRunStatusType :: RunStatus -> RunStatusType
-getRunStatusType status = case filter (elem status . getStatusesByRunStatusType) allValues of
-  [x] -> x
-  _   -> error $ "Unable to find run status type for run status " ++ show status
+getRunStatusType status = runStatusTypeMap ! status
 
 data StandingCell = StandingCell { cellType      :: !RunStatusType
                                  , cellIsOverdue :: !Bool

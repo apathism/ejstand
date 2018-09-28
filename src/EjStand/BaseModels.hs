@@ -72,7 +72,7 @@ instance IdentifiableBy Integer Language where
 data RunStatus = OK | CE | RT | TL | PE | WA | CF | PT | AC | IG | DQ
                | PD | ML | SE | SV | WT | PR | RJ | SK | SY | SM | RU
                | CD | CG | AV | EM | VS | VT
-               deriving (Show, Read, Eq, Bounded, Enum)
+               deriving (Show, Read, Eq, Ord, Bounded, Enum)
 
 data Run = Run { runID         :: !Integer
                , runContest    :: !Integer
