@@ -38,7 +38,7 @@ data StandingSource = StandingSource { contests    :: !(Map Integer Contest)
                                      , contestants :: !(Map Integer Contestant)
                                      , languages   :: !(Map Integer Language)
                                      , problems    :: !(Map (Integer, Integer) Problem)
-                                     , runs        :: !(Map (Integer, Integer) Run)
+                                     , runs        :: !(Map RunIdentification Run)
                                      }
                      deriving (Show)
 
@@ -140,7 +140,7 @@ runStatusTypeMap = $( [| runStatusTypeMap' |] )
   runStatusTypeRelations =
     [ (Success     , [OK])
     , (Ignore      , [CE, IG, SK, EM, VS, VT])
-    , (Mistake, [RT, TL, PE, WA, PT, ML, SE, WT, SY])
+    , (Mistake     , [RT, TL, PE, WA, PT, ML, SE, WT, SY])
     , (Error       , [CF])
     , (Processing  , [AC, PD, RU, CD, CG, AV])
     , (Pending     , [PR])

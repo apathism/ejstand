@@ -10,8 +10,9 @@ module EjStand.BaseModels
   , RunStatus(..)
   , Run(..)
   , IdentifiableBy(..)
+  , RunIdentification
   , fromIdentifiableList
-  , filterRunMapByContest
+  , filterRunMap
   )
 where
 
@@ -85,9 +86,14 @@ data Run = Run { runID         :: !Integer
                , runTest       :: !(Maybe Integer)
                } deriving (Show)
 
-instance IdentifiableBy (Integer, Integer) Run where
-  getID run = (runContest run, runID run)
+type RunIdentification = (Integer, Integer, Maybe Integer, Integer)
 
-filterRunMapByContest :: Integer -> Map (Integer, Integer) Run -> Map (Integer, Integer) Run
-filterRunMapByContest contestID =
-  Map.takeWhileAntitone ((== contestID) . fst) . Map.dropWhileAntitone ((< contestID) . fst)
+instance IdentifiableBy RunIdentification Run where
+  getID run = (runContest run, runContestant run, runProblem run, runID run)
+
+filterRunMap :: Integer -> Integer -> Maybe Integer -> Map RunIdentification Run -> Map RunIdentification Run
+filterRunMap contestID contestantID problemID = Map.takeWhileAntitone pTake . Map.dropWhileAntitone pDrop
+ where
+  pDrop (a, b, c, _) =
+    a < contestID || (a == contestID && b < contestantID) || (a == contestID && b == contestantID && c < problemID)
+  pTake (a, b, c, _) = a == contestID && b == contestantID && c == problemID

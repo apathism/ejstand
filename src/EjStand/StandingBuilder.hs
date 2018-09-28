@@ -103,8 +103,7 @@ applicateRun cfg runT cell = setCellMainRunMaybe cfg runT cell
 
 buildCell :: StandingConfig -> StandingSource -> Problem -> Contestant -> StandingCell
 buildCell cfg@StandingConfig {..} src@StandingSource {..} prob@Problem {..} user@Contestant {..} =
-  let filterCondition Run {..} = runProblem == Just problemID && runContestant == contestantID
-      runsList  = filter filterCondition $ Map.elems $ filterRunMapByContest problemContest runs
+  let runsList  = filterRunMap problemContest contestantID (Just problemID) runs
       deadline  = calculateDeadline cfg src prob user
       deadlineT = (\x -> (x, deadlinePenalty)) <$> deadline
   in  foldl (flip $ applicateRun cfg) defaultCell $ fmap (applyRunDeadline deadlineT) $ runsList
