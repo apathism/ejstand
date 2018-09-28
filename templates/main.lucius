@@ -11,6 +11,7 @@ h2 {
 pre {
   border: 1px solid black;
   background-color: #eeeeee;
+  white-space: pre-wrap;
 }
 
 body {
