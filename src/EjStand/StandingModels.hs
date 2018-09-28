@@ -36,8 +36,8 @@ import           Text.Blaze.Html       (Markup)
 data StandingSource = StandingSource { contests    :: !(Map Integer Contest)
                                      , contestants :: !(Map Integer Contestant)
                                      , languages   :: !(Map Integer Language)
-                                     , problems    :: !(Set Problem)
-                                     , runs        :: !(Set Run)
+                                     , problems    :: !(Map (Integer, Integer) Problem)
+                                     , runs        :: !(Map (Integer, Integer) Run)
                                      }
                      deriving (Show)
 

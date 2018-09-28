@@ -15,7 +15,7 @@ import           Data.Time              (UTCTime)
 import           EjStand.BaseModels
 import           EjStand.DataParser     (parseEjudgeXMLs)
 import           EjStand.HtmlRenderer
-import           EjStand.InternalsCore  (takeFromSetBy, (==>))
+import           EjStand.InternalsCore  ((==>))
 import           EjStand.StandingModels
 import           Safe                   (headMay, lastMay)
 import           Text.Printf            (printf)
@@ -104,7 +104,7 @@ applicateRun cfg runT cell = setCellMainRunMaybe cfg runT cell
 buildCell :: StandingConfig -> StandingSource -> Problem -> Contestant -> StandingCell
 buildCell cfg@StandingConfig {..} src@StandingSource {..} prob@Problem {..} user@Contestant {..} =
   let filterCondition Run {..} = runProblem == Just problemID && runContestant == contestantID
-      runsList  = filter filterCondition $ Set.toList $ takeFromSetBy runContest problemContest runs
+      runsList  = filter filterCondition $ Map.elems $ filterRunMapByContest problemContest runs
       deadline  = calculateDeadline cfg src prob user
       deadlineT = (\x -> (x, deadlinePenalty)) <$> deadline
   in  foldl (flip $ applicateRun cfg) defaultCell $ fmap (applyRunDeadline deadlineT) $ runsList
@@ -136,9 +136,9 @@ buildRows :: StandingConfig -> StandingSource -> [Problem] -> [StandingRow]
 buildRows cfg src probs = buildRow cfg src probs <$> (Map.elems $ contestants src)
 
 buildProblems :: StandingConfig -> StandingSource -> [Problem]
-buildProblems (reversedContestOrder -> True) = sortOn cmp . Set.toList . problems
+buildProblems (reversedContestOrder -> True) = sortOn cmp . Map.elems . problems
   where cmp = ([negate . problemContest, problemID] <*>) . return
-buildProblems _ = Set.toList . problems
+buildProblems _ = Map.elems . problems
 
 sortRows :: [StandingRow] -> [StandingRow]
 sortRows = sortOn (comparator . calculateRowStats)

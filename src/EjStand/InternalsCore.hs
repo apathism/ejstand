@@ -3,14 +3,11 @@ module EjStand.InternalsCore
   ( (==>)
   , (|||)
   , allValues
-  , takeFromSetBy
   , textReplaceLast
   )
 where
 
 import           Control.Applicative (Alternative (..), liftA2)
-import           Data.Set            (Set)
-import qualified Data.Set            as Set
 import           Data.Text           (Text, breakOnEnd, stripSuffix)
 
 -- Predicates
@@ -26,11 +23,6 @@ import           Data.Text           (Text, breakOnEnd, stripSuffix)
 
 allValues :: (Bounded a, Enum a) => [a]
 allValues = [minBound .. maxBound]
-
--- Set operations
-
-takeFromSetBy :: Ord b => (a -> b) -> b -> Set a -> Set a
-takeFromSetBy f x = Set.takeWhileAntitone ((== x) . f) . Set.dropWhileAntitone ((< x) . f)
 
 -- Text operations
 

@@ -16,7 +16,6 @@ import           Data.Function              (on)
 import           Data.Map.Strict            (Map)
 import qualified Data.Map.Strict            as Map
 import           Data.Maybe                 (catMaybes, isNothing)
-import qualified Data.Set                   as Set
 import           Data.Text                  (Text)
 import qualified Data.Text                  as Text
 import           Data.Text.Encoding         (decodeUtf8)
@@ -212,8 +211,8 @@ stateToStandingSource :: ParsingState -> StandingSource
 stateToStandingSource ParsingState {..} = StandingSource (fromIdentifiableList stateContests)
                                                          (fromIdentifiableList stateContestants)
                                                          (fromIdentifiableList stateLanguages)
-                                                         (Set.fromList stateProblems)
-                                                         (Set.fromList stateRuns)
+                                                         (fromIdentifiableList stateProblems)
+                                                         (fromIdentifiableList stateRuns)
 
 processRawXML :: ByteString -> StandingSource
 processRawXML raw = stateToStandingSource $ (flip execState) emptyPS $ Xeno.process (wrap1BS openTag)

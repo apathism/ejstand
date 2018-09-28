@@ -11,6 +11,7 @@ module EjStand.BaseModels
   , Run(..)
   , IdentifiableBy(..)
   , fromIdentifiableList
+  , filterRunMapByContest
   )
 where
 
@@ -86,3 +87,7 @@ data Run = Run { runID         :: !Integer
 
 instance IdentifiableBy (Integer, Integer) Run where
   getID run = (runContest run, runID run)
+
+filterRunMapByContest :: Integer -> Map (Integer, Integer) Run -> Map (Integer, Integer) Run
+filterRunMapByContest contestID =
+  Map.takeWhileAntitone ((== contestID) . fst) . Map.dropWhileAntitone ((< contestID) . fst)
