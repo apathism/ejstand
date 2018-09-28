@@ -34,8 +34,8 @@ import           EjStand.InternalsCore
 import           Text.Blaze.Html       (Markup)
 
 data StandingSource = StandingSource { contests    :: !(Map Integer Contest)
-                                     , contestants :: !(Set Contestant)
-                                     , languages   :: !(Set Language)
+                                     , contestants :: !(Map Integer Contestant)
+                                     , languages   :: !(Map Integer Language)
                                      , problems    :: !(Set Problem)
                                      , runs        :: !(Set Run)
                                      }

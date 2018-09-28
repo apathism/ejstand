@@ -210,8 +210,8 @@ processTagAttribute key value = do
 
 stateToStandingSource :: ParsingState -> StandingSource
 stateToStandingSource ParsingState {..} = StandingSource (fromIdentifiableList stateContests)
-                                                         (Set.fromList stateContestants)
-                                                         (Set.fromList stateLanguages)
+                                                         (fromIdentifiableList stateContestants)
+                                                         (fromIdentifiableList stateLanguages)
                                                          (Set.fromList stateProblems)
                                                          (Set.fromList stateRuns)
 

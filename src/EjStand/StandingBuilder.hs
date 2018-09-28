@@ -133,7 +133,7 @@ buildRow cfg src probs user = appendRecalculatedCellStats $ StandingRow
   }
 
 buildRows :: StandingConfig -> StandingSource -> [Problem] -> [StandingRow]
-buildRows cfg src probs = buildRow cfg src probs <$> (Set.toList $ contestants src)
+buildRows cfg src probs = buildRow cfg src probs <$> (Map.elems $ contestants src)
 
 buildProblems :: StandingConfig -> StandingSource -> [Problem]
 buildProblems (reversedContestOrder -> True) = sortOn cmp . Set.toList . problems

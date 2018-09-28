@@ -16,14 +16,13 @@ import           Data.Map.Strict               ((!?))
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                    (catMaybes)
 import           Data.Ratio                    (Ratio, denominator, numerator, (%))
-import qualified Data.Set                      as Set
 import           Data.Text                     (Text, intercalate, splitOn)
 import qualified Data.Text.Internal.Lazy       as LT
 import           Data.Time                     (UTCTime, defaultTimeLocale)
 import           Data.Time.Format              (formatTime)
 import           EjStand                       (getVersion)
 import           EjStand.BaseModels
-import           EjStand.InternalsCore         (takeFromSetBy, (==>))
+import           EjStand.InternalsCore         ((==>))
 import           EjStand.StandingModels
 import           Prelude                       hiding (div, span)
 import qualified Prelude                       (div)
@@ -154,9 +153,8 @@ buildCellTitle :: Standing -> StandingRow -> Problem -> StandingCell -> Text
 buildCellTitle Standing { standingConfig = StandingConfig {..}, standingSource = StandingSource {..}, ..} StandingRow {..} Problem {..} StandingCell {..}
   = intercalate ", " $ mconcat
     [ [contestantName rowContestant, mconcat [problemShortName, " (", problemLongName, ")"]]
-    , catMaybes $ showLanguages ==> (languageLongName <$> (cellMainRun >>= runLanguage >>= findLanguageByID))
+    , catMaybes $ showLanguages ==> (languageLongName <$> (cellMainRun >>= runLanguage >>= (languages !?)))
     ]
-  where findLanguageByID id = Set.lookupMin $ takeFromSetBy languageID id languages
 
 renderCell :: Standing -> StandingRow -> Problem -> CellContentBuilder
 renderCell st@Standing { standingConfig = StandingConfig {..}, ..} row problem cell@StandingCell {..} =
