@@ -29,7 +29,7 @@ executable ejstand
                        blaze-html, shakespeare, xeno,
                        -- Other
                        binary, mtl
-  ghc-options:         -O2 -Wall -Wno-name-shadowing -Wno-orphans
+  ghc-options:         -O2 -threaded -Wall -Wno-name-shadowing -Wno-orphans
   hs-source-dirs:      src
   other-modules:       EjStand
                        EjStand.BaseModels
