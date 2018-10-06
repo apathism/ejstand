@@ -12,6 +12,7 @@ module EjStand.HtmlRenderer
   )
 where
 
+import           Control.Monad                 (when)
 import           Data.Map.Strict               ((!?))
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                    (catMaybes)
@@ -64,14 +65,14 @@ instance (ToMarkup a, Integral a) => ToMarkup (Ratio a) where
   toMarkup x = let (a, b) = (numerator x, denominator x)
                    aDiv = a `Prelude.div` b
                    aMod = a `mod` b
-               in do
-                toMarkup aDiv
+               in
                 if aMod /= 0 then do
+                  when (aDiv /= 0) (toMarkup aDiv)
                   sup (toMarkup aMod)
                   preEscapedToMarkup ("&frasl;" :: Text)
                   sub (toMarkup b)
                 else
-                  ""
+                  toMarkup aDiv
 
 instance ToMarkup UTCTime where
   toMarkup = toMarkup . formatTime defaultTimeLocale "%d.%m.%y %R"
