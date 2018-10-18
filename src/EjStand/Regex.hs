@@ -15,13 +15,13 @@ import           Data.Char              (digitToInt, isHexDigit)
 import           Data.Maybe             (fromMaybe)
 import           Data.Text              (Text)
 import qualified Data.Text              as Text
-import           Data.Text.ICU          (Regex, Match, find, findAll)
+import           Data.Text.ICU          (Match, Regex, find, findAll)
 import qualified Data.Text.ICU          as ICU
 import           Data.Text.Lazy         (toStrict)
 import           Data.Text.Lazy.Builder (Builder)
 import qualified Data.Text.Lazy.Builder as Builder
 
--- Regex 
+-- Regex
 
 defaultMatchOptions :: [ICU.MatchOption]
 defaultMatchOptions = []
@@ -30,6 +30,8 @@ buildRegex :: Text -> Maybe Regex
 buildRegex source = case ICU.regex' defaultMatchOptions source of
   (Left  _    ) -> Nothing
   (Right regex) -> Just regex
+
+-- Replacer
 
 data ReplacerItem = RawTextReplacer !Text
                   | MatchGroup !Int
@@ -63,7 +65,7 @@ buildReplacer text =
 
 evalReplacerItem :: Match -> ReplacerItem -> Text
 evalReplacerItem _     (RawTextReplacer text) = text
-evalReplacerItem match (MatchGroup n)         = fromMaybe "" $ ICU.group n match
+evalReplacerItem match (MatchGroup      n   ) = fromMaybe "" $ ICU.group n match
 
 evalReplacer :: Replacer -> Match -> Text
 evalReplacer replacer match = Text.concat $ evalReplacerItem match <$> replacer
