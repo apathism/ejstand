@@ -94,6 +94,6 @@ instance IdentifiableBy RunIdentification Run where
 filterRunMap :: Integer -> Integer -> Maybe Integer -> Map RunIdentification Run -> Map RunIdentification Run
 filterRunMap contestID contestantID problemID = Map.takeWhileAntitone pTake . Map.dropWhileAntitone pDrop
  where
-  pDrop (a, b, c, _) =
-    a < contestID || (a == contestID && b < contestantID) || (a == contestID && b == contestantID && c < problemID)
-  pTake (a, b, c, _) = a == contestID && b == contestantID && c == problemID
+  values = (contestID, contestantID, problemID)
+  pDrop (a, b, c, _) = (a, b, c) < values
+  pTake (a, b, c, _) = (a, b, c) == values
