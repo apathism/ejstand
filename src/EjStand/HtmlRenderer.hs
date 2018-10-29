@@ -13,17 +13,20 @@ module EjStand.HtmlRenderer
 where
 
 import           Control.Monad                 (when)
+import           Data.Char                     (isSpace)
 import           Data.Map.Strict               ((!?))
 import qualified Data.Map.Strict               as Map
-import           Data.Maybe                    (catMaybes)
+import           Data.Maybe                    (catMaybes, fromMaybe)
 import           Data.Ratio                    (Ratio, denominator, numerator, (%))
-import           Data.Text                     (Text, intercalate, splitOn)
+import           Data.Text                     (Text)
+import qualified Data.Text                     as T
 import qualified Data.Text.Internal.Lazy       as LT
 import           Data.Time                     (UTCTime, defaultTimeLocale)
 import           Data.Time.Format              (formatTime)
 import           EjStand                       (getVersion)
 import           EjStand.BaseModels
 import           EjStand.InternalsCore         ((==>))
+import qualified EjStand.Regex                 as RE
 import           EjStand.StandingModels
 import           Prelude                       hiding (div, span)
 import qualified Prelude                       (div)
@@ -58,6 +61,12 @@ getRowCellByProblem row@StandingRow {..} prob@Problem {..} = case Map.lookup (pr
 
 getTextVersion :: Text
 getTextVersion = getVersion
+
+getShortContestName :: StandingConfig -> Contest -> Text
+getShortContestName StandingConfig {..} Contest {..} = fromMaybe (T.takeWhileEnd (not . isSpace) contestName) $ do
+  (regex, replacer) <- contestNamePattern
+  match             <- RE.find regex contestName
+  Just $ RE.evalReplacer replacer match
 
 -- Non-standart types rendering
 
@@ -152,7 +161,7 @@ selectAdditionalCellContentBuilders Standing { standingConfig = StandingConfig {
 
 buildCellTitle :: Standing -> StandingRow -> Problem -> StandingCell -> Text
 buildCellTitle Standing { standingConfig = StandingConfig {..}, standingSource = StandingSource {..}, ..} StandingRow {..} Problem {..} StandingCell {..}
-  = intercalate ", " $ mconcat
+  = T.intercalate ", " $ mconcat
     [ [contestantName rowContestant, mconcat [problemShortName, " (", problemLongName, ")"]]
     , catMaybes $ showLanguages ==> (languageLongName <$> (cellMainRun >>= runLanguage >>= (languages !?)))
     ]
@@ -200,7 +209,7 @@ renderStandingProblemSuccesses standing@Standing {..} =
 -- Main entry points
 
 renderStanding :: GlobalConfiguration -> Standing -> LT.Text
-renderStanding GlobalConfiguration {..} standing@Standing { standingConfig = StandingConfig {..}, ..} =
+renderStanding GlobalConfiguration {..} standing@Standing { standingConfig = cfg@StandingConfig {..}, ..} =
   let problemSuccesses = showProblemStatistics ==> renderStandingProblemSuccesses standing
   in  renderHtml ($(shamletFile "templates/main.hamlet"))
 

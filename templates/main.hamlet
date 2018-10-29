@@ -17,9 +17,9 @@ $doctype 5
                         $of (Nothing, cols)
                             <th class="contest" colspan="#{cols}" title="???">
                                 ???
-                        $of (Just Contest{contestName}, cols)
+                        $of (Just contest@Contest{contestName}, cols)
                             <th colspan="#{cols}" class="contest" title="#{contestName}">
-                                #{last $ splitOn " " $ contestName}
+                                #{getShortContestName cfg contest}
             <tr>
                 $forall Problem{problemShortName, problemLongName} <- standingProblems
                     <th class="problem" title="#{problemShortName}: #{problemLongName}">

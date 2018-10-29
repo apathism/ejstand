@@ -45,6 +45,46 @@ Contests = 1,2,3
 InternalName = example
 
 --|
+--|  Section "ContestNamePattern"
+--|
+--|    Required: optional
+--|
+--|    EjStand uses short contest names in column headers on the standing.
+--|    By default EjStand calculates these short names just by cutting
+--|    the last word from a full contest name. For example, if your contest
+--|    name is "Contest #1" then EjStand will display "#1" in the contest
+--|    column. You can change this behaviour by specifing this section.
+--|
+
+-- ContestNamePattern {
+
+  --|
+  --|  Option "Pattern"
+  --|    Required: mandatory
+  --|
+  --|    In this option you can specify regular expression which finds
+  --|    segments of original contest name which will represent short
+  --|    version. Regular expressions must be given in ICU library
+  --|    format.
+  --|
+
+  -- Pattern = .*#([0-9]*)
+
+  --|
+  --|  Option "Substitution"
+  --|    Required: mandatory
+  --|
+  --|    This is a format string for contest short name. You can insert
+  --|    groups found in regular expression by using '$' sign and a
+  --|    hexadecimal digit after it. Group #0 represents found substring
+  --|    as a whole.
+  --|
+
+  -- Substitution = $1
+
+-- }
+
+--|
 --|  Option "ReversedContestOrder"
 --|    Required:      optional
 --|    Default value: False

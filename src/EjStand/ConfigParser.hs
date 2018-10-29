@@ -28,6 +28,7 @@ import           Data.Text.Encoding         (decodeUtf8)
 import           Data.Text.Read             (decimal)
 import           Data.Time                  (UTCTime, defaultTimeLocale, parseTimeM)
 import           EjStand.InternalsCore
+import qualified EjStand.Regex              as RE
 import           EjStand.StandingModels
 import           Prelude                    hiding (toInteger)
 import           System.Directory           (listDirectory)
@@ -45,6 +46,7 @@ data ParsingException = NoValue Text
                       | TimeExpected Text Text
                       | InvalidInterval Text
                       | InvalidCondition Text Text
+                      | InvalidRegex Text Text
                       | UnexpectedKey Text
 
 instance Exception ParsingException
@@ -61,6 +63,7 @@ instance Show ParsingException where
   show (TimeExpected key value)     = "Time expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
   show (InvalidCondition key value) = "Condition expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
   show (InvalidInterval key)        = "Invalid interval on key \"" ++ unpack key ++ "\""
+  show (InvalidRegex key value)     = "Unable to parse value \"" ++ unpack value ++ "\" to regular expression on key \"" ++ unpack key ++ "\""
   show (UnexpectedKey key)          = "Unexpected key \"" ++ unpack key ++ "\""
 
 -- Function tools
@@ -71,8 +74,11 @@ instance Show ParsingException where
 (|>) :: Functor f => (a -> f b) -> (a -> b -> c) -> a -> f c
 (|>) f1 f2 x = (f1 .> f2 x) x
 
+(|.>) :: (Functor f, Functor g) => (a -> f (g b)) -> (b -> c) -> a -> f (g c)
+(|.>) f1 f2 x = (f2 <$>) <$> f1 x
+
 (||>) :: (Functor f, Functor g) => (a -> f (g b)) -> (a -> b -> c) -> a -> f (g c)
-(||>) f1 f2 x = (f2 x <$>) <$> f1 x
+(||>) f1 f2 x = (f1 |.> f2 x) x
 
 -- Internal representation of configuration tree
 
@@ -200,6 +206,14 @@ toIntervalValue key =
   readInterval _   [l, r] = Set.fromDistinctAscList [l .. r]
   readInterval key _      = throw $ InvalidInterval key
 
+toRegex :: Text -> Text -> RE.Regex
+toRegex key value = case RE.buildRegex value of
+  Nothing      -> throw $ InvalidRegex key value
+  (Just regex) -> regex
+
+toRegexReplacer :: Text -> Text -> RE.Replacer
+toRegexReplacer _ = RE.buildReplacer
+
 ensureEmptyState :: TraversingState ()
 ensureEmptyState = do
   cfg <- get
@@ -226,6 +240,13 @@ buildConditionalStyle = evalState $ do
   !_         <- ensureEmptyState
   return $ ConditionalStyle conditions styleValue
 
+buildContestNamePattern :: Configuration -> (RE.Regex, RE.Replacer)
+buildContestNamePattern = evalState $ do
+  regex    <- takeMandatoryValue |> toTextValue |> toRegex $ "Pattern"
+  replacer <- takeMandatoryValue |> toTextValue |> toRegexReplacer $ "Substitution"
+  !_       <- ensureEmptyState
+  return (regex, replacer)
+
 buildNestedOptions :: (Configuration -> a) -> Text -> TraversingState [a]
 buildNestedOptions builder optionName = do
   nested <- takeValuesByKey ||> toNestedConfig $ optionName
@@ -235,6 +256,7 @@ buildStandingConfig :: TraversingState StandingConfig
 buildStandingConfig = do
   name                 <- takeMandatoryValue |> toTextValue $ "Name"
   contests             <- takeMandatoryValue |> toTextValue |> toIntervalValue $ "Contests"
+  contestNamePattern   <- takeUniqueValue ||> toNestedConfig |.> buildContestNamePattern $ "ContestNamePattern"
   internalName         <- takeMandatoryValue |> toTextValue $ "InternalName"
   reversedContestOrder <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ReversedContestOrder"
   enableDeadlines      <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "EnableDeadlines"
@@ -252,6 +274,7 @@ buildStandingConfig = do
   return $ StandingConfig
     { standingName          = name
     , standingContests      = contests
+    , contestNamePattern    = contestNamePattern
     , internalName          = internalName
     , reversedContestOrder  = reversedContestOrder
     , enableDeadlines       = enableDeadlines

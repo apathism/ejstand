@@ -32,6 +32,7 @@ import           Data.Text             (Text)
 import           Data.Time             (UTCTime)
 import           EjStand.BaseModels
 import           EjStand.InternalsCore
+import qualified EjStand.Regex         as RE
 import           Text.Blaze.Html       (Markup)
 
 data StandingSource = StandingSource { contests    :: !(Map Integer Contest)
@@ -110,6 +111,7 @@ data ConditionalStyle = ConditionalStyle { conditions :: ![Comparison Rational]
 
 data StandingConfig = StandingConfig { standingName          :: !Text
                                      , standingContests      :: !(Set Integer)
+                                     , contestNamePattern    :: !(Maybe (RE.Regex, RE.Replacer))
                                      , internalName          :: !Text
                                      , reversedContestOrder  :: !Bool
                                      , enableDeadlines       :: !Bool
@@ -122,7 +124,6 @@ data StandingConfig = StandingConfig { standingName          :: !Text
                                      , fixedDeadlines        :: ![FixedDeadline]
                                      , conditionalStyles     :: ![ConditionalStyle]
                                      }
-                      deriving (Show)
 
 data RunStatusType =  Ignore | Mistake | Rejected | Processing | Pending | Success | Disqualified | Error
   deriving (Show, Eq, Ord, Bounded, Enum)
