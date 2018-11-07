@@ -204,7 +204,7 @@ renderStandingProblemSuccesses standing@Standing {..} =
           ! class_ "problem_successes row_header"
           ! colspan (toValue . length $ standingColumns)
           $ "Правильных решений:"
-  in  foldl (>>) header $ renderProblemSuccesses standing <$> standingProblems
+  in  tr $ foldl (>>) header $ renderProblemSuccesses standing <$> standingProblems
 
 -- Main entry points
 
