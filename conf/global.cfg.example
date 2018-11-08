@@ -23,7 +23,7 @@
 --|    This option is a format string just like the previous one, but
 --|    locates where contest configuration files (serve.cfg) are.
 --|    It's used to load some task options, which are unretrievable
---|    from regular XML files like penalty for a submision.
+--|    from regular XML files like penalty for a submit.
 --|    Every error during loading process will be ignored as
 --|    these files aren't a reliable source of information.
 --|
