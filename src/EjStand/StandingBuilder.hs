@@ -148,7 +148,7 @@ sortRows = sortOn (comparator . calculateRowStats)
   comparator StandingRowStats {..} = (negate rowScore, negate rowSuccesses, rowLastTimeSuccess)
 
 buildColumns :: StandingConfig -> StandingSource -> [StandingColumn]
-buildColumns cfg@StandingConfig {..} _ = mconcat
+buildColumns cfg@StandingConfig {..} src = mconcat
   [ [placeColumn, contestantNameColumn, totalScoreColumn cfg src]
   , (enableDeadlines || enableScores) ==> totalSuccessesColumn
   , [lastSuccessTimeColumn]

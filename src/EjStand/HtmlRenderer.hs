@@ -115,14 +115,14 @@ totalSuccessesColumn = StandingColumn caption value
 totalScoreColumn :: StandingConfig -> StandingSource -> StandingColumn
 totalScoreColumn StandingConfig {..} StandingSource {..} = StandingColumn caption value
  where
+  maxScore = if enableScores
+    then Map.foldl' (\accum p -> accum + problemMaxScore p) 0 problems
+    else toInteger $ Map.size problems
   caption = th ! class_ "total_score" ! rowspan "2" $ preEscapedToMarkup ("&Sigma;" :: Text)
   value (_, StandingRow {..}) =
     calculateConditionalStyle conditionalStyles relativeScore td ! class_ "total_score" $ toMarkup score
    where
     score    = rowScore rowStats
-    maxScore = if enableScores
-      then Map.foldl' (\accum p -> accum + problemMaxScore p) 0 problems
-      else toInteger $ Map.size rowCells
     relativeScore = score / (maxScore % 1)
 
 lastSuccessTimeColumn :: StandingColumn
