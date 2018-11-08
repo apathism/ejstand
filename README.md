@@ -1,7 +1,7 @@
 # EjStand
 
 EjStand is a simple and configurable web standings daemon for ejudge contest
-management system. Its intended to use in situations when standing contains
+management system. It's intended to use in situations when standing contains
 results from different contests or when standing needs some additional display
 options not supported by ejudge.
 
@@ -31,14 +31,14 @@ source in `dist` directory.
 EjStand has two different types of configuration files: _global_ and _local_.
 
 Global configuration file is unique and contains options which are applied for
-all standings served by ejStand. For example, two of the most important options
-in that file is hostname/IP and port to bind an application webserver.
+all standings served by EjStand. For example, two of the most important options
+in that file are hostname/IP and port to bind an application web server.
 
 Local configuration files define settings for different standing tables and
 therefore aren't unique.
 
 Examples with detailed descriptions for each option are presented in the
-`conf` directory. You can use this examples as templates for your own EjStand
+`conf` directory. You can use these examples as templates for your own EjStand
 instance.
 
 Personally i'd start my own EjStand configuration with
