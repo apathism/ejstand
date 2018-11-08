@@ -63,7 +63,7 @@ getRunScore StandingConfig {..} Problem {..} (Run {..}, overdue) attempts =
   (if enableDeadlines && overdue then deadlinePenalty else 1) * if enableScores
     then case runScore of
       Nothing      -> 0
-      (Just score) -> max 0 (score - attempts * problemSubmisionPenalty % 1)
+      (Just score) -> max 0 (score - attempts * problemRunPenalty % 1)
     else 1
 
 recalculateCellAttempts :: StandingConfig -> (Run, Bool) -> StandingCell -> StandingCell

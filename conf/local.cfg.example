@@ -116,7 +116,7 @@ InternalName = example
 --|              prohibited (when EnableDeadlines = False)
 --|
 --|    This option can set penalty for a deadline submition. The score of
---|    overdue submission is multiplied by coefficient from this option.
+--|    overdue submit is multiplied by coefficient from this option.
 --|    Option value can be an integer or a ratio, but not a floating-point
 --|    number. For example, 1/2 is a correct value, but 0.5 is not.
 --|
@@ -176,7 +176,7 @@ InternalName = example
 --|   Default value: False
 --|
 --|   This option set to True enables displaying additional row with
---|   problem statistics (submissions made, success rate, etc.)
+--|   problem statistics (submits made, success rate, etc.)
 --|
 
 -- ShowProblemStatistics = False

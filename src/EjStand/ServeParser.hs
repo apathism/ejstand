@@ -28,7 +28,7 @@ data ProblemConfiguration = ProblemConfiguration { problemIDField   :: !(Maybe I
                                                  , shortName        :: !(Maybe Text)
                                                  , ancestorTaskName :: !(Maybe Text)
                                                  , maxScore         :: !(Maybe Integer)
-                                                 , submisionPenalty :: !(Maybe Integer)
+                                                 , runPenalty       :: !(Maybe Integer)
                                                  }
                                                  deriving (Show)
 
@@ -36,9 +36,8 @@ defaultProblemConfiguration :: ProblemConfiguration
 defaultProblemConfiguration = ProblemConfiguration Nothing Nothing Nothing Nothing Nothing
 
 mergeAncestor :: ProblemConfiguration -> ProblemConfiguration -> ProblemConfiguration
-mergeAncestor current ancestor = current { maxScore         = maxScore current <|> maxScore ancestor
-                                         , submisionPenalty = submisionPenalty current <|> submisionPenalty ancestor
-                                         }
+mergeAncestor current ancestor =
+  current { maxScore = maxScore current <|> maxScore ancestor, runPenalty = runPenalty current <|> runPenalty ancestor }
 
 ancestorList :: ProblemConfiguration -> [ProblemConfiguration] -> [ProblemConfiguration]
 ancestorList current lst = case findExactlyOne ((== (ancestorTaskName current)) . shortName) lst of
@@ -53,8 +52,8 @@ updateProblemWithContestConfigurations lst p@Problem {..} =
   let mergedConfiguration = do
         ownConfiguration <- findExactlyOne ((== Just problemID) . problemIDField) lst
         Just $ mergeAllAncestors ownConfiguration lst
-  in  p { problemMaxScore         = fromMaybe problemMaxScore (maxScore =<< mergedConfiguration)
-        , problemSubmisionPenalty = fromMaybe problemMaxScore (submisionPenalty =<< mergedConfiguration)
+  in  p { problemMaxScore   = fromMaybe problemMaxScore (maxScore =<< mergedConfiguration)
+        , problemRunPenalty = fromMaybe problemMaxScore (runPenalty =<< mergedConfiguration)
         }
 
 updateProblemWithConfigurations :: Map Integer [ProblemConfiguration] -> Problem -> Problem
@@ -93,8 +92,8 @@ foldProblemConfiguration (Just pc) tuple = case tuple of
   ("full_score", value) -> case maxScore pc of
     Nothing -> Just $ pc { maxScore = readInteger value }
     _       -> Nothing
-  ("run_penalty", value) -> case submisionPenalty pc of
-    Nothing -> Just $ pc { submisionPenalty = readInteger value }
+  ("run_penalty", value) -> case runPenalty pc of
+    Nothing -> Just $ pc { runPenalty = readInteger value }
     _       -> Nothing
   _ -> Just pc
 
