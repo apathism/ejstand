@@ -9,6 +9,7 @@ where
 import           Data.List              (sortOn)
 import qualified Data.Map.Strict        as Map
 import           Data.Maybe             (catMaybes)
+import           Data.Ratio             ((%))
 import qualified Data.Set               as Set
 import           Data.Text              (unpack)
 import           Data.Time              (UTCTime)
@@ -57,21 +58,22 @@ applyRunDeadline Nothing run = (run, False)
 applyRunDeadline (Just (time, penalty)) run@Run {..} | runTime < time = (run, False)
                                                      | otherwise = (run { runScore = (* penalty) <$> runScore }, True)
 
-getRunScore :: StandingConfig -> (Run, Bool) -> Rational
-getRunScore (enableScores -> True) ((runScore -> Nothing), _)     = 0
-getRunScore (enableScores -> True) ((runScore -> Just score), _)  = score
-getRunScore _ ((getRunStatusType . runStatus -> Success), False)  = 1
-getRunScore cfg ((getRunStatusType . runStatus -> Success), True) = deadlinePenalty cfg
-getRunScore _                      _                              = 0
+getRunScore :: StandingConfig -> Problem -> (Run, Bool) -> Integer -> Rational
+getRunScore StandingConfig {..} Problem {..} (Run {..}, overdue) attempts =
+  (if enableDeadlines && overdue then deadlinePenalty else 1) * if enableScores
+    then case runScore of
+      Nothing      -> 0
+      (Just score) -> max 0 (score - attempts * problemSubmisionPenalty % 1)
+    else 1
 
 recalculateCellAttempts :: StandingConfig -> (Run, Bool) -> StandingCell -> StandingCell
 recalculateCellAttempts _ (Run {..}, _) cell@StandingCell {..} | cellType >= Pending = cell
                                                                | getRunStatusType runStatus /= Mistake = cell
                                                                | otherwise = cell { cellAttempts = cellAttempts + 1 }
 
-setCellMainRun :: Bool -> StandingConfig -> (Run, Bool) -> StandingCell -> StandingCell
-setCellMainRun forceFlag cfg@StandingConfig {..} runT@(run@Run {..}, overdue) cell@StandingCell {..} =
-  let score = getRunScore cfg runT
+setCellMainRun :: Bool -> StandingConfig -> Problem -> (Run, Bool) -> StandingCell -> StandingCell
+setCellMainRun forceFlag cfg@StandingConfig {..} prob runT@(run@Run {..}, overdue) cell@StandingCell {..} =
+  let score = getRunScore cfg prob runT cellAttempts
       cell' = recalculateCellAttempts cfg runT cell
   in  if forceFlag || onlyScoreLastSubmit || cellScore < score
         then cell' { cellType      = getRunStatusType runStatus
@@ -83,32 +85,32 @@ setCellMainRun forceFlag cfg@StandingConfig {..} runT@(run@Run {..}, overdue) ce
           then cell' { cellType = getRunStatusType runStatus, cellIsOverdue = overdue, cellMainRun = Just run }
           else cell'
 
-setCellMainRunForce :: StandingConfig -> (Run, Bool) -> StandingCell -> StandingCell
+setCellMainRunForce :: StandingConfig -> Problem -> (Run, Bool) -> StandingCell -> StandingCell
 setCellMainRunForce = setCellMainRun True
 
-setCellMainRunMaybe :: StandingConfig -> (Run, Bool) -> StandingCell -> StandingCell
+setCellMainRunMaybe :: StandingConfig -> Problem -> (Run, Bool) -> StandingCell -> StandingCell
 setCellMainRunMaybe = setCellMainRun False
 
-applicateRun :: StandingConfig -> (Run, Bool) -> StandingCell -> StandingCell
+applicateRun :: StandingConfig -> Problem -> (Run, Bool) -> StandingCell -> StandingCell
 -- 0 priority: Ignore
-applicateRun _ ((getRunStatusType . runStatus -> Ignore), _) cell = cell
+applicateRun _ _ ((getRunStatusType . runStatus -> Ignore), _) cell = cell
 -- 1 priority: Error
-applicateRun _ _ cell@StandingCell { cellType = Error, ..} = cell
-applicateRun cfg runT@((getRunStatusType . runStatus -> Error), _) cell =
-  (setCellMainRunForce cfg runT cell) { cellScore = 0 }
+applicateRun _ _ _ cell@StandingCell { cellType = Error, ..} = cell
+applicateRun cfg prob runT@((getRunStatusType . runStatus -> Error), _) cell =
+  (setCellMainRunForce cfg prob runT cell) { cellScore = 0 }
 -- 2 priority: Disqualified
-applicateRun _ _ cell@StandingCell { cellType = Disqualified, ..} = cell
-applicateRun cfg runT@((getRunStatusType . runStatus -> Disqualified), _) cell =
-  (setCellMainRunForce cfg runT cell) { cellScore = 0 }
+applicateRun _ _ _ cell@StandingCell { cellType = Disqualified, ..} = cell
+applicateRun cfg prob runT@((getRunStatusType . runStatus -> Disqualified), _) cell =
+  (setCellMainRunForce cfg prob runT cell) { cellScore = 0 }
 -- Extra priorities: Other statuses
-applicateRun cfg runT cell = setCellMainRunMaybe cfg runT cell
+applicateRun cfg prob runT cell = setCellMainRunMaybe cfg prob runT cell
 
 buildCell :: StandingConfig -> StandingSource -> Problem -> Contestant -> StandingCell
 buildCell cfg@StandingConfig {..} src@StandingSource {..} prob@Problem {..} user@Contestant {..} =
   let runsList  = filterRunMap problemContest contestantID (Just problemID) runs
       deadline  = calculateDeadline cfg src prob user
       deadlineT = (\x -> (x, deadlinePenalty)) <$> deadline
-  in  foldl (flip $ applicateRun cfg) defaultCell $ fmap (applyRunDeadline deadlineT) $ runsList
+  in  foldl (flip $ applicateRun cfg prob) defaultCell $ fmap (applyRunDeadline deadlineT) $ runsList
 
 calculateCellStats :: StandingCell -> StandingRowStats
 calculateCellStats StandingCell {..} = if cellType /= Success

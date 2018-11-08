@@ -122,7 +122,7 @@ totalScoreColumn StandingConfig {..} StandingSource {..} = StandingColumn captio
   value (_, StandingRow {..}) =
     calculateConditionalStyle conditionalStyles relativeScore td ! class_ "total_score" $ toMarkup score
    where
-    score    = rowScore rowStats
+    score         = rowScore rowStats
     relativeScore = score / (maxScore % 1)
 
 lastSuccessTimeColumn :: StandingColumn
