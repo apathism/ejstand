@@ -64,7 +64,9 @@ getRunScore StandingConfig {..} Problem {..} (Run {..}, overdue) attempts =
     then case runScore of
       Nothing      -> 0
       (Just score) -> max 0 (score - attempts * problemRunPenalty % 1)
-    else 1
+    else case getRunStatusType runStatus of
+      Success -> 1
+      _       -> 0
 
 recalculateCellAttempts :: StandingConfig -> (Run, Bool) -> StandingCell -> StandingCell
 recalculateCellAttempts _ (Run {..}, _) cell@StandingCell {..} | cellType >= Pending = cell
