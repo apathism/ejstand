@@ -112,16 +112,17 @@ totalSuccessesColumn = StandingColumn caption value
   caption = th ! class_ "total_successes" ! rowspan "2" $ "="
   value (_, row) = td ! class_ "total_successes" $ toMarkup . rowSuccesses . rowStats $ row
 
-totalScoreColumn :: StandingConfig -> StandingColumn
-totalScoreColumn StandingConfig {..} = StandingColumn caption value
+totalScoreColumn :: StandingConfig -> StandingSource -> StandingColumn
+totalScoreColumn StandingConfig {..} StandingSource {..} = StandingColumn caption value
  where
   caption = th ! class_ "total_score" ! rowspan "2" $ preEscapedToMarkup ("&Sigma;" :: Text)
   value (_, StandingRow {..}) =
     calculateConditionalStyle conditionalStyles relativeScore td ! class_ "total_score" $ toMarkup score
    where
-    score         = rowScore rowStats
-    -- This is a very bold assumption, but we can't get more information through ejudge XML interface
-    maxScore      = toInteger $ if enableScores then Map.size rowCells * 100 else Map.size rowCells
+    score    = rowScore rowStats
+    maxScore = if enableScores
+      then Map.foldl' (\accum p -> accum + problemMaxScore p) 0 problems
+      else toInteger $ Map.size rowCells
     relativeScore = score / (maxScore % 1)
 
 lastSuccessTimeColumn :: StandingColumn

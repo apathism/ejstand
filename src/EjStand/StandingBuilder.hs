@@ -16,6 +16,7 @@ import           EjStand.BaseModels
 import           EjStand.DataParser     (parseEjudgeXMLs)
 import           EjStand.HtmlRenderer
 import           EjStand.InternalsCore  ((==>))
+import           EjStand.ServeParser    (updateStandingSourceWithProblemConfigurations)
 import           EjStand.StandingModels
 import           Safe                   (headMay, lastMay)
 import           Text.Printf            (printf)
@@ -23,8 +24,9 @@ import           Text.Printf            (printf)
 -- Preparing data IO operations
 
 prepareStandingSource :: GlobalConfiguration -> StandingConfig -> IO StandingSource
-prepareStandingSource GlobalConfiguration {..} StandingConfig {..} =
-  parseEjudgeXMLs $ map (printf (unpack $ xmlFilePattern)) $ Set.toList $ standingContests
+prepareStandingSource global@GlobalConfiguration {..} StandingConfig {..} = do
+  src <- parseEjudgeXMLs $ map (printf (unpack $ xmlFilePattern)) $ Set.toList $ standingContests
+  if enableScores then updateStandingSourceWithProblemConfigurations global src else return src
 
 -- Deadlines computations
 
@@ -147,7 +149,7 @@ sortRows = sortOn (comparator . calculateRowStats)
 
 buildColumns :: StandingConfig -> StandingSource -> [StandingColumn]
 buildColumns cfg@StandingConfig {..} _ = mconcat
-  [ [placeColumn, contestantNameColumn, totalScoreColumn cfg]
+  [ [placeColumn, contestantNameColumn, totalScoreColumn cfg src]
   , (enableDeadlines || enableScores) ==> totalSuccessesColumn
   , [lastSuccessTimeColumn]
   ]
