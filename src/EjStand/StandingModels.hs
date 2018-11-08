@@ -44,7 +44,7 @@ data StandingSource = StandingSource { contests    :: !(Map Integer Contest)
                      deriving (Show)
 
 instance Semigroup StandingSource where
-  (<>) x y = fromTuple $ (toTuple x) <> (toTuple y) where
+  (<>) x y = fromTuple $ toTuple x <> toTuple y where
     toTuple z = (contests z, contestants z, languages z, problems z, runs z)
     fromTuple (a, b, c, d, e) = StandingSource a b c d e
 
@@ -98,7 +98,7 @@ readSign text = case filter ((== text) . signDisplay) allValues of
   _       -> Nothing
 
 checkComparison :: Ord t => t -> Comparison t -> Bool
-checkComparison argument (Comparison sign value) = (signFunction sign) argument value
+checkComparison argument (Comparison sign value) = signFunction sign argument value
 
 data FixedDeadline = FixedDeadline { contestIDs    :: !(Set Integer)
                                    , deadline      :: !UTCTime

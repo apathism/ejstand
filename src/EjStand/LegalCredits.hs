@@ -31,4 +31,4 @@ getCabalPackages = sortOn packageName . catMaybes $ toCabalPackage <$> $(embedDi
     _           -> Nothing
 
 renderLegalCredits :: GlobalConfiguration -> LT.Text
-renderLegalCredits GlobalConfiguration {..} = renderHtml ($(shamletFile "templates/credits.hamlet"))
+renderLegalCredits GlobalConfiguration {..} = renderHtml $(shamletFile "templates/credits.hamlet")

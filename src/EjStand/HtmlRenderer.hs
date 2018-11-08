@@ -171,14 +171,14 @@ renderCell :: Standing -> StandingRow -> Problem -> CellContentBuilder
 renderCell st@Standing { standingConfig = StandingConfig {..}, ..} row problem cell@StandingCell {..} =
   cellTag' $ foldl (>>) cellValue additionalContent
  where
-  additionalContent = if allowCellContent then selectAdditionalCellContentBuilders st <*> [cell] else []
-  addRunStatusCellText text = span ! class_ "run_status" $ text
+  additionalContent    = if allowCellContent then selectAdditionalCellContentBuilders st <*> [cell] else []
+  addRunStatusCellText = span ! class_ "run_status"
   ifNotScores x = if enableScores then mempty else x
   cellTag'                               = cellTag ! title (toValue $ buildCellTitle st row problem cell)
   (cellTag, cellValue, allowCellContent) = case cellType of
-    Success -> case cellIsOverdue of
-      False -> (td ! class_ "success", ifNotScores $ addRunStatusCellText "+", True)
-      True  -> (td ! class_ "overdue", ifNotScores $ addRunStatusCellText "+.", True)
+    Success -> if cellIsOverdue
+      then (td ! class_ "overdue", ifNotScores $ addRunStatusCellText "+.", True)
+      else (td ! class_ "success", ifNotScores $ addRunStatusCellText "+", True)
     Processing   -> (td ! class_ "processing", ifNotScores $ addRunStatusCellText "-", True)
     Pending      -> (td ! class_ "pending", ifNotScores $ addRunStatusCellText "?", True)
     Rejected     -> (td ! class_ "rejected", ifNotScores $ addRunStatusCellText "-", True)
@@ -212,7 +212,7 @@ renderStandingProblemSuccesses standing@Standing {..} =
 renderStanding :: GlobalConfiguration -> Standing -> LT.Text
 renderStanding GlobalConfiguration {..} standing@Standing { standingConfig = cfg@StandingConfig {..}, ..} =
   let problemSuccesses = showProblemStatistics ==> renderStandingProblemSuccesses standing
-  in  renderHtml ($(shamletFile "templates/main.hamlet"))
+  in  renderHtml $(shamletFile "templates/main.hamlet")
 
 renderCSS :: LT.Text
 renderCSS = renderCss ($(luciusFile "templates/main.lucius") undefined)

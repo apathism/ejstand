@@ -1,4 +1,5 @@
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TupleSections   #-}
 {-# LANGUAGE ViewPatterns    #-}
 module EjStand.StandingBuilder
   ( prepareStandingSource
@@ -26,7 +27,7 @@ import           Text.Printf            (printf)
 
 prepareStandingSource :: GlobalConfiguration -> StandingConfig -> IO StandingSource
 prepareStandingSource global@GlobalConfiguration {..} StandingConfig {..} = do
-  src <- parseEjudgeXMLs $ map (printf (unpack $ xmlFilePattern)) $ Set.toList $ standingContests
+  src <- parseEjudgeXMLs $ map (printf (unpack xmlFilePattern)) $ Set.toList standingContests
   if enableScores then updateStandingSourceWithProblemConfigurations global src else return src
 
 -- Deadlines computations
@@ -83,7 +84,7 @@ setCellMainRun forceFlag cfg@StandingConfig {..} prob runT@(run@Run {..}, overdu
                    , cellMainRun   = Just run
                    , cellScore     = score
                    }
-        else if (getRunStatusType runStatus > cellType)
+        else if getRunStatusType runStatus > cellType
           then cell' { cellType = getRunStatusType runStatus, cellIsOverdue = overdue, cellMainRun = Just run }
           else cell'
 
@@ -95,14 +96,14 @@ setCellMainRunMaybe = setCellMainRun False
 
 applicateRun :: StandingConfig -> Problem -> (Run, Bool) -> StandingCell -> StandingCell
 -- 0 priority: Ignore
-applicateRun _ _ ((getRunStatusType . runStatus -> Ignore), _) cell = cell
+applicateRun _ _ (getRunStatusType . runStatus -> Ignore, _) cell = cell
 -- 1 priority: Error
 applicateRun _ _ _ cell@StandingCell { cellType = Error, ..} = cell
-applicateRun cfg prob runT@((getRunStatusType . runStatus -> Error), _) cell =
+applicateRun cfg prob runT@(getRunStatusType . runStatus -> Error, _) cell =
   (setCellMainRunForce cfg prob runT cell) { cellScore = 0 }
 -- 2 priority: Disqualified
 applicateRun _ _ _ cell@StandingCell { cellType = Disqualified, ..} = cell
-applicateRun cfg prob runT@((getRunStatusType . runStatus -> Disqualified), _) cell =
+applicateRun cfg prob runT@(getRunStatusType . runStatus -> Disqualified, _) cell =
   (setCellMainRunForce cfg prob runT cell) { cellScore = 0 }
 -- Extra priorities: Other statuses
 applicateRun cfg prob runT cell = setCellMainRunMaybe cfg prob runT cell
@@ -111,8 +112,8 @@ buildCell :: StandingConfig -> StandingSource -> Problem -> Contestant -> Standi
 buildCell cfg@StandingConfig {..} src@StandingSource {..} prob@Problem {..} user@Contestant {..} =
   let runsList  = filterRunMap problemContest contestantID (Just problemID) runs
       deadline  = calculateDeadline cfg src prob user
-      deadlineT = (\x -> (x, deadlinePenalty)) <$> deadline
-  in  foldl (flip $ applicateRun cfg prob) defaultCell $ fmap (applyRunDeadline deadlineT) $ runsList
+      deadlineT = (, deadlinePenalty) <$> deadline
+  in  foldl (flip $ applicateRun cfg prob) defaultCell $ applyRunDeadline deadlineT <$> runsList
 
 calculateCellStats :: StandingCell -> StandingRowStats
 calculateCellStats StandingCell {..} = if cellType /= Success
@@ -138,7 +139,7 @@ buildRow cfg src probs user = appendRecalculatedCellStats $ StandingRow
   }
 
 buildRows :: StandingConfig -> StandingSource -> [Problem] -> [StandingRow]
-buildRows cfg src probs = buildRow cfg src probs <$> (Map.elems $ contestants src)
+buildRows cfg src probs = buildRow cfg src probs <$> Map.elems (contestants src)
 
 buildProblems :: StandingConfig -> StandingSource -> [Problem]
 buildProblems (reversedContestOrder -> True) = sortOn cmp . Map.elems . problems

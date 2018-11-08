@@ -186,10 +186,8 @@ toUTC key value = case parseTimeM True defaultTimeLocale "%F %R" $ unpack value 
 toComparison :: Text -> Text -> Comparison Rational
 toComparison key value =
   let (op, arg) = Text.break isDigit $ Text.filter (/= ' ') value
-      !sign     = case readSign op of
-        Nothing -> throw $ InvalidCondition key value
-        Just s  -> s
-      !ratio = toRatio key arg
+      !sign     = fromMaybe (throw $ InvalidCondition key value) (readSign op)
+      !ratio    = toRatio key arg
   in  Comparison sign ratio
 
 toComparisons :: Text -> Text -> [Comparison Rational]
@@ -250,7 +248,7 @@ buildContestNamePattern = evalState $ do
 buildNestedOptions :: (Configuration -> a) -> Text -> TraversingState [a]
 buildNestedOptions builder optionName = do
   nested <- takeValuesByKey ||> toNestedConfig $ optionName
-  return $ fmap builder $ nested
+  return $ builder <$> nested
 
 buildStandingConfig :: TraversingState StandingConfig
 buildStandingConfig = do
@@ -297,7 +295,7 @@ parseStandingConfig path = do
 parseStandingConfigDirectory :: FilePath -> IO [StandingConfig]
 parseStandingConfigDirectory path = do
   files <- listDirectory path
-  sequence $ map parseStandingConfig $ fmap ((path ++ "/") ++) $ filter (List.isSuffixOf ".cfg") $ files
+  mapM parseStandingConfig $ ((path ++ "/") ++) <$> filter (List.isSuffixOf ".cfg") files
 
 retrieveStandingConfigs :: GlobalConfiguration -> IO [StandingConfig]
 retrieveStandingConfigs = parseStandingConfigDirectory . unpack . standingConfigurationsPath

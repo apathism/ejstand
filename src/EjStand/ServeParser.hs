@@ -12,7 +12,7 @@ import qualified Data.List              as List
 import           Data.List.Split        (splitOn)
 import           Data.Map.Strict        (Map)
 import qualified Data.Map.Strict        as Map
-import           Data.Maybe             (catMaybes, fromMaybe)
+import           Data.Maybe             (catMaybes, fromMaybe, mapMaybe)
 import           Data.Text              (Text)
 import qualified Data.Text              as Text
 import           Data.Text.Encoding     (decodeUtf8)
@@ -40,9 +40,9 @@ mergeAncestor current ancestor =
   current { maxScore = maxScore current <|> maxScore ancestor, runPenalty = runPenalty current <|> runPenalty ancestor }
 
 ancestorList :: ProblemConfiguration -> [ProblemConfiguration] -> [ProblemConfiguration]
-ancestorList current lst = case findExactlyOne ((== (ancestorTaskName current)) . shortName) lst of
+ancestorList current lst = case findExactlyOne ((== ancestorTaskName current) . shortName) lst of
   Nothing         -> []
-  (Just ancestor) -> (ancestor : ancestorList ancestor lst)
+  (Just ancestor) -> ancestor : ancestorList ancestor lst
 
 mergeAllAncestors :: ProblemConfiguration -> [ProblemConfiguration] -> ProblemConfiguration
 mergeAllAncestors current lst = List.foldl' mergeAncestor current $ ancestorList current lst
@@ -71,7 +71,7 @@ toKeyValue line = case Text.breakOn "=" line of
     Just (Text.strip k, Text.strip v')
 
 readInteger :: Text -> Maybe Integer
-readInteger value = case (signed decimal) value of
+readInteger value = case signed decimal value of
   (Left  _     ) -> Nothing
   (Right (e, s)) -> case Text.strip s of
     "" -> Just e
@@ -103,12 +103,7 @@ analyzeProblemSection =
 
 getProblemConfigurations :: [Text] -> [ProblemConfiguration]
 getProblemConfigurations =
-  catMaybes
-    . fmap analyzeProblemSection
-    . catMaybes
-    . fmap (List.stripPrefix ["[problem]"])
-    . splitOn [""]
-    . fmap Text.strip
+  mapMaybe analyzeProblemSection . mapMaybe (List.stripPrefix ["[problem]"]) . splitOn [""] . fmap Text.strip
 
 -- Filesystem reading
 
@@ -117,7 +112,7 @@ getContestServeFileName GlobalConfiguration {..} Contest {..} =
   printf (Text.unpack ejudgeServeConfigurationsPath) contestID
 
 readContestServeFile' :: FilePath -> IO [ProblemConfiguration]
-readContestServeFile' path = getProblemConfigurations <$> Text.lines <$> decodeUtf8 <$> B.readFile path
+readContestServeFile' path = getProblemConfigurations . Text.lines . decodeUtf8 <$> B.readFile path
 
 readContestServeFile :: FilePath -> IO (Maybe [ProblemConfiguration])
 readContestServeFile path = catch (Just <$> readContestServeFile' path) exceptionHandler
@@ -130,7 +125,7 @@ readContestServeFile path = catch (Just <$> readContestServeFile' path) exceptio
 catMaybeTuples :: [(a, Maybe b)] -> [(a, b)]
 catMaybeTuples []                    = []
 catMaybeTuples ((_, Nothing) : tail) = catMaybeTuples tail
-catMaybeTuples ((a, Just b ) : tail) = ((a, b) : catMaybeTuples tail)
+catMaybeTuples ((a, Just b ) : tail) = (a, b) : catMaybeTuples tail
 
 updateStandingSourceWithProblemConfigurations :: GlobalConfiguration -> StandingSource -> IO StandingSource
 updateStandingSourceWithProblemConfigurations cfg ss@StandingSource {..} = do

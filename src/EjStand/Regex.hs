@@ -54,7 +54,7 @@ oneCharFold (False, builder, replacer) c | c == '$'  = (True, builder, replacer)
                                          | otherwise = (False, builder <>. c, replacer)
 oneCharFold (True, builder, replacer) c
   | c == '$'     = (False, builder <>. '$', replacer)
-  | isHexDigit c = (False, mempty, (MatchGroup (digitToInt c) : RawTextReplacer (builderToText builder) : replacer))
+  | isHexDigit c = (False, mempty, MatchGroup (digitToInt c) : RawTextReplacer (builderToText builder) : replacer)
   | otherwise    = (False, builder <>. '$' <>. c, replacer)
 
 buildReplacer :: Text -> Replacer

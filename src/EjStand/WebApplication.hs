@@ -6,7 +6,7 @@ module EjStand.WebApplication
   )
 where
 
-import           Control.Exception        (Exception, SomeException, catch, throw)
+import           Control.Exception        (Exception, SomeException, handle, throw)
 import           Data.Binary.Builder      (fromByteString)
 import           Data.ByteString          (ByteString)
 import qualified Data.ByteString.Char8    as BSC8
@@ -29,11 +29,8 @@ import           System.Clock             (Clock (..), TimeSpec, getTime, nsec, 
 
 -- IO Utilities (especially for error handling)
 
-catch' :: Exception e => (e -> IO a) -> IO a -> IO a
-catch' = flip catch
-
-catchSomeException' :: (SomeException -> IO a) -> IO a -> IO a
-catchSomeException' = catch'
+handleSomeException :: (SomeException -> IO a) -> IO a -> IO a
+handleSomeException = handle
 
 buildExceptionTextMessage :: (IsString s, Monoid s, Exception e) => e -> s
 buildExceptionTextMessage exception =
@@ -55,7 +52,7 @@ onExceptionRespond respond =
 
 -- Routing for URLs
 
-data RoutingException = DuplicateRoutes !ByteString
+newtype RoutingException = DuplicateRoutes ByteString
 
 instance Show RoutingException where
     show (DuplicateRoutes text) = "Multiple routes for URL " ++ BSC8.unpack text
@@ -80,7 +77,7 @@ insertPageGenerationTime :: Integer -> Text -> Text
 insertPageGenerationTime time = textReplaceLast "%%GENERATION_TIME%%" timeText where timeText = pack $ show time
 
 runEjStandRequest :: GlobalConfiguration -> Application
-runEjStandRequest global request respond = catchSomeException' (onExceptionRespond respond) $ do
+runEjStandRequest global request respond = handleSomeException (onExceptionRespond respond) $ do
   !startTime <- getTime Monotonic
   local      <- retrieveStandingConfigs global
   let path           = rawPathInfo request
@@ -95,15 +92,13 @@ runEjStandRequest global request respond = catchSomeException' (onExceptionRespo
       !pageContents <- runRoute global route
       !finishTime   <- getTime Monotonic
       let !pageGenerationTime = timeSpecToMilliseconds finishTime - timeSpecToMilliseconds startTime
-      respond
-        $ responseBS status200 [("Content-Type", "text/html")]
-        $ encodeUtf8
-        $ insertPageGenerationTime pageGenerationTime
-        $ pageContents
+      respond $ responseBS status200 [("Content-Type", "text/html")] $ encodeUtf8 $ insertPageGenerationTime
+        pageGenerationTime
+        pageContents
     _ -> throw $ DuplicateRoutes path
 
 ejStand :: IO ()
 ejStand = do
   global@GlobalConfiguration {..} <- retrieveGlobalConfiguration
-  let settings = setHost (fromString . unpack $ ejStandHostname) $ setPort ejStandPort $ defaultSettings
+  let settings = setHost (fromString . unpack $ ejStandHostname) $ setPort ejStandPort defaultSettings
   runSettings settings $ runEjStandRequest global

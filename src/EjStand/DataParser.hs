@@ -87,7 +87,7 @@ type ParsingStateM = State ParsingState
 -- Data type readers
 
 readInteger :: Text -> Integer
-readInteger str = case (signed decimal) str of
+readInteger str = case signed decimal str of
   Left  _             -> throw $ InvalidInteger str
   Right (value, tail) -> if Text.null tail then value else throw $ InvalidInteger str
 
@@ -122,7 +122,7 @@ foldPSRunlog state@ParsingState {..} =
   let contestID        = readInteger $ "contest_id" ! argumentList
       contestStartTime = "start_time" !? argumentList >>= readUTC
       contest          = Contest contestID "" contestStartTime
-  in  state { stateContests = (contest : stateContests) }
+  in  state { stateContests = contest : stateContests }
 
 foldPSContestName :: ParsingState -> ParsingState
 foldPSContestName state =
@@ -133,7 +133,7 @@ foldPSContestant state@ParsingState {..} =
   let contestantID   = readInteger $ "id" ! argumentList
       contestantName = "name" ! argumentList
       contestant     = Contestant contestantID contestantName
-  in  state { stateContestants = (contestant : stateContestants) }
+  in  state { stateContestants = contestant : stateContestants }
 
 foldPSProblem :: ParsingState -> ParsingState
 foldPSProblem state@ParsingState {..} =
@@ -142,7 +142,7 @@ foldPSProblem state@ParsingState {..} =
       problemShortName = "short_name" ! argumentList
       problemLongName  = "long_name" ! argumentList
       problem          = Problem problemID problemContest problemShortName problemLongName 100 0
-  in  state { stateProblems = (problem : stateProblems) }
+  in  state { stateProblems = problem : stateProblems }
 
 foldPSLanguage :: ParsingState -> ParsingState
 foldPSLanguage state@ParsingState {..} =
@@ -150,7 +150,7 @@ foldPSLanguage state@ParsingState {..} =
       languageShortName = "short_name" ! argumentList
       languageLongName  = "long_name" ! argumentList
       language          = Language languageID languageShortName languageLongName
-  in  state { stateLanguages = (language : stateLanguages) }
+  in  state { stateLanguages = language : stateLanguages }
 
 foldPSRun :: ParsingState -> ParsingState
 foldPSRun state@ParsingState {..} =
@@ -165,7 +165,7 @@ foldPSRun state@ParsingState {..} =
       runScore      = fromInteger . readInteger <$> "score" !? argumentList
       runTest       = readInteger <$> "test" !? argumentList
       run           = Run runID runContest runContestant runProblem runTime runStatus runLanguage runScore runTest
-  in  state { stateRuns = (run : stateRuns) }
+  in  state { stateRuns = run : stateRuns }
 
 foldPS :: ParsingState -> ParsingState
 foldPS state@ParsingState { lastOpenedTag = tag, ..} = case tag of
@@ -215,18 +215,18 @@ stateToStandingSource ParsingState {..} = StandingSource (fromIdentifiableList s
                                                          (fromIdentifiableList stateRuns)
 
 processRawXML :: ByteString -> StandingSource
-processRawXML raw = stateToStandingSource $ (flip execState) emptyPS $ Xeno.process (wrap1BS openTag)
-                                                                                    (wrap2BS processTagAttribute)
-                                                                                    skipXenoEvent
-                                                                                    (wrap1BS textInsideTag)
-                                                                                    closeTag
-                                                                                    skipXenoEvent
-                                                                                    raw
+processRawXML raw = stateToStandingSource $ flip execState emptyPS $ Xeno.process (wrap1BS openTag)
+                                                                                  (wrap2BS processTagAttribute)
+                                                                                  skipXenoEvent
+                                                                                  (wrap1BS textInsideTag)
+                                                                                  closeTag
+                                                                                  skipXenoEvent
+                                                                                  raw
 
 -- Main entry points
 
 parseEjudgeXML :: FilePath -> IO (Maybe StandingSource)
-parseEjudgeXML file = catch (onlyIfStarted <$> processRawXML <$> BS.readFile file) handleNothing
+parseEjudgeXML file = catch (onlyIfStarted . processRawXML <$> BS.readFile file) handleNothing
  where
   handleNothing :: IOException -> IO (Maybe a)
   handleNothing _ = return Nothing
