@@ -307,12 +307,14 @@ retrieveStandingConfigs = parseStandingConfigDirectory . unpack . standingConfig
 buildGlobalConfiguration :: Configuration -> GlobalConfiguration
 buildGlobalConfiguration = evalState $ do
   xmlPattern   <- takeUniqueValue ||> toTextValue .> fromMaybe xmlFilePattern $ "XMLFilePattern"
+  serveCfgPath <-
+    takeUniqueValue ||> toTextValue .> fromMaybe ejudgeServeConfigurationsPath $ "EjudgeServeConfigurationsPath"
   standCfgPath <- takeUniqueValue ||> toTextValue .> fromMaybe standingConfigurationsPath $ "StandingConfigurationsPath"
   port         <- takeUniqueValue ||> toTextValue ||> toInteger .> fromMaybe ejStandPort $ "Port"
   hostname     <- takeUniqueValue ||> toTextValue .> fromMaybe ejStandHostname $ "Hostname"
   webroot      <- takeUniqueValue ||> toTextValue .> fromMaybe webRoot $ "WebRoot"
   !_           <- ensureEmptyState
-  return $ GlobalConfiguration xmlPattern standCfgPath port hostname webroot
+  return $ GlobalConfiguration xmlPattern serveCfgPath standCfgPath port hostname webroot
   where GlobalConfiguration {..} = defaultGlobalConfiguration
 
 parseGlobalConfiguration :: FilePath -> IO GlobalConfiguration

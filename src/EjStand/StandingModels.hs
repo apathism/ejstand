@@ -51,21 +51,23 @@ instance Semigroup StandingSource where
 instance Monoid StandingSource where
   mempty = StandingSource mempty mempty mempty mempty mempty
 
-data GlobalConfiguration = GlobalConfiguration { xmlFilePattern             :: !Text
-                                               , standingConfigurationsPath :: !Text
-                                               , ejStandPort                :: !Int
-                                               , ejStandHostname            :: !Text
-                                               , webRoot                    :: !Text
+data GlobalConfiguration = GlobalConfiguration { xmlFilePattern                :: !Text
+                                               , ejudgeServeConfigurationsPath :: !Text
+                                               , standingConfigurationsPath    :: !Text
+                                               , ejStandPort                   :: !Int
+                                               , ejStandHostname               :: !Text
+                                               , webRoot                       :: !Text
                                                }
                                                deriving (Show)
 
 defaultGlobalConfiguration :: GlobalConfiguration
 defaultGlobalConfiguration = GlobalConfiguration
-  { xmlFilePattern             = "/home/judges/%06d/var/status/dir/external.xml"
-  , standingConfigurationsPath = "/etc/ejstand/cfg/"
-  , ejStandPort                = 80
-  , ejStandHostname            = "127.0.0.1"
-  , webRoot                    = "/"
+  { xmlFilePattern                = "/home/judges/%06d/var/status/dir/external.xml"
+  , ejudgeServeConfigurationsPath = "/home/judges/%06d/conf/serve.cfg"
+  , standingConfigurationsPath    = "/etc/ejstand/cfg/"
+  , ejStandPort                   = 80
+  , ejStandHostname               = "127.0.0.1"
+  , webRoot                       = "/"
   }
 
 data ComparisonSign = Less | LessOrEq | Greater | GreaterOrEq | Equal | NotEqual

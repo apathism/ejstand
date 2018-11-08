@@ -53,10 +53,12 @@ data Contest = Contest { contestID        :: !Integer
 instance IdentifiableBy Integer Contest where
   getID = contestID
 
-data Problem = Problem { problemID        :: !Integer
-                       , problemContest   :: !Integer
-                       , problemShortName :: !Text
-                       , problemLongName  :: !Text
+data Problem = Problem { problemID               :: !Integer
+                       , problemContest          :: !Integer
+                       , problemShortName        :: !Text
+                       , problemLongName         :: !Text
+                       , problemMaxScore         :: !Integer
+                       , problemSubmisionPenalty :: !Integer
                        } deriving (Show)
 
 instance IdentifiableBy (Integer, Integer) Problem where

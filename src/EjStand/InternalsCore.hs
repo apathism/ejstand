@@ -3,6 +3,7 @@ module EjStand.InternalsCore
   ( (==>)
   , (|||)
   , allValues
+  , findExactlyOne
   , textReplaceLast
   )
 where
@@ -23,6 +24,12 @@ import           Data.Text           (Text, breakOnEnd, stripSuffix)
 
 allValues :: (Bounded a, Enum a) => [a]
 allValues = [minBound .. maxBound]
+
+findExactlyOne :: (a -> Bool) -> [a] -> Maybe a
+findExactlyOne p lst = case filter p lst of
+  []  -> Nothing
+  [x] -> Just x
+  _   -> Nothing
 
 -- Text operations
 

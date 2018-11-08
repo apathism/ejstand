@@ -141,7 +141,7 @@ foldPSProblem state@ParsingState {..} =
       problemID        = readInteger $ "id" ! argumentList
       problemShortName = "short_name" ! argumentList
       problemLongName  = "long_name" ! argumentList
-      problem          = Problem problemID problemContest problemShortName problemLongName
+      problem          = Problem problemID problemContest problemShortName problemLongName 100 0
   in  state { stateProblems = (problem : stateProblems) }
 
 foldPSLanguage :: ParsingState -> ParsingState

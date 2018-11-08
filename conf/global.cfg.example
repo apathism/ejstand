@@ -16,6 +16,21 @@
 -- XMLFilePattern = /home/judges/%06d/var/status/dir/external.xml
 
 --|
+--|  Option "EjudgeServeConfigurationsPath"
+--|    Required:      optional
+--|    Default value: /home/judges/%06d/conf/serve.cfg
+--|
+--|    This option is a format string just like the previous one, but
+--|    locates where contest configuration files (serve.cfg) are.
+--|    It's used to load some task options, which are unretrievable
+--|    from regular XML files like penalty for a submision.
+--|    Every error during loading process will be ignored as
+--|    these files aren't a reliable source of information.
+--|
+
+-- EjudgeServeConfigurationsPath = /home/judges/%06d/conf/serve.cfg
+
+--|
 --|  Option "StandingConfigurationsPath"
 --|    Required:      optional
 --|    Default value: /etc/ejstand/cfg
