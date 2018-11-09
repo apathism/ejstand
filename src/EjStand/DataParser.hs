@@ -110,12 +110,9 @@ getStateContest state = case stateContests state of
   _         -> throw . InvalidContestNumber . length . stateContests $ state
 
 makeContestTime :: Contest -> (Integer, Integer) -> UTCTime
-makeContestTime contest (sec, nsec) = makeContestTime' (contestStartTime contest) (fromIntegral sec, fromIntegral nsec)
- where
-  makeContestTime' :: Maybe UTCTime -> (Double, Double) -> UTCTime
-  makeContestTime' Nothing     _           = throw RunsInNotStartedContest
-  makeContestTime' (Just time) (sec, nsec) = addUTCTime (realToFrac (nsec * 1e-9 + sec)) time
-
+makeContestTime Contest {..} (sec, nsec) = case contestStartTime of
+  Nothing     -> throw RunsInNotStartedContest
+  (Just time) -> addUTCTime (fromInteger sec + fromInteger nsec / fromInteger (10 ^ (9 :: Int))) time
 
 foldPSRunlog :: ParsingState -> ParsingState
 foldPSRunlog state@ParsingState {..} =
