@@ -22,6 +22,7 @@ import           EjStand.ServeParser    (updateStandingSourceWithProblemConfigur
 import           EjStand.StandingModels
 import           Safe                   (headMay, lastMay)
 import           Text.Printf            (printf)
+import           Text.Shakespeare.I18N  (Lang)
 
 -- Preparing data IO operations
 
@@ -152,20 +153,20 @@ sortRows = sortOn (comparator . calculateRowStats)
   comparator :: StandingRowStats -> (Rational, Integer, Maybe UTCTime)
   comparator StandingRowStats {..} = (negate rowScore, negate rowSuccesses, rowLastTimeSuccess)
 
-buildColumns :: StandingConfig -> StandingSource -> [StandingColumn]
-buildColumns cfg@StandingConfig {..} src = mconcat
-  [ [placeColumn, contestantNameColumn, totalScoreColumn cfg src]
+buildColumns :: [Lang] -> StandingConfig -> StandingSource -> [StandingColumn]
+buildColumns lang cfg@StandingConfig {..} src = mconcat
+  [ [placeColumn lang, contestantNameColumn lang, totalScoreColumn cfg src]
   , (enableDeadlines || enableScores) ==> totalSuccessesColumn
-  , [lastSuccessTimeColumn]
+  , [lastSuccessTimeColumn lang]
   ]
 
-buildStanding :: StandingConfig -> StandingSource -> Standing
-buildStanding cfg src =
+buildStanding :: [Lang] -> StandingConfig -> StandingSource -> Standing
+buildStanding lang cfg src =
   let problems = buildProblems cfg src
   in  Standing
         { standingConfig   = cfg
         , standingSource   = src
         , standingProblems = problems
         , standingRows     = sortRows $ buildRows cfg src problems
-        , standingColumns  = buildColumns cfg src
+        , standingColumns  = buildColumns lang cfg src
         }

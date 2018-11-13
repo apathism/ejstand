@@ -23,6 +23,7 @@ import           EjStand.StandingModels
 import           Text.Blaze.Html.Renderer.Text (renderHtml)
 import           Text.Hamlet                   (ihamletFile)
 import           Text.Lucius                   (luciusFile, renderCss)
+import           Text.Shakespeare.I18N         (Lang)
 
 -- Utilities for templates
 
@@ -57,10 +58,10 @@ getShortContestName StandingConfig {..} Contest {..} = fromMaybe (T.takeWhileEnd
 
 -- Main entry points
 
-renderStanding :: GlobalConfiguration -> Standing -> LT.Text
-renderStanding GlobalConfiguration {..} standing@Standing { standingConfig = cfg@StandingConfig {..}, ..} =
-  let problemSuccesses = showProblemStatistics ==> renderStandingProblemSuccesses standing
-  in  renderHtml $ $(ihamletFile "templates/main.hamlet") (translate ["en"]) skipUrlRendering
+renderStanding :: GlobalConfiguration -> Standing -> [Lang] -> LT.Text
+renderStanding GlobalConfiguration {..} standing@Standing { standingConfig = cfg@StandingConfig {..}, ..} lang =
+  let problemSuccesses = showProblemStatistics ==> renderStandingProblemSuccesses lang standing
+  in  renderHtml $ $(ihamletFile "templates/main.hamlet") (translate lang) skipUrlRendering
 
 renderCSS :: LT.Text
 renderCSS = renderCss ($(luciusFile "templates/main.lucius") undefined)

@@ -26,6 +26,7 @@ import           Data.Text                   (Text)
 import qualified Data.Text                   as T
 import           Data.Time                   (UTCTime, defaultTimeLocale)
 import           Data.Time.Format            (formatTime)
+import           EjStand                     (defaultLanguage)
 import           EjStand.BaseModels
 import           EjStand.InternalsCore       ((==>))
 import           EjStand.StandingModels
@@ -41,7 +42,7 @@ import           Text.Shakespeare.I18N
 
 data EjStandLocale = EjStandLocale
 
-mkMessage "EjStandLocale" "locale" "en"
+mkMessage "EjStandLocale" "locale" defaultLanguage
 
 translate :: [Lang] -> EjStandLocaleMessage -> Markup
 translate lang = preEscapedText . renderMessage EjStandLocale lang
@@ -79,16 +80,16 @@ calculateConditionalStyle (ConditionalStyle {..} : tail) value html
   | checkComparison value `all` conditions = html ! style (toValue styleValue)
   | otherwise                              = calculateConditionalStyle tail value html
 
-placeColumn :: StandingColumn
-placeColumn = StandingColumn caption value
+placeColumn :: [Lang] -> StandingColumn
+placeColumn lang = StandingColumn caption value
  where
-  caption = th ! class_ "place" ! rowspan "2" $ translate ["en"] MsgPlace
+  caption = th ! class_ "place" ! rowspan "2" $ translate lang MsgPlace
   value (place, _) = td ! class_ "place" $ toMarkup place
 
-contestantNameColumn :: StandingColumn
-contestantNameColumn = StandingColumn caption value
+contestantNameColumn :: [Lang] -> StandingColumn
+contestantNameColumn lang = StandingColumn caption value
  where
-  caption = th ! class_ "contestant" ! rowspan "2" $ translate ["en"] MsgContestant
+  caption = th ! class_ "contestant" ! rowspan "2" $ translate lang MsgContestant
   value (_, row) = td ! class_ "contestant" $ toMarkup . contestantName . rowContestant $ row
 
 totalSuccessesColumn :: StandingColumn
@@ -110,10 +111,10 @@ totalScoreColumn StandingConfig {..} StandingSource {..} = StandingColumn captio
     score         = rowScore rowStats
     relativeScore = score / (maxScore % 1)
 
-lastSuccessTimeColumn :: StandingColumn
-lastSuccessTimeColumn = StandingColumn caption value
+lastSuccessTimeColumn :: [Lang] -> StandingColumn
+lastSuccessTimeColumn lang = StandingColumn caption value
  where
-  caption = th ! class_ "last_success_time" ! rowspan "2" $ translate ["en"] MsgLastSuccessTime
+  caption = th ! class_ "last_success_time" ! rowspan "2" $ translate lang MsgLastSuccessTime
   value (_, row) = td ! class_ "last_success_time" $ case rowLastTimeSuccess $ rowStats row of
     Nothing   -> ""
     Just time -> toMarkup time
@@ -183,11 +184,11 @@ renderProblemSuccesses Standing {..} Problem {..} =
           <$> standingRows
   in  td ! class_ "problem_successes row_value" $ toMarkup countProblemSuccesses
 
-renderStandingProblemSuccesses :: Standing -> Markup
-renderStandingProblemSuccesses standing@Standing {..} =
+renderStandingProblemSuccesses :: [Lang] -> Standing -> Markup
+renderStandingProblemSuccesses lang standing@Standing {..} =
   let header =
         td
           ! class_ "problem_successes row_header"
           ! colspan (toValue . length $ standingColumns)
-          $ translate ["en"] MsgCorrectSolutions
+          $ translate lang MsgCorrectSolutions
   in  tr $ foldl (>>) header $ renderProblemSuccesses standing <$> standingProblems

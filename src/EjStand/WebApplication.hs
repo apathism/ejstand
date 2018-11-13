@@ -12,20 +12,23 @@ import           Data.ByteString          (ByteString)
 import qualified Data.ByteString.Char8    as BSC8
 import           Data.String              (IsString, fromString)
 import           Data.Text                (Text, pack, unpack)
-import           Data.Text.Encoding       (encodeUtf8)
+import qualified Data.Text                as Text
+import           Data.Text.Encoding       (decodeUtf8, encodeUtf8)
 import           Data.Text.Lazy           (toStrict)
 import qualified Data.Text.Lazy.Encoding  as EncLazy (encodeUtf8)
+import           EjStand                  (defaultLanguage)
 import           EjStand.ConfigParser     (retrieveGlobalConfiguration, retrieveStandingConfigs)
 import           EjStand.HtmlRenderer     (renderCSS, renderStanding)
 import           EjStand.InternalsCore    (textReplaceLast)
 import           EjStand.LegalCredits     (renderLegalCredits)
 import           EjStand.StandingBuilder  (buildStanding, prepareStandingSource)
 import           EjStand.StandingModels
-import           Network.HTTP.Types       (ResponseHeaders, Status, status200, status404, status500)
+import           Network.HTTP.Types       (Header, ResponseHeaders, Status, status200, status404, status500)
 import           Network.Wai              (Application, Request, Response, ResponseReceived, rawPathInfo,
-                                           responseBuilder, responseLBS)
+                                           responseBuilder, responseLBS, requestHeaders)
 import           Network.Wai.Handler.Warp (defaultSettings, runSettings, setHost, setPort)
 import           System.Clock             (Clock (..), TimeSpec, getTime, nsec, sec)
+import           Text.Shakespeare.I18N    (Lang)
 
 -- IO Utilities (especially for error handling)
 
@@ -60,15 +63,15 @@ instance Show RoutingException where
 instance Exception RoutingException
 
 isPathCorresponding :: ByteString -> StandingConfig -> Bool
-isPathCorresponding path StandingConfig {..} = encodeUtf8 internalName == path -- TODO: this is obviously not enough
+isPathCorresponding path StandingConfig {..} = encodeUtf8 internalName == path
 
 -- Main EjStand WAI
 
-runRoute :: GlobalConfiguration -> StandingConfig -> IO Text
-runRoute global local = do
+runRoute :: GlobalConfiguration -> StandingConfig -> [Lang] -> IO Text
+runRoute global local lang = do
   source <- prepareStandingSource global local
-  let standing = buildStanding local source
-  return . toStrict $ renderStanding global standing
+  let standing = buildStanding lang local source
+  return . toStrict $ renderStanding global standing lang
 
 timeSpecToMilliseconds :: TimeSpec -> Integer
 timeSpecToMilliseconds time = sum $ [(* 1000) . toInteger . sec, (`div` 1000000) . toInteger . nsec] <*> [time]
@@ -76,20 +79,28 @@ timeSpecToMilliseconds time = sum $ [(* 1000) . toInteger . sec, (`div` 1000000)
 insertPageGenerationTime :: Integer -> Text -> Text
 insertPageGenerationTime time = textReplaceLast "%%GENERATION_TIME%%" timeText where timeText = pack $ show time
 
+parseRequestLanguages :: Request -> [Lang]
+parseRequestLanguages request = mconcat (parseRequestHeader <$> requestHeaders request) <> [defaultLanguage]
+  where
+    parseRequestHeader :: Header -> [Lang]
+    parseRequestHeader ("Accept-Language", contents) = fst . Text.breakOn ";" <$> Text.splitOn "," (decodeUtf8 contents)
+    parseRequestHeader _ = []
+
 runEjStandRequest :: GlobalConfiguration -> Application
 runEjStandRequest global request respond = handleSomeException (onExceptionRespond respond) $ do
   !startTime <- getTime Monotonic
-  local      <- retrieveStandingConfigs global
+  local     <- retrieveStandingConfigs global
   let path           = rawPathInfo request
       possibleRoutes = filter (isPathCorresponding path) local
+      lang           = parseRequestLanguages request
   case (path, possibleRoutes) of
     ("/credits.html", _) ->
-      respond $ responseLBS status200 [("Content-Type", "text/html")] $ EncLazy.encodeUtf8 $ renderLegalCredits global
+      respond $ responseLBS status200 [("Content-Type", "text/html")] $ EncLazy.encodeUtf8 $ renderLegalCredits global lang
     ("/ejstand.css", _) ->
       respond $ responseLBS status200 [("Content-Type", "text/css")] $ EncLazy.encodeUtf8 renderCSS
     (_, []     ) -> respond $ responseBS status404 [("Content-Type", "text/plain")] $ buildNotFoundTextMessage request
     (_, [route]) -> do
-      !pageContents <- runRoute global route
+      !pageContents <- runRoute global route lang
       !finishTime   <- getTime Monotonic
       let !pageGenerationTime = timeSpecToMilliseconds finishTime - timeSpecToMilliseconds startTime
       respond $ responseBS status200 [("Content-Type", "text/html")] $ encodeUtf8 $ insertPageGenerationTime

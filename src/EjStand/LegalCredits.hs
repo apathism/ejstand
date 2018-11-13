@@ -18,6 +18,7 @@ import           EjStand.HtmlElements
 import           EjStand.StandingModels        (GlobalConfiguration (..))
 import           Text.Blaze.Html.Renderer.Text (renderHtml)
 import           Text.Hamlet                   (ihamletFile)
+import           Text.Shakespeare.I18N         (Lang)
 
 data CabalPackage = CabalPackage { packageName        :: !Text
                                  , packageLicenseText :: !Text
@@ -31,5 +32,5 @@ getCabalPackages = sortOn packageName . catMaybes $ toCabalPackage <$> $(embedDi
     (Just name) -> Just $ CabalPackage name (decodeUtf8 contents)
     _           -> Nothing
 
-renderLegalCredits :: GlobalConfiguration -> LT.Text
-renderLegalCredits GlobalConfiguration {..} = renderHtml $ $(ihamletFile "templates/credits.hamlet") (translate ["en"]) skipUrlRendering
+renderLegalCredits :: GlobalConfiguration -> [Lang] -> LT.Text
+renderLegalCredits GlobalConfiguration {..} lang = renderHtml $ $(ihamletFile "templates/credits.hamlet") (translate lang) skipUrlRendering
