@@ -15,10 +15,11 @@ import           Control.Exception          (Exception, IOException, catch, thro
 import           Control.Monad.State.Strict (State, evalState, get, put)
 import qualified Data.ByteString            as B
 import           Data.Char                  (isDigit, isLetter)
+import qualified Data.Foldable              as Foldable
 import qualified Data.List                  as List
 import           Data.Map.Strict            (Map, insertWith, (!?))
 import qualified Data.Map.Strict            as Map
-import           Data.Maybe                 (fromMaybe, listToMaybe)
+import           Data.Maybe                 (catMaybes, fromMaybe, listToMaybe)
 import           Data.Ratio                 ((%))
 import           Data.Set                   (Set)
 import qualified Data.Set                   as Set
@@ -31,7 +32,7 @@ import           EjStand.InternalsCore
 import qualified EjStand.Regex              as RE
 import           EjStand.StandingModels
 import           Prelude                    hiding (toInteger)
-import           System.Directory           (listDirectory)
+import           System.Directory.Tree      (dirTree, readDirectoryWithL)
 
 -- Exceptions
 
@@ -292,10 +293,13 @@ parseStandingConfig path = do
   let cfg = buildConfig contents
   return $ evalState buildStandingConfig cfg
 
+parsePossibleStandingConfigFile :: FilePath -> IO (Maybe StandingConfig)
+parsePossibleStandingConfigFile path =
+  if ".cfg" `List.isSuffixOf` path then Just <$> parseStandingConfig path else return Nothing
+
 parseStandingConfigDirectory :: FilePath -> IO [StandingConfig]
-parseStandingConfigDirectory path = do
-  files <- listDirectory path
-  mapM parseStandingConfig $ ((path ++ "/") ++) <$> filter (List.isSuffixOf ".cfg") files
+parseStandingConfigDirectory path =
+  catMaybes . Foldable.toList . dirTree <$> readDirectoryWithL parsePossibleStandingConfigFile path
 
 retrieveStandingConfigs :: GlobalConfiguration -> IO [StandingConfig]
 retrieveStandingConfigs = parseStandingConfigDirectory . unpack . standingConfigurationsPath

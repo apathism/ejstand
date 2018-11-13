@@ -24,7 +24,7 @@ executable ejstand
                        -- Time measuring
                        clock, time,
                        -- Filesystem & Network tools
-                       directory, file-embed, http-types, wai, warp,
+                       directory-tree, file-embed, http-types, wai, warp,
                        -- Parsers & Template Engines
                        blaze-html, text-icu, shakespeare, xeno,
                        -- Other
