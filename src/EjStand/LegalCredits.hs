@@ -33,4 +33,5 @@ getCabalPackages = sortOn packageName . catMaybes $ toCabalPackage <$> $(embedDi
     _           -> Nothing
 
 renderLegalCredits :: GlobalConfiguration -> [Lang] -> LT.Text
-renderLegalCredits GlobalConfiguration {..} lang = renderHtml $ $(ihamletFile "templates/credits.hamlet") (translate lang) skipUrlRendering
+renderLegalCredits GlobalConfiguration {..} lang =
+  renderHtml $ $(ihamletFile "templates/credits.hamlet") (translate lang) skipUrlRendering

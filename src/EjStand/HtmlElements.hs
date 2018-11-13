@@ -186,9 +186,7 @@ renderProblemSuccesses Standing {..} Problem {..} =
 
 renderStandingProblemSuccesses :: [Lang] -> Standing -> Markup
 renderStandingProblemSuccesses lang standing@Standing {..} =
-  let header =
-        td
-          ! class_ "problem_successes row_header"
-          ! colspan (toValue . length $ standingColumns)
-          $ translate lang MsgCorrectSolutions
+  let header = td ! class_ "problem_successes row_header" ! colspan (toValue . length $ standingColumns) $ translate
+        lang
+        MsgCorrectSolutions
   in  tr $ foldl (>>) header $ renderProblemSuccesses standing <$> standingProblems

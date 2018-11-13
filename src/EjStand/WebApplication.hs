@@ -25,7 +25,7 @@ import           EjStand.StandingBuilder  (buildStanding, prepareStandingSource)
 import           EjStand.StandingModels
 import           Network.HTTP.Types       (Header, ResponseHeaders, Status, status200, status404, status500)
 import           Network.Wai              (Application, Request, Response, ResponseReceived, rawPathInfo,
-                                           responseBuilder, responseLBS, requestHeaders)
+                                           requestHeaders, responseBuilder, responseLBS)
 import           Network.Wai.Handler.Warp (defaultSettings, runSettings, setHost, setPort)
 import           System.Clock             (Clock (..), TimeSpec, getTime, nsec, sec)
 import           Text.Shakespeare.I18N    (Lang)
@@ -81,21 +81,22 @@ insertPageGenerationTime time = textReplaceLast "%%GENERATION_TIME%%" timeText w
 
 parseRequestLanguages :: Request -> [Lang]
 parseRequestLanguages request = mconcat (parseRequestHeader <$> requestHeaders request) <> [defaultLanguage]
-  where
-    parseRequestHeader :: Header -> [Lang]
-    parseRequestHeader ("Accept-Language", contents) = fst . Text.breakOn ";" <$> Text.splitOn "," (decodeUtf8 contents)
-    parseRequestHeader _ = []
+ where
+  parseRequestHeader :: Header -> [Lang]
+  parseRequestHeader ("Accept-Language", contents) = fst . Text.breakOn ";" <$> Text.splitOn "," (decodeUtf8 contents)
+  parseRequestHeader _                             = []
 
 runEjStandRequest :: GlobalConfiguration -> Application
 runEjStandRequest global request respond = handleSomeException (onExceptionRespond respond) $ do
   !startTime <- getTime Monotonic
-  local     <- retrieveStandingConfigs global
+  local      <- retrieveStandingConfigs global
   let path           = rawPathInfo request
       possibleRoutes = filter (isPathCorresponding path) local
       lang           = parseRequestLanguages request
   case (path, possibleRoutes) of
     ("/credits.html", _) ->
-      respond $ responseLBS status200 [("Content-Type", "text/html")] $ EncLazy.encodeUtf8 $ renderLegalCredits global lang
+      respond $ responseLBS status200 [("Content-Type", "text/html")] $ EncLazy.encodeUtf8 $ renderLegalCredits global
+                                                                                                                lang
     ("/ejstand.css", _) ->
       respond $ responseLBS status200 [("Content-Type", "text/css")] $ EncLazy.encodeUtf8 renderCSS
     (_, []     ) -> respond $ responseBS status404 [("Content-Type", "text/plain")] $ buildNotFoundTextMessage request
