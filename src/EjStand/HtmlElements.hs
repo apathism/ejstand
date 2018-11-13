@@ -3,8 +3,9 @@
 {-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE TemplateHaskell       #-}
 module EjStand.HtmlElements
-  ( EjStandLocale(..)
+  ( EjStandLocaleMessage(..)
   , EjStandRoute(..)
+  , translate
   , skipUrlRendering
   , placeColumn
   , contestantNameColumn
@@ -42,6 +43,9 @@ data EjStandLocale = EjStandLocale
 
 mkMessage "EjStandLocale" "locale" "en"
 
+translate :: [Lang] -> EjStandLocaleMessage -> Markup
+translate lang = preEscapedText . renderMessage EjStandLocale lang
+
 -- Useless stub for routing: EjStand handles routing by itself
 
 data EjStandRoute = EjStandRoute
@@ -59,7 +63,7 @@ instance (ToMarkup a, Integral a) => ToMarkup (Ratio a) where
                   if aMod /= 0 then do
                     when (aDiv /= 0) (toMarkup aDiv)
                     sup (toMarkup aMod)
-                    preEscapedToMarkup ("&frasl;" :: Text)
+                    preEscapedText "&frasl;"
                     sub (toMarkup b)
                   else
                     toMarkup aDiv
@@ -78,13 +82,13 @@ calculateConditionalStyle (ConditionalStyle {..} : tail) value html
 placeColumn :: StandingColumn
 placeColumn = StandingColumn caption value
  where
-  caption = th ! class_ "place" ! rowspan "2" $ preEscapedText  (renderMessage EjStandLocale ["en"] MsgPlace)
+  caption = th ! class_ "place" ! rowspan "2" $ translate ["en"] MsgPlace
   value (place, _) = td ! class_ "place" $ toMarkup place
 
 contestantNameColumn :: StandingColumn
 contestantNameColumn = StandingColumn caption value
  where
-  caption = th ! class_ "contestant" ! rowspan "2" $ "Имя"
+  caption = th ! class_ "contestant" ! rowspan "2" $ translate ["en"] MsgContestant
   value (_, row) = td ! class_ "contestant" $ toMarkup . contestantName . rowContestant $ row
 
 totalSuccessesColumn :: StandingColumn
@@ -109,7 +113,7 @@ totalScoreColumn StandingConfig {..} StandingSource {..} = StandingColumn captio
 lastSuccessTimeColumn :: StandingColumn
 lastSuccessTimeColumn = StandingColumn caption value
  where
-  caption = th ! class_ "last_success_time" ! rowspan "2" $ "Время"
+  caption = th ! class_ "last_success_time" ! rowspan "2" $ translate ["en"] MsgLastSuccessTime
   value (_, row) = td ! class_ "last_success_time" $ case rowLastTimeSuccess $ rowStats row of
     Nothing   -> ""
     Just time -> toMarkup time
@@ -185,5 +189,5 @@ renderStandingProblemSuccesses standing@Standing {..} =
         td
           ! class_ "problem_successes row_header"
           ! colspan (toValue . length $ standingColumns)
-          $ "Правильных решений:"
+          $ translate ["en"] MsgCorrectSolutions
   in  tr $ foldl (>>) header $ renderProblemSuccesses standing <$> standingProblems

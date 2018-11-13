@@ -21,7 +21,7 @@ import           EjStand.InternalsCore         ((==>))
 import qualified EjStand.Regex                 as RE
 import           EjStand.StandingModels
 import           Text.Blaze.Html.Renderer.Text (renderHtml)
-import           Text.Hamlet                   (hamletFile)
+import           Text.Hamlet                   (ihamletFile)
 import           Text.Lucius                   (luciusFile, renderCss)
 
 -- Utilities for templates
@@ -60,7 +60,7 @@ getShortContestName StandingConfig {..} Contest {..} = fromMaybe (T.takeWhileEnd
 renderStanding :: GlobalConfiguration -> Standing -> LT.Text
 renderStanding GlobalConfiguration {..} standing@Standing { standingConfig = cfg@StandingConfig {..}, ..} =
   let problemSuccesses = showProblemStatistics ==> renderStandingProblemSuccesses standing
-  in  renderHtml $ $(hamletFile "templates/main.hamlet") skipUrlRendering
+  in  renderHtml $ $(ihamletFile "templates/main.hamlet") (translate ["en"]) skipUrlRendering
 
 renderCSS :: LT.Text
 renderCSS = renderCss ($(luciusFile "templates/main.lucius") undefined)

@@ -7,7 +7,7 @@ $doctype 5
     <body>
         <h1>
             #{standingName}
-        Наведите курсор на ячейку, чтобы получить дополнительную информацию о задаче/участнике/посылке.
+        _{MsgAdditionalInformation}
         <table class="standing"> 
             <tr>
                 $forall column <- standingColumns
@@ -36,16 +36,8 @@ $doctype 5
                 $of Nothing
         <div class="footer">
             <p class="copyright">
-                Эта страница была сгенерирована
-                <a href="https://apathism.net/git/apathism/ejstand">
-                    EjStand
-                #{getTextVersion} за %%GENERATION_TIME%% мс.
+                _{MsgPageGenerationTime "https://apathism.net/git/apathism/ejstand" getTextVersion}
             <p class="license">
-                Это свободная программа, вы можете распространять и/или изменять ее на условиях лицензии
-                <a href="https://www.gnu.org/licenses/agpl-3.0.ru.html">
-                    GNU Affero General Public License
-                (AGPL) версии 3.
+                _{MsgEjStandLicense }
             <p class="third-party">
-                В состав данного ПО также входят свободные библиотки под
-                <a href="#{webRoot}credits.html">
-                    другими лицензиями.
+                _{MsgOtherLicenses "#{webRoot}credits.html"}
