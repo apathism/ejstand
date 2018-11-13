@@ -35,6 +35,7 @@ executable ejstand
                        EjStand.BaseModels
                        EjStand.ConfigParser
                        EjStand.DataParser
+                       EjStand.HtmlElements
                        EjStand.HtmlRenderer
                        EjStand.InternalsCore
                        EjStand.LegalCredits

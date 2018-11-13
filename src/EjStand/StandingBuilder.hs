@@ -16,7 +16,7 @@ import           Data.Text              (unpack)
 import           Data.Time              (UTCTime)
 import           EjStand.BaseModels
 import           EjStand.DataParser     (parseEjudgeXMLs)
-import           EjStand.HtmlRenderer
+import           EjStand.HtmlElements
 import           EjStand.InternalsCore  ((==>))
 import           EjStand.ServeParser    (updateStandingSourceWithProblemConfigurations)
 import           EjStand.StandingModels

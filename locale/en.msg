@@ -1,0 +1,2 @@
+Place: Place
+Contestant: Contestant
