@@ -14,9 +14,10 @@ import           Data.Text                     (Text, pack)
 import qualified Data.Text                     as Text
 import           Data.Text.Encoding            (decodeUtf8)
 import qualified Data.Text.Lazy                as LT
+import           EjStand.HtmlElements
 import           EjStand.StandingModels        (GlobalConfiguration (..))
 import           Text.Blaze.Html.Renderer.Text (renderHtml)
-import           Text.Hamlet                   (shamletFile)
+import           Text.Hamlet                   (ihamletFile)
 
 data CabalPackage = CabalPackage { packageName        :: !Text
                                  , packageLicenseText :: !Text
@@ -31,4 +32,4 @@ getCabalPackages = sortOn packageName . catMaybes $ toCabalPackage <$> $(embedDi
     _           -> Nothing
 
 renderLegalCredits :: GlobalConfiguration -> LT.Text
-renderLegalCredits GlobalConfiguration {..} = renderHtml $(shamletFile "templates/credits.hamlet")
+renderLegalCredits GlobalConfiguration {..} = renderHtml $ $(ihamletFile "templates/credits.hamlet") (translate ["en"]) skipUrlRendering

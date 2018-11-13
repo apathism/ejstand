@@ -40,4 +40,4 @@ $doctype 5
             <p class="license">
                 _{MsgEjStandLicense }
             <p class="third-party">
-                _{MsgOtherLicenses "#{webRoot}credits.html"}
+                _{MsgOtherLicenses (mconcat [webRoot, "credits.html"])}
