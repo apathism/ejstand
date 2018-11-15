@@ -25,6 +25,8 @@ executable ejstand
                        clock, time,
                        -- Filesystem & Network tools
                        directory-tree, file-embed, http-types, wai, warp,
+                       -- Command-line interfaces
+                       optparse-applicative,
                        -- Parsers & Template Engines
                        blaze-html, text-icu, shakespeare, xeno,
                        -- Other
@@ -33,6 +35,7 @@ executable ejstand
   hs-source-dirs:      src
   other-modules:       EjStand
                        EjStand.BaseModels
+                       EjStand.CLI
                        EjStand.ConfigParser
                        EjStand.DataParser
                        EjStand.HtmlElements

@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
 module EjStand.WebApplication
-  ( ejStand
+  ( ejStandWebServer
   )
 where
 
@@ -17,7 +17,7 @@ import           Data.Text.Encoding       (decodeUtf8, encodeUtf8)
 import           Data.Text.Lazy           (toStrict)
 import qualified Data.Text.Lazy.Encoding  as EncLazy (encodeUtf8)
 import           EjStand                  (defaultLanguage)
-import           EjStand.ConfigParser     (retrieveGlobalConfiguration, retrieveStandingConfigs)
+import           EjStand.ConfigParser     (retrieveStandingConfigs)
 import           EjStand.HtmlRenderer     (renderCSS, renderStanding)
 import           EjStand.InternalsCore    (textReplaceLast)
 import           EjStand.LegalCredits     (renderLegalCredits)
@@ -109,8 +109,7 @@ runEjStandRequest global request respond = handleSomeException (onExceptionRespo
         pageContents
     _ -> throw $ DuplicateRoutes path
 
-ejStand :: IO ()
-ejStand = do
-  global@GlobalConfiguration {..} <- retrieveGlobalConfiguration
+ejStandWebServer :: GlobalConfiguration -> IO ()
+ejStandWebServer global@GlobalConfiguration {..} =
   let settings = setHost (fromString . unpack $ ejStandHostname) $ setPort ejStandPort defaultSettings
-  runSettings settings $ runEjStandRequest global
+  in  runSettings settings $ runEjStandRequest global

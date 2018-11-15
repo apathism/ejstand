@@ -7,7 +7,6 @@ module EjStand.ConfigParser
   , retrieveStandingConfigs
   , parseGlobalConfiguration
   , retrieveGlobalConfiguration
-  , retrieveGlobalConfiguration'
   )
 where
 
@@ -325,13 +324,10 @@ parseGlobalConfiguration path = do
   let cfg = buildConfig contents
   return $ buildGlobalConfiguration cfg
 
-retrieveGlobalConfiguration' :: [FilePath] -> IO GlobalConfiguration
-retrieveGlobalConfiguration' []            = return defaultGlobalConfiguration
-retrieveGlobalConfiguration' (file : rest) = catch (parseGlobalConfiguration file) (noFileExceptionHandler rest)
+retrieveGlobalConfiguration :: [FilePath] -> IO (Maybe GlobalConfiguration)
+retrieveGlobalConfiguration []            = return Nothing
+retrieveGlobalConfiguration (file : rest) = catch (Just <$> parseGlobalConfiguration file)
+                                                  (noFileExceptionHandler rest)
  where
-  noFileExceptionHandler :: [FilePath] -> IOException -> IO GlobalConfiguration
-  noFileExceptionHandler rest _ = retrieveGlobalConfiguration' rest
-
-retrieveGlobalConfiguration :: IO GlobalConfiguration
-retrieveGlobalConfiguration =
-  retrieveGlobalConfiguration' ["/etc/ejstand.cfg", "/etc/ejstand/ejstand.cfg", "./ejstand.cfg"]
+  noFileExceptionHandler :: [FilePath] -> IOException -> IO (Maybe GlobalConfiguration)
+  noFileExceptionHandler rest _ = retrieveGlobalConfiguration rest
