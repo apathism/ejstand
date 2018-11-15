@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE TemplateHaskell   #-}
-module EjStand.HtmlRenderer
+module EjStand.Web.MainPage
   ( renderStanding
   , renderCSS
   )
@@ -15,11 +15,11 @@ import           Data.Text                     (Text)
 import qualified Data.Text                     as T
 import qualified Data.Text.Internal.Lazy       as LT
 import           EjStand                       (getVersion)
-import           EjStand.BaseModels
-import           EjStand.HtmlElements
-import           EjStand.InternalsCore         ((==>))
-import qualified EjStand.Regex                 as RE
-import           EjStand.StandingModels
+import           EjStand.Internals.Core        ((==>))
+import qualified EjStand.Internals.Regex       as RE
+import           EjStand.Models.Base
+import           EjStand.Models.Standing
+import           EjStand.Web.HtmlElements
 import           Text.Blaze.Html.Renderer.Text (renderHtml)
 import           Text.Hamlet                   (ihamletFile)
 import           Text.Lucius                   (luciusFile, renderCss)

@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE TemplateHaskell       #-}
-module EjStand.HtmlElements
+module EjStand.Web.HtmlElements
   ( EjStandLocaleMessage(..)
   , EjStandRoute(..)
   , translate
@@ -27,9 +27,9 @@ import qualified Data.Text                   as T
 import           Data.Time                   (UTCTime, defaultTimeLocale)
 import           Data.Time.Format            (formatTime)
 import           EjStand                     (defaultLanguage)
-import           EjStand.BaseModels
-import           EjStand.InternalsCore       ((==>))
-import           EjStand.StandingModels
+import           EjStand.Internals.Core      ((==>))
+import           EjStand.Models.Base
+import           EjStand.Models.Standing
 import           Prelude                     hiding (div, span)
 import qualified Prelude                     (div)
 import           Text.Blaze.Html             (Markup, toMarkup)

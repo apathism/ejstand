@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE TemplateHaskell   #-}
-module EjStand.LegalCredits
+module EjStand.Web.LegalPage
   ( renderLegalCredits
   )
 where
@@ -14,8 +14,8 @@ import           Data.Text                     (Text, pack)
 import qualified Data.Text                     as Text
 import           Data.Text.Encoding            (decodeUtf8)
 import qualified Data.Text.Lazy                as LT
-import           EjStand.HtmlElements
-import           EjStand.StandingModels        (GlobalConfiguration (..))
+import           EjStand.Models.Standing       (GlobalConfiguration (..))
+import           EjStand.Web.HtmlElements
 import           Text.Blaze.Html.Renderer.Text (renderHtml)
 import           Text.Hamlet                   (ihamletFile)
 import           Text.Shakespeare.I18N         (Lang)

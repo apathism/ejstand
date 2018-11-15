@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
-module EjStand.DataParser
+module EjStand.Parsers.Data
   ( ParsingException(..)
   , parseEjudgeXML
   , parseEjudgeXMLs
@@ -21,9 +21,9 @@ import qualified Data.Text                  as Text
 import           Data.Text.Encoding         (decodeUtf8)
 import           Data.Text.Read             (decimal, signed)
 import           Data.Time                  (UTCTime, addUTCTime, defaultTimeLocale, parseTimeM)
-import           EjStand.BaseModels
-import           EjStand.InternalsCore
-import           EjStand.StandingModels     (StandingSource (..))
+import           EjStand.Internals.Core
+import           EjStand.Models.Base
+import           EjStand.Models.Standing    (StandingSource (..))
 import qualified Xeno.SAX                   as Xeno
 
 -- Text casts

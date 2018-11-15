@@ -2,7 +2,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE UndecidableInstances   #-}
-module EjStand.BaseModels
+module EjStand.Models.Base
   ( Contestant(..)
   , Contest(..)
   , Problem(..)

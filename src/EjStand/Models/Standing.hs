@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell   #-}
-module EjStand.StandingModels
+module EjStand.Models.Standing
   ( GlobalConfiguration(..)
   , StandingSource(..)
   , StandingConfig(..)
@@ -23,17 +23,17 @@ module EjStand.StandingModels
   )
 where
 
-import           Data.Map.Strict       (Map, (!))
-import qualified Data.Map.Strict       as Map
-import           Data.Semigroup        (Semigroup, (<>))
-import           Data.Set              (Set)
-import           Data.String           (IsString)
-import           Data.Text             (Text)
-import           Data.Time             (UTCTime)
-import           EjStand.BaseModels
-import           EjStand.InternalsCore
-import qualified EjStand.Regex         as RE
-import           Text.Blaze.Html       (Markup)
+import           Data.Map.Strict         (Map, (!))
+import qualified Data.Map.Strict         as Map
+import           Data.Semigroup          (Semigroup, (<>))
+import           Data.Set                (Set)
+import           Data.String             (IsString)
+import           Data.Text               (Text)
+import           Data.Time               (UTCTime)
+import           EjStand.Internals.Core
+import qualified EjStand.Internals.Regex as RE
+import           EjStand.Models.Base
+import           Text.Blaze.Html         (Markup)
 
 data StandingSource = StandingSource { contests    :: !(Map Integer Contest)
                                      , contestants :: !(Map Integer Contestant)

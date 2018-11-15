@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module EjStand.Regex
+module EjStand.Internals.Regex
   ( Regex
   , Match
   , Replacer

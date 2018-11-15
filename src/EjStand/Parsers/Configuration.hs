@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
-module EjStand.ConfigParser
+module EjStand.Parsers.Configuration
   ( parseStandingConfig
   , parseStandingConfigDirectory
   , retrieveStandingConfigs
@@ -27,9 +27,9 @@ import qualified Data.Text                  as Text
 import           Data.Text.Encoding         (decodeUtf8)
 import           Data.Text.Read             (decimal)
 import           Data.Time                  (UTCTime, defaultTimeLocale, parseTimeM)
-import           EjStand.InternalsCore
-import qualified EjStand.Regex              as RE
-import           EjStand.StandingModels
+import           EjStand.Internals.Core
+import qualified EjStand.Internals.Regex    as RE
+import           EjStand.Models.Standing
 import           Prelude                    hiding (toInteger)
 import           System.Directory.Tree      (dirTree, readDirectoryWithL)
 

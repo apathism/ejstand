@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module EjStand.InternalsCore
+module EjStand.Internals.Core
   ( (==>)
   , (|||)
   , allValues

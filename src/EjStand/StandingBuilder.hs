@@ -7,22 +7,22 @@ module EjStand.StandingBuilder
   )
 where
 
-import           Data.List              (sortOn)
-import qualified Data.Map.Strict        as Map
-import           Data.Maybe             (catMaybes)
-import           Data.Ratio             ((%))
-import qualified Data.Set               as Set
-import           Data.Text              (unpack)
-import           Data.Time              (UTCTime)
-import           EjStand.BaseModels
-import           EjStand.DataParser     (parseEjudgeXMLs)
-import           EjStand.HtmlElements
-import           EjStand.InternalsCore  ((==>))
-import           EjStand.ServeParser    (updateStandingSourceWithProblemConfigurations)
-import           EjStand.StandingModels
-import           Safe                   (headMay, lastMay)
-import           Text.Printf            (printf)
-import           Text.Shakespeare.I18N  (Lang)
+import           Data.List                     (sortOn)
+import qualified Data.Map.Strict               as Map
+import           Data.Maybe                    (catMaybes)
+import           Data.Ratio                    ((%))
+import qualified Data.Set                      as Set
+import           Data.Text                     (unpack)
+import           Data.Time                     (UTCTime)
+import           EjStand.Internals.Core        ((==>))
+import           EjStand.Models.Base
+import           EjStand.Models.Standing
+import           EjStand.Parsers.Data          (parseEjudgeXMLs)
+import           EjStand.Parsers.EjudgeOptions (updateStandingSourceWithProblemConfigurations)
+import           EjStand.Web.HtmlElements
+import           Safe                          (headMay, lastMay)
+import           Text.Printf                   (printf)
+import           Text.Shakespeare.I18N         (Lang)
 
 -- Preparing data IO operations
 

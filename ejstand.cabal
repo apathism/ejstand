@@ -34,18 +34,18 @@ executable ejstand
   ghc-options:         -O2 -threaded -Wall -Wno-name-shadowing -Wno-orphans
   hs-source-dirs:      src
   other-modules:       EjStand
-                       EjStand.BaseModels
                        EjStand.CLI
-                       EjStand.ConfigParser
-                       EjStand.DataParser
-                       EjStand.HtmlElements
-                       EjStand.HtmlRenderer
-                       EjStand.InternalsCore
-                       EjStand.LegalCredits
-                       EjStand.Regex
-                       EjStand.ServeParser
+                       EjStand.Internals.Core
+                       EjStand.Internals.Regex
+                       EjStand.Models.Base
+                       EjStand.Models.Standing
+                       EjStand.Parsers.Configuration
+                       EjStand.Parsers.Data
+                       EjStand.Parsers.EjudgeOptions
                        EjStand.StandingBuilder
-                       EjStand.StandingModels
-                       EjStand.WebApplication
+                       EjStand.Web.HtmlElements
+                       EjStand.Web.LegalPage
+                       EjStand.Web.MainPage
+                       EjStand.Web.Server
                        Paths_ejstand
   default-language:    Haskell2010
