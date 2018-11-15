@@ -1,7 +1,7 @@
 # EjStand
 
 EjStand is a simple and configurable web standings daemon for ejudge contest
-management system. It's intended to use in situations when standing contains
+management system. It's intended to be used in situations when standing contains
 results from different contests or when standing needs some additional display
 options not supported by ejudge.
 
