@@ -21,18 +21,13 @@ import           Control.Monad.State.Strict     ( State
                                                 )
 import           Data.ByteString                ( ByteString )
 import qualified Data.ByteString               as BS
-import           Data.Function                  ( on )
+import qualified Data.ByteString.Char8         as BSC8
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( catMaybes
                                                 , isNothing
                                                 )
-import           Data.Text                      ( Text )
-import qualified Data.Text                     as Text
 import           Data.Text.Encoding             ( decodeUtf8 )
-import           Data.Text.Read                 ( decimal
-                                                , signed
-                                                )
 import           Data.Time                      ( UTCTime
                                                 , addUTCTime
                                                 , defaultTimeLocale
@@ -45,23 +40,15 @@ import qualified Xeno.SAX                      as Xeno
 
 -- Text casts
 
-mconcat' :: [Text] -> String
-mconcat' = Text.unpack . mconcat
-
-wrap1BS :: (Text -> v) -> ByteString -> v
-wrap1BS f = f . decodeUtf8
-
-wrap2BS :: (Text -> Text -> v) -> ByteString -> ByteString -> v
-wrap2BS f = f `on` decodeUtf8
-
--- Exceptions
-
-data ParsingException = DuplicateKey         !Text
-                      | MissingKey           !Text
-                      | InvalidInteger       !Text
-                      | InvalidRunStatus     !Text
+data ParsingException = DuplicateKey         !ByteString
+                      | MissingKey           !ByteString
+                      | InvalidInteger       !ByteString
+                      | InvalidRunStatus     !ByteString
                       | InvalidContestNumber !Int
                       | RunsInNotStartedContest
+
+mconcat' :: [ByteString] -> String
+mconcat' = BSC8.unpack . mconcat
 
 instance Exception ParsingException
 
@@ -78,16 +65,16 @@ instance Show ParsingException where
 (!?) :: Ord k => k -> Map k v -> Maybe v
 (!?) = Map.lookup
 
-(!) :: Text -> Map Text v -> v
+(!) :: ByteString -> Map ByteString v -> v
 key !mp = case key !? mp of
   Nothing      -> throw $ MissingKey key
   (Just value) -> value
 
 -- Parsing state
 
-data ParsingState = ParsingState { lastOpenedTag    :: !(Maybe Text)
-                                 , argumentList     :: !(Map Text Text)
-                                 , textContents     :: !Text
+data ParsingState = ParsingState { lastOpenedTag    :: !(Maybe ByteString)
+                                 , argumentList     :: !(Map ByteString ByteString)
+                                 , textContents     :: !ByteString
                                  , stateContests    :: ![Contest]
                                  , stateContestants :: ![Contestant]
                                  , stateProblems    :: ![Problem]
@@ -103,18 +90,18 @@ type ParsingStateM = State ParsingState
 
 -- Data type readers
 
-readInteger :: Text -> Integer
-readInteger str = case signed decimal str of
-  Left  _             -> throw $ InvalidInteger str
-  Right (value, tail) -> if Text.null tail then value else throw $ InvalidInteger str
+readInteger :: ByteString -> Integer
+readInteger str = case BSC8.readInteger str of
+  Just (value, tail) -> if BS.null tail then value else throw $ InvalidInteger str
+  Nothing            -> throw $ InvalidInteger str
 
-readUTC :: Monad a => Text -> a UTCTime
-readUTC = parseTimeM True defaultTimeLocale "%Y/%m/%d %T" . Text.unpack
+readUTC :: Monad a => ByteString -> a UTCTime
+readUTC = parseTimeM True defaultTimeLocale "%Y/%m/%d %T" . BSC8.unpack
 
-runStatusReadingMap :: Map Text Int
-runStatusReadingMap = Map.fromList $ fmap (\x -> (Text.pack . show $ x, fromEnum x)) (allValues :: [RunStatus])
+runStatusReadingMap :: Map ByteString Int
+runStatusReadingMap = Map.fromList $ fmap (\x -> (BSC8.pack . show $ x, fromEnum x)) (allValues :: [RunStatus])
 
-readStatus :: Text -> RunStatus
+readStatus :: ByteString -> RunStatus
 readStatus text = case Map.lookup text runStatusReadingMap of
   Nothing       -> throw $ InvalidRunStatus text
   (Just status) -> toEnum status
@@ -139,13 +126,13 @@ foldPSRunlog state@ParsingState {..} =
   in  state { stateContests = contest : stateContests }
 
 foldPSContestName :: ParsingState -> ParsingState
-foldPSContestName state =
-  state { stateContests = (\x -> x { contestName = textContents state }) <$> stateContests state }
+foldPSContestName state@ParsingState {..} =
+  state { stateContests = (\x -> x { contestName = decodeUtf8 textContents }) <$> stateContests }
 
 foldPSContestant :: ParsingState -> ParsingState
 foldPSContestant state@ParsingState {..} =
   let contestantID   = readInteger $ "id" ! argumentList
-      contestantName = "name" ! argumentList
+      contestantName = decodeUtf8 $ "name" ! argumentList
       contestant     = Contestant contestantID contestantName
   in  state { stateContestants = contestant : stateContestants }
 
@@ -153,16 +140,16 @@ foldPSProblem :: ParsingState -> ParsingState
 foldPSProblem state@ParsingState {..} =
   let problemContest   = contestID $ getStateContest state
       problemID        = readInteger $ "id" ! argumentList
-      problemShortName = "short_name" ! argumentList
-      problemLongName  = "long_name" ! argumentList
+      problemShortName = decodeUtf8 $ "short_name" ! argumentList
+      problemLongName  = decodeUtf8 $ "long_name" ! argumentList
       problem          = Problem problemID problemContest problemShortName problemLongName 100 0
   in  state { stateProblems = problem : stateProblems }
 
 foldPSLanguage :: ParsingState -> ParsingState
 foldPSLanguage state@ParsingState {..} =
   let languageID        = readInteger $ "id" ! argumentList
-      languageShortName = "short_name" ! argumentList
-      languageLongName  = "long_name" ! argumentList
+      languageShortName = decodeUtf8 $ "short_name" ! argumentList
+      languageLongName  = decodeUtf8 $ "long_name" ! argumentList
       language          = Language languageID languageShortName languageLongName
   in  state { stateLanguages = language : stateLanguages }
 
@@ -202,7 +189,7 @@ clearTagData = do
   state <- foldPS <$> get
   put $ state { lastOpenedTag = Nothing, argumentList = Map.empty, textContents = "" }
 
-openTag :: Text -> ParsingStateM ()
+openTag :: ByteString -> ParsingStateM ()
 openTag tagName = do
   tag <- lastOpenedTag <$> get
   unless (isNothing tag) clearTagData
@@ -211,10 +198,10 @@ openTag tagName = do
 closeTag :: e -> ParsingStateM ()
 closeTag _ = clearTagData
 
-textInsideTag :: Text -> ParsingStateM ()
+textInsideTag :: ByteString -> ParsingStateM ()
 textInsideTag text = modify (\state -> state { textContents = mconcat [textContents state, text] })
 
-processTagAttribute :: Text -> Text -> ParsingStateM ()
+processTagAttribute :: ByteString -> ByteString -> ParsingStateM ()
 processTagAttribute key value = do
   state <- get
   let onDuplicate _ _ = throw $ DuplicateKey key
@@ -229,10 +216,10 @@ stateToStandingSource ParsingState {..} = StandingSource (fromIdentifiableList s
                                                          (fromIdentifiableList stateRuns)
 
 processRawXML :: ByteString -> StandingSource
-processRawXML raw = stateToStandingSource $ flip execState emptyPS $ Xeno.process (wrap1BS openTag)
-                                                                                  (wrap2BS processTagAttribute)
+processRawXML raw = stateToStandingSource $ flip execState emptyPS $ Xeno.process openTag
+                                                                                  processTagAttribute
                                                                                   skipXenoEvent
-                                                                                  (wrap1BS textInsideTag)
+                                                                                  textInsideTag
                                                                                   closeTag
                                                                                   skipXenoEvent
                                                                                   raw
