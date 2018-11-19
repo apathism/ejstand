@@ -11,15 +11,21 @@ module EjStand.Internals.Regex
   )
 where
 
-import           Data.Char              (digitToInt, isHexDigit)
-import           Data.Maybe             (fromMaybe)
-import           Data.Text              (Text)
-import qualified Data.Text              as Text
-import           Data.Text.ICU          (Match, Regex, find, findAll)
-import qualified Data.Text.ICU          as ICU
-import           Data.Text.Lazy         (toStrict)
-import           Data.Text.Lazy.Builder (Builder)
-import qualified Data.Text.Lazy.Builder as Builder
+import           Data.Char                      ( digitToInt
+                                                , isHexDigit
+                                                )
+import           Data.Maybe                     ( fromMaybe )
+import           Data.Text                      ( Text )
+import qualified Data.Text                     as Text
+import           Data.Text.ICU                  ( Match
+                                                , Regex
+                                                , find
+                                                , findAll
+                                                )
+import qualified Data.Text.ICU                 as ICU
+import           Data.Text.Lazy                 ( toStrict )
+import           Data.Text.Lazy.Builder         ( Builder )
+import qualified Data.Text.Lazy.Builder        as Builder
 
 -- Regex
 

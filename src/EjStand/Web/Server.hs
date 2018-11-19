@@ -6,29 +6,67 @@ module EjStand.Web.Server
   )
 where
 
-import           Control.Exception             (Exception, SomeException, handle, throw)
-import           Data.Binary.Builder           (fromByteString)
-import           Data.ByteString               (ByteString)
+import           Control.Exception              ( Exception
+                                                , SomeException
+                                                , handle
+                                                , throw
+                                                )
+import           Data.Binary.Builder            ( fromByteString )
+import           Data.ByteString                ( ByteString )
 import qualified Data.ByteString.Char8         as BSC8
-import           Data.String                   (IsString, fromString)
-import           Data.Text                     (Text, pack, unpack)
+import           Data.String                    ( IsString
+                                                , fromString
+                                                )
+import           Data.Text                      ( Text
+                                                , pack
+                                                , unpack
+                                                )
 import qualified Data.Text                     as Text
-import           Data.Text.Encoding            (decodeUtf8, encodeUtf8)
-import           Data.Text.Lazy                (toStrict)
-import qualified Data.Text.Lazy.Encoding       as EncLazy (encodeUtf8)
-import           EjStand                       (defaultLanguage)
-import           EjStand.Internals.Core        (textReplaceLast)
+import           Data.Text.Encoding             ( decodeUtf8
+                                                , encodeUtf8
+                                                )
+import           Data.Text.Lazy                 ( toStrict )
+import qualified Data.Text.Lazy.Encoding       as EncLazy
+                                                ( encodeUtf8 )
+import           EjStand                        ( defaultLanguage )
+import           EjStand.Internals.Core         ( textReplaceLast )
 import           EjStand.Models.Standing
-import           EjStand.Parsers.Configuration (retrieveStandingConfigs)
-import           EjStand.StandingBuilder       (buildStanding, prepareStandingSource)
-import           EjStand.Web.LegalPage         (renderLegalCredits)
-import           EjStand.Web.MainPage          (renderCSS, renderStanding)
-import           Network.HTTP.Types            (Header, ResponseHeaders, Status, status200, status404, status500)
-import           Network.Wai                   (Application, Request, Response, ResponseReceived, rawPathInfo,
-                                                requestHeaders, responseBuilder, responseLBS)
-import           Network.Wai.Handler.Warp      (defaultSettings, runSettings, setHost, setPort)
-import           System.Clock                  (Clock (..), TimeSpec, getTime, nsec, sec)
-import           Text.Shakespeare.I18N         (Lang)
+import           EjStand.Parsers.Configuration  ( retrieveStandingConfigs )
+import           EjStand.StandingBuilder        ( buildStanding
+                                                , prepareStandingSource
+                                                )
+import           EjStand.Web.LegalPage          ( renderLegalCredits )
+import           EjStand.Web.MainPage           ( renderCSS
+                                                , renderStanding
+                                                )
+import           Network.HTTP.Types             ( Header
+                                                , ResponseHeaders
+                                                , Status
+                                                , status200
+                                                , status404
+                                                , status500
+                                                )
+import           Network.Wai                    ( Application
+                                                , Request
+                                                , Response
+                                                , ResponseReceived
+                                                , rawPathInfo
+                                                , requestHeaders
+                                                , responseBuilder
+                                                , responseLBS
+                                                )
+import           Network.Wai.Handler.Warp       ( defaultSettings
+                                                , runSettings
+                                                , setHost
+                                                , setPort
+                                                )
+import           System.Clock                   ( Clock(..)
+                                                , TimeSpec
+                                                , getTime
+                                                , nsec
+                                                , sec
+                                                )
+import           Text.Shakespeare.I18N          ( Lang )
 
 -- IO Utilities (especially for error handling)
 

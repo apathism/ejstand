@@ -16,11 +16,11 @@ module EjStand.Models.Base
   )
 where
 
-import           Data.Function   (on)
-import           Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
-import           Data.Text       (Text)
-import           Data.Time       (UTCTime)
+import           Data.Function                  ( on )
+import           Data.Map.Strict                ( Map )
+import qualified Data.Map.Strict               as Map
+import           Data.Text                      ( Text )
+import           Data.Time                      ( UTCTime )
 
 -- Identifiable typeclass and some related operations
 

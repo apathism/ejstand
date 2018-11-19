@@ -7,22 +7,24 @@ module EjStand.StandingBuilder
   )
 where
 
-import           Data.List                     (sortOn)
+import           Data.List                      ( sortOn )
 import qualified Data.Map.Strict               as Map
-import           Data.Maybe                    (catMaybes)
-import           Data.Ratio                    ((%))
+import           Data.Maybe                     ( catMaybes )
+import           Data.Ratio                     ( (%) )
 import qualified Data.Set                      as Set
-import           Data.Text                     (unpack)
-import           Data.Time                     (UTCTime)
-import           EjStand.Internals.Core        ((==>))
+import           Data.Text                      ( unpack )
+import           Data.Time                      ( UTCTime )
+import           EjStand.Internals.Core         ( (==>) )
 import           EjStand.Models.Base
 import           EjStand.Models.Standing
-import           EjStand.Parsers.Data          (parseEjudgeXMLs)
-import           EjStand.Parsers.EjudgeOptions (updateStandingSourceWithProblemConfigurations)
+import           EjStand.Parsers.Data           ( parseEjudgeXMLs )
+import           EjStand.Parsers.EjudgeOptions  ( updateStandingSourceWithProblemConfigurations )
 import           EjStand.Web.HtmlElements
-import           Safe                          (headMay, lastMay)
-import           Text.Printf                   (printf)
-import           Text.Shakespeare.I18N         (Lang)
+import           Safe                           ( headMay
+                                                , lastMay
+                                                )
+import           Text.Printf                    ( printf )
+import           Text.Shakespeare.I18N          ( Lang )
 
 -- Preparing data IO operations
 
@@ -53,7 +55,7 @@ calculateDeadline StandingConfig {..} StandingSource {..} prob@Problem {..} user
 
 defaultCell :: StandingCell
 defaultCell =
-  StandingCell {cellType = Ignore, cellIsOverdue = False, cellScore = 0, cellAttempts = 0, cellMainRun = Nothing}
+  StandingCell { cellType = Ignore, cellIsOverdue = False, cellScore = 0, cellAttempts = 0, cellMainRun = Nothing }
 
 applyRunDeadline :: Maybe (UTCTime, Rational) -> Run -> (Run, Bool)
 applyRunDeadline Nothing run = (run, False)

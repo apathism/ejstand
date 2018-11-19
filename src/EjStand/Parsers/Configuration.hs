@@ -10,28 +10,51 @@ module EjStand.Parsers.Configuration
   )
 where
 
-import           Control.Exception          (Exception, IOException, catch, throw)
-import           Control.Monad.State.Strict (State, evalState, get, put)
-import qualified Data.ByteString            as B
-import           Data.Char                  (isDigit, isLetter)
-import qualified Data.Foldable              as Foldable
-import qualified Data.List                  as List
-import           Data.Map.Strict            (Map, insertWith, (!?))
-import qualified Data.Map.Strict            as Map
-import           Data.Maybe                 (catMaybes, fromMaybe, listToMaybe)
-import           Data.Ratio                 ((%))
-import           Data.Set                   (Set)
-import qualified Data.Set                   as Set
-import           Data.Text                  (Text, unpack)
-import qualified Data.Text                  as Text
-import           Data.Text.Encoding         (decodeUtf8)
-import           Data.Text.Read             (decimal)
-import           Data.Time                  (UTCTime, defaultTimeLocale, parseTimeM)
+import           Control.Exception              ( Exception
+                                                , IOException
+                                                , catch
+                                                , throw
+                                                )
+import           Control.Monad.State.Strict     ( State
+                                                , evalState
+                                                , get
+                                                , put
+                                                )
+import qualified Data.ByteString               as B
+import           Data.Char                      ( isDigit
+                                                , isLetter
+                                                )
+import qualified Data.Foldable                 as Foldable
+import qualified Data.List                     as List
+import           Data.Map.Strict                ( Map
+                                                , insertWith
+                                                , (!?)
+                                                )
+import qualified Data.Map.Strict               as Map
+import           Data.Maybe                     ( catMaybes
+                                                , fromMaybe
+                                                , listToMaybe
+                                                )
+import           Data.Ratio                     ( (%) )
+import           Data.Set                       ( Set )
+import qualified Data.Set                      as Set
+import           Data.Text                      ( Text
+                                                , unpack
+                                                )
+import qualified Data.Text                     as Text
+import           Data.Text.Encoding             ( decodeUtf8 )
+import           Data.Text.Read                 ( decimal )
+import           Data.Time                      ( UTCTime
+                                                , defaultTimeLocale
+                                                , parseTimeM
+                                                )
 import           EjStand.Internals.Core
-import qualified EjStand.Internals.Regex    as RE
+import qualified EjStand.Internals.Regex       as RE
 import           EjStand.Models.Standing
-import           Prelude                    hiding (toInteger)
-import           System.Directory.Tree      (dirTree, readDirectoryWithL)
+import           Prelude                 hiding ( toInteger )
+import           System.Directory.Tree          ( dirTree
+                                                , readDirectoryWithL
+                                                )
 
 -- Exceptions
 

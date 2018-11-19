@@ -5,21 +5,28 @@ module EjStand.Parsers.EjudgeOptions
   )
 where
 
-import           Control.Applicative     (Alternative (..))
-import           Control.Exception       (IOException, catch)
-import qualified Data.ByteString         as B
-import qualified Data.List               as List
-import           Data.List.Split         (splitOn)
-import           Data.Map.Strict         (Map)
-import qualified Data.Map.Strict         as Map
-import           Data.Maybe              (catMaybes, fromMaybe, mapMaybe)
-import           Data.Text               (Text)
-import qualified Data.Text               as Text
-import           Data.Text.Encoding      (decodeUtf8)
-import           Data.Text.Read          (decimal, signed)
+import           Control.Applicative            ( Alternative(..) )
+import           Control.Exception              ( IOException
+                                                , catch
+                                                )
+import qualified Data.ByteString               as B
+import qualified Data.List                     as List
+import           Data.List.Split                ( splitOn )
+import           Data.Map.Strict                ( Map )
+import qualified Data.Map.Strict               as Map
+import           Data.Maybe                     ( catMaybes
+                                                , fromMaybe
+                                                , mapMaybe
+                                                )
+import           Data.Text                      ( Text )
+import qualified Data.Text                     as Text
+import           Data.Text.Encoding             ( decodeUtf8 )
+import           Data.Text.Read                 ( decimal
+                                                , signed
+                                                )
 import           EjStand.Models.Base
 import           EjStand.Models.Standing
-import           Text.Printf             (printf)
+import           Text.Printf                    ( printf )
 
 -- Data structures for ejudge configurations
 

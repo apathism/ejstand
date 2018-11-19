@@ -6,19 +6,21 @@ module EjStand.Web.LegalPage
   )
 where
 
-import           Data.ByteString               (ByteString)
-import           Data.FileEmbed                (embedDir)
-import           Data.List                     (sortOn)
-import           Data.Maybe                    (catMaybes)
-import           Data.Text                     (Text, pack)
+import           Data.ByteString                ( ByteString )
+import           Data.FileEmbed                 ( embedDir )
+import           Data.List                      ( sortOn )
+import           Data.Maybe                     ( catMaybes )
+import           Data.Text                      ( Text
+                                                , pack
+                                                )
 import qualified Data.Text                     as Text
-import           Data.Text.Encoding            (decodeUtf8)
+import           Data.Text.Encoding             ( decodeUtf8 )
 import qualified Data.Text.Lazy                as LT
-import           EjStand.Models.Standing       (GlobalConfiguration (..))
+import           EjStand.Models.Standing        ( GlobalConfiguration(..) )
 import           EjStand.Web.HtmlElements
-import           Text.Blaze.Html.Renderer.Text (renderHtml)
-import           Text.Hamlet                   (ihamletFile)
-import           Text.Shakespeare.I18N         (Lang)
+import           Text.Blaze.Html.Renderer.Text  ( renderHtml )
+import           Text.Hamlet                    ( ihamletFile )
+import           Text.Shakespeare.I18N          ( Lang )
 
 data CabalPackage = CabalPackage { packageName        :: !Text
                                  , packageLicenseText :: !Text

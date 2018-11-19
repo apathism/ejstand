@@ -7,23 +7,25 @@ module EjStand.Web.MainPage
   )
 where
 
-import           Data.Char                     (isSpace)
-import           Data.Map.Strict               ((!?))
+import           Data.Char                      ( isSpace )
+import           Data.Map.Strict                ( (!?) )
 import qualified Data.Map.Strict               as Map
-import           Data.Maybe                    (fromMaybe)
-import           Data.Text                     (Text)
+import           Data.Maybe                     ( fromMaybe )
+import           Data.Text                      ( Text )
 import qualified Data.Text                     as T
 import qualified Data.Text.Internal.Lazy       as LT
-import           EjStand                       (getVersion)
-import           EjStand.Internals.Core        ((==>))
+import           EjStand                        ( getVersion )
+import           EjStand.Internals.Core         ( (==>) )
 import qualified EjStand.Internals.Regex       as RE
 import           EjStand.Models.Base
 import           EjStand.Models.Standing
 import           EjStand.Web.HtmlElements
-import           Text.Blaze.Html.Renderer.Text (renderHtml)
-import           Text.Hamlet                   (ihamletFile)
-import           Text.Lucius                   (luciusFile, renderCss)
-import           Text.Shakespeare.I18N         (Lang)
+import           Text.Blaze.Html.Renderer.Text  ( renderHtml )
+import           Text.Hamlet                    ( ihamletFile )
+import           Text.Lucius                    ( luciusFile
+                                                , renderCss
+                                                )
+import           Text.Shakespeare.I18N          ( Lang )
 
 -- Utilities for templates
 

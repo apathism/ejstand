@@ -7,8 +7,13 @@ module EjStand.Internals.Core
   )
 where
 
-import           Control.Applicative (Alternative (..), liftA2)
-import           Data.Text           (Text, breakOnEnd, stripSuffix)
+import           Control.Applicative            ( Alternative(..)
+                                                , liftA2
+                                                )
+import           Data.Text                      ( Text
+                                                , breakOnEnd
+                                                , stripSuffix
+                                                )
 
 -- Predicates
 

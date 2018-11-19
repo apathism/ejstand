@@ -17,25 +17,41 @@ module EjStand.Web.HtmlElements
   )
 where
 
-import           Control.Monad               (when)
-import           Data.Map.Strict             ((!?))
-import qualified Data.Map.Strict             as Map
-import           Data.Maybe                  (catMaybes)
-import           Data.Ratio                  (Ratio, denominator, numerator, (%))
-import           Data.Text                   (Text)
-import qualified Data.Text                   as T
-import           Data.Time                   (UTCTime, defaultTimeLocale)
-import           Data.Time.Format            (formatTime)
-import           EjStand                     (defaultLanguage)
-import           EjStand.Internals.Core      ((==>))
+import           Control.Monad                  ( when )
+import           Data.Map.Strict                ( (!?) )
+import qualified Data.Map.Strict               as Map
+import           Data.Maybe                     ( catMaybes )
+import           Data.Ratio                     ( Ratio
+                                                , denominator
+                                                , numerator
+                                                , (%)
+                                                )
+import           Data.Text                      ( Text )
+import qualified Data.Text                     as T
+import           Data.Time                      ( UTCTime
+                                                , defaultTimeLocale
+                                                )
+import           Data.Time.Format               ( formatTime )
+import           EjStand                        ( defaultLanguage )
+import           EjStand.Internals.Core         ( (==>) )
 import           EjStand.Models.Base
 import           EjStand.Models.Standing
-import           Prelude                     hiding (div, span)
-import qualified Prelude                     (div)
-import           Text.Blaze.Html             (Markup, toMarkup)
-import           Text.Blaze.Html5            hiding (style, title, (!?))
-import           Text.Blaze.Html5.Attributes hiding (span)
-import           Text.Hamlet                 (Html, Render)
+import           Prelude                 hiding ( div
+                                                , span
+                                                )
+import qualified Prelude                        ( div )
+import           Text.Blaze.Html                ( Markup
+                                                , toMarkup
+                                                )
+import           Text.Blaze.Html5        hiding ( style
+                                                , title
+                                                , (!?)
+                                                )
+import           Text.Blaze.Html5.Attributes
+                                         hiding ( span )
+import           Text.Hamlet                    ( Html
+                                                , Render
+                                                )
 import           Text.Shakespeare.I18N
 
 -- Internationalization

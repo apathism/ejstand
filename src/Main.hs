@@ -1,4 +1,4 @@
-import           EjStand.CLI (ejStand)
+import           EjStand.CLI                    ( ejStand )
 
 main :: IO ()
 main = ejStand

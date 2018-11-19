@@ -7,24 +7,41 @@ module EjStand.Parsers.Data
   )
 where
 
-import           Control.Exception          (Exception, IOException, catch, throw)
-import           Control.Monad              (unless)
-import           Control.Monad.State.Strict (State, execState, get, modify, put)
-import           Data.ByteString            (ByteString)
-import qualified Data.ByteString            as BS
-import           Data.Function              (on)
-import           Data.Map.Strict            (Map)
-import qualified Data.Map.Strict            as Map
-import           Data.Maybe                 (catMaybes, isNothing)
-import           Data.Text                  (Text)
-import qualified Data.Text                  as Text
-import           Data.Text.Encoding         (decodeUtf8)
-import           Data.Text.Read             (decimal, signed)
-import           Data.Time                  (UTCTime, addUTCTime, defaultTimeLocale, parseTimeM)
+import           Control.Exception              ( Exception
+                                                , IOException
+                                                , catch
+                                                , throw
+                                                )
+import           Control.Monad                  ( unless )
+import           Control.Monad.State.Strict     ( State
+                                                , execState
+                                                , get
+                                                , modify
+                                                , put
+                                                )
+import           Data.ByteString                ( ByteString )
+import qualified Data.ByteString               as BS
+import           Data.Function                  ( on )
+import           Data.Map.Strict                ( Map )
+import qualified Data.Map.Strict               as Map
+import           Data.Maybe                     ( catMaybes
+                                                , isNothing
+                                                )
+import           Data.Text                      ( Text )
+import qualified Data.Text                     as Text
+import           Data.Text.Encoding             ( decodeUtf8 )
+import           Data.Text.Read                 ( decimal
+                                                , signed
+                                                )
+import           Data.Time                      ( UTCTime
+                                                , addUTCTime
+                                                , defaultTimeLocale
+                                                , parseTimeM
+                                                )
 import           EjStand.Internals.Core
 import           EjStand.Models.Base
-import           EjStand.Models.Standing    (StandingSource (..))
-import qualified Xeno.SAX                   as Xeno
+import           EjStand.Models.Standing        ( StandingSource(..) )
+import qualified Xeno.SAX                      as Xeno
 
 -- Text casts
 
@@ -62,7 +79,7 @@ instance Show ParsingException where
 (!?) = Map.lookup
 
 (!) :: Text -> Map Text v -> v
-key ! mp = case key !? mp of
+key !mp = case key !? mp of
   Nothing      -> throw $ MissingKey key
   (Just value) -> value
 

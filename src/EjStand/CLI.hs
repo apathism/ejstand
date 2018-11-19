@@ -4,13 +4,15 @@ module EjStand.CLI
   )
 where
 
-import           Control.Applicative           (liftA2)
-import           Data.Maybe                    (fromMaybe)
-import           Data.Text                     (Text)
-import           EjStand                       (getVersion)
-import           EjStand.Models.Standing       (GlobalConfiguration (..), defaultGlobalConfiguration)
-import           EjStand.Parsers.Configuration (retrieveGlobalConfiguration)
-import           EjStand.Web.Server            (ejStandWebServer)
+import           Control.Applicative            ( liftA2 )
+import           Data.Maybe                     ( fromMaybe )
+import           Data.Text                      ( Text )
+import           EjStand                        ( getVersion )
+import           EjStand.Models.Standing        ( GlobalConfiguration(..)
+                                                , defaultGlobalConfiguration
+                                                )
+import           EjStand.Parsers.Configuration  ( retrieveGlobalConfiguration )
+import           EjStand.Web.Server             ( ejStandWebServer )
 import           Options.Applicative
 
 data CLIArguments = CLIArguments { customConfig :: !(Maybe FilePath)
