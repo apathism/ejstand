@@ -17,7 +17,6 @@ import           Data.Text               (Text)
 import qualified Data.Text               as Text
 import           Data.Text.Encoding      (decodeUtf8)
 import           Data.Text.Read          (decimal, signed)
-import           EjStand.Internals.Core
 import           EjStand.Models.Base
 import           EjStand.Models.Standing
 import           Text.Printf             (printf)
@@ -40,9 +39,9 @@ mergeAncestor current ancestor =
   current { maxScore = maxScore current <|> maxScore ancestor, runPenalty = runPenalty current <|> runPenalty ancestor }
 
 ancestorList :: ProblemConfiguration -> [ProblemConfiguration] -> [ProblemConfiguration]
-ancestorList current lst = case findExactlyOne ((== ancestorTaskName current) . shortName) lst of
-  Nothing         -> []
-  (Just ancestor) -> ancestor : ancestorList ancestor lst
+ancestorList current lst = case filter ((== ancestorTaskName current) . shortName) lst of
+  [ancestor] -> ancestor : ancestorList ancestor lst
+  _          -> []
 
 mergeAllAncestors :: ProblemConfiguration -> [ProblemConfiguration] -> ProblemConfiguration
 mergeAllAncestors current lst = List.foldl' mergeAncestor current $ ancestorList current lst
@@ -50,7 +49,7 @@ mergeAllAncestors current lst = List.foldl' mergeAncestor current $ ancestorList
 updateProblemWithContestConfigurations :: [ProblemConfiguration] -> Problem -> Problem
 updateProblemWithContestConfigurations lst p@Problem {..} =
   let mergedConfiguration = do
-        ownConfiguration <- findExactlyOne ((== Just problemID) . problemIDField) lst
+        [ownConfiguration] <- Just $ filter ((== Just problemID) . problemIDField) lst
         Just $ mergeAllAncestors ownConfiguration lst
   in  p { problemMaxScore   = fromMaybe problemMaxScore (maxScore =<< mergedConfiguration)
         , problemRunPenalty = fromMaybe problemMaxScore (runPenalty =<< mergedConfiguration)
