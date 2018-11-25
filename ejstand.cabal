@@ -28,7 +28,7 @@ executable ejstand
                        -- Command-line interfaces
                        optparse-applicative,
                        -- Parsers & Template Engines
-                       blaze-html, text-icu, shakespeare, xeno,
+                       blaze-html, blaze-markup, text-icu, shakespeare, xeno,
                        -- Other
                        binary, mtl
   ghc-options:         -O2 -threaded -Wall -Wno-name-shadowing -Wno-orphans

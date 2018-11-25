@@ -190,7 +190,8 @@ data StandingRow = StandingRow { rowContestant :: !Contestant
                                deriving (Show)
 
 data StandingColumn = StandingColumn { columnCaption  :: !Markup
-                                     , columnRowValue :: !((Integer, StandingRow) -> Markup)
+                                     , columnRowValue :: !(Integer -> StandingRow -> Markup)
+                                     , columnRowOrder :: !(StandingRow -> StandingRow -> Ordering)
                                      }
 
 data Standing = Standing { standingConfig   :: !StandingConfig

@@ -12,6 +12,7 @@ module EjStand.Web.HtmlElements
   , totalScoreColumn
   , totalSuccessesColumn
   , lastSuccessTimeColumn
+  , getColumnByName
   , renderStandingProblemSuccesses
   , renderCell
   )
@@ -40,6 +41,7 @@ import           Prelude                 hiding ( div
                                                 , span
                                                 )
 import qualified Prelude                        ( div )
+import           Text.Blaze.Internal            ( Attributable )
 import           Text.Blaze.Html                ( Markup
                                                 , toMarkup
                                                 )
@@ -49,9 +51,7 @@ import           Text.Blaze.Html5        hiding ( style
                                                 )
 import           Text.Blaze.Html5.Attributes
                                          hiding ( span )
-import           Text.Hamlet                    ( Html
-                                                , Render
-                                                )
+import           Text.Hamlet                    ( Render )
 import           Text.Shakespeare.I18N
 
 -- Internationalization
@@ -90,50 +90,68 @@ instance ToMarkup UTCTime where
 
 -- Columns rendering
 
-calculateConditionalStyle :: [ConditionalStyle] -> Rational -> (Html -> Html) -> Html -> Html
+calculateConditionalStyle :: Attributable h => [ConditionalStyle] -> Rational -> h -> h
 calculateConditionalStyle [] _ html = html
 calculateConditionalStyle (ConditionalStyle {..} : tail) value html
   | checkComparison value `all` conditions = html ! style (toValue styleValue)
   | otherwise                              = calculateConditionalStyle tail value html
 
-placeColumn :: [Lang] -> StandingColumn
-placeColumn lang = StandingColumn caption value
+buildCustomDisplayedStandingColumn
+  :: Ord a => Text -> Markup -> (Maybe Integer -> StandingRow -> a) -> (a -> Markup) -> StandingColumn
+buildCustomDisplayedStandingColumn className caption getter displayF = StandingColumn caption' markupValue order
  where
-  caption = th ! class_ "place" ! rowspan "2" $ translate lang MsgPlace
-  value (place, _) = td ! class_ "place" $ toMarkup place
+  caption' = th ! class_ (preEscapedToValue className) ! rowspan "2" $ caption
+  markupValue place row = (displayF $ getter (Just place) row) ! class_ (preEscapedToValue className)
+  order row1 row2 = getter Nothing row1 `compare` getter Nothing row2
+
+buildRegularStandingColumn
+  :: (ToMarkup a, Ord a) => Text -> Markup -> (Maybe Integer -> StandingRow -> a) -> StandingColumn
+buildRegularStandingColumn cN cap getter = buildCustomDisplayedStandingColumn cN cap getter displayF
+  where displayF value = td $ toMarkup value
+
+placeColumn :: [Lang] -> StandingColumn
+placeColumn lang = StandingColumn caption markupValue order
+ where
+  caption = th ! class_ "place" ! rowspan "2" $ toMarkup $ translate lang MsgPlace
+  markupValue place _ = td ! class_ "place" $ toMarkup place
+  order _ _ = EQ
 
 contestantNameColumn :: [Lang] -> StandingColumn
-contestantNameColumn lang = StandingColumn caption value
+contestantNameColumn lang = buildRegularStandingColumn "contestant" caption getter
  where
-  caption = th ! class_ "contestant" ! rowspan "2" $ translate lang MsgContestant
-  value (_, row) = td ! class_ "contestant" $ toMarkup . contestantName . rowContestant $ row
+  caption = toMarkup $ translate lang MsgContestant
+  getter _ = contestantName . rowContestant
 
 totalSuccessesColumn :: StandingColumn
-totalSuccessesColumn = StandingColumn caption value
+totalSuccessesColumn = buildRegularStandingColumn "total_successes" caption getter
  where
-  caption = th ! class_ "total_successes" ! rowspan "2" $ "="
-  value (_, row) = td ! class_ "total_successes" $ toMarkup . rowSuccesses . rowStats $ row
+  caption = "="
+  getter _ = rowSuccesses . rowStats
 
 totalScoreColumn :: StandingConfig -> StandingSource -> StandingColumn
-totalScoreColumn StandingConfig {..} StandingSource {..} = StandingColumn caption value
- where
-  maxScore = if enableScores
-    then Map.foldl' (\accum p -> accum + problemMaxScore p) 0 problems
-    else toInteger $ Map.size problems
-  caption = th ! class_ "total_score" ! rowspan "2" $ preEscapedText "&Sigma;"
-  value (_, StandingRow {..}) =
-    calculateConditionalStyle conditionalStyles relativeScore td ! class_ "total_score" $ toMarkup score
-   where
-    score         = rowScore rowStats
-    relativeScore = score / (maxScore % 1)
+totalScoreColumn StandingConfig {..} StandingSource {..} =
+  let caption = preEscapedText "&Sigma;"
+      getter _ = rowScore . rowStats
+      maxScore = if enableScores then sum $ problemMaxScore <$> problems else toInteger $ Map.size problems
+      displayer score = calculateConditionalStyle conditionalStyles (score / (maxScore % 1)) td $ toMarkup score
+  in  buildCustomDisplayedStandingColumn "total_score" caption getter displayer
 
 lastSuccessTimeColumn :: [Lang] -> StandingColumn
-lastSuccessTimeColumn lang = StandingColumn caption value
+lastSuccessTimeColumn lang = buildCustomDisplayedStandingColumn "last_success_time" caption getter displayF
  where
-  caption = th ! class_ "last_success_time" ! rowspan "2" $ translate lang MsgLastSuccessTime
-  value (_, row) = td ! class_ "last_success_time" $ case rowLastTimeSuccess $ rowStats row of
-    Nothing   -> ""
-    Just time -> toMarkup time
+  caption = toMarkup $ translate lang MsgLastSuccessTime
+  getter _ row = rowLastTimeSuccess $ rowStats row
+  displayF Nothing     = td ""
+  displayF (Just time) = td $ toMarkup time
+
+getColumnByName :: [Lang] -> StandingConfig -> StandingSource -> Text -> Maybe StandingColumn
+getColumnByName lang cfg src columnName = case columnName of
+  "Place"       -> Just $ placeColumn lang
+  "Name"        -> Just $ contestantNameColumn lang
+  "Successes"   -> Just $ totalSuccessesColumn
+  "Score"       -> Just $ totalScoreColumn cfg src
+  "LastSuccess" -> Just $ lastSuccessTimeColumn lang
+  _             -> Nothing
 
 -- Cell rendering
 
