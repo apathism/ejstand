@@ -30,11 +30,12 @@ executable ejstand
                        -- Parsers & Template Engines
                        blaze-html, blaze-markup, text-icu, shakespeare, xeno,
                        -- Other
-                       binary, mtl
+                       binary, mtl, template-haskell
   ghc-options:         -O2 -threaded -Wall -Wno-name-shadowing -Wno-orphans
   hs-source-dirs:      src
   other-modules:       EjStand
                        EjStand.CLI
+                       EjStand.Internals.ADTReader
                        EjStand.Internals.Core
                        EjStand.Internals.Regex
                        EjStand.Models.Base
