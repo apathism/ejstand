@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE TemplateHaskell        #-}
 {-# LANGUAGE UndecidableInstances   #-}
 module EjStand.Models.Base
   ( Contestant(..)
@@ -13,6 +14,7 @@ module EjStand.Models.Base
   , RunIdentification
   , fromIdentifiableList
   , filterRunMap
+  , readRunStatus
   )
 where
 
@@ -21,6 +23,7 @@ import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 import           Data.Text                      ( Text )
 import           Data.Time                      ( UTCTime )
+import           EjStand.Internals.ADTReader    ( mkADTReader )
 
 -- Identifiable typeclass and some related operations
 
@@ -75,7 +78,9 @@ instance IdentifiableBy Integer Language where
 data RunStatus = OK | CE | RT | TL | PE | WA | CF | PT | AC | IG | DQ
                | PD | ML | SE | SV | WT | PR | RJ | SK | SY | SM | RU
                | CD | CG | AV | EM | VS | VT
-               deriving (Show, Read, Eq, Ord, Bounded, Enum)
+               deriving (Show, Eq, Ord, Bounded, Enum)
+
+mkADTReader ''RunStatus "readRunStatus"
 
 data Run = Run { runID         :: !Integer
                , runContest    :: !Integer

@@ -25,6 +25,7 @@ import qualified Data.ByteString.Char8         as BSC8
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( catMaybes
+                                                , fromMaybe
                                                 , isNothing
                                                 )
 import           Data.Text.Encoding             ( decodeUtf8 )
@@ -33,7 +34,6 @@ import           Data.Time                      ( UTCTime
                                                 , defaultTimeLocale
                                                 , parseTimeM
                                                 )
-import           EjStand.Internals.Core
 import           EjStand.Models.Base
 import           EjStand.Models.Standing        ( StandingSource(..) )
 import qualified Xeno.SAX                      as Xeno
@@ -98,13 +98,8 @@ readInteger str = case BSC8.readInteger str of
 readUTC :: Monad a => ByteString -> a UTCTime
 readUTC = parseTimeM True defaultTimeLocale "%Y/%m/%d %T" . BSC8.unpack
 
-runStatusReadingMap :: Map ByteString Int
-runStatusReadingMap = Map.fromList $ fmap (\x -> (BSC8.pack . show $ x, fromEnum x)) (allValues :: [RunStatus])
-
 readStatus :: ByteString -> RunStatus
-readStatus text = case Map.lookup text runStatusReadingMap of
-  Nothing       -> throw $ InvalidRunStatus text
-  (Just status) -> toEnum status
+readStatus text = fromMaybe (throw $ InvalidRunStatus text) (readRunStatus text)
 
 -- Parsing state folding
 
