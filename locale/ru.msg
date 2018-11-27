@@ -2,6 +2,7 @@ Place: Место
 Contestant: Участник
 TotalScoreCaptionTitle: Суммарный балл за все задачи
 SuccessesCaptionTitle: Успешных решений
+AttemptsCaptionTitle: Штрафных попыток
 LastSuccessTime: Время
 LastSuccessTimeCaptionTitle: Время последней успешной посылки
 CorrectSolutions: Правильных решений:

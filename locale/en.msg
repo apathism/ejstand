@@ -2,6 +2,7 @@ Place: Place
 Contestant: Contestant
 TotalScoreCaptionTitle: Total score for all tasks
 SuccessesCaptionTitle: Successful solutions
+AttemptsCaptionTitle: Unsuccessful submits
 LastSuccessTime: Time
 LastSuccessTimeCaptionTitle: Time when last successful solution was sent
 CorrectSolutions: Correct Solutions:

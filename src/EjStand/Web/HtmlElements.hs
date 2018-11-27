@@ -130,6 +130,14 @@ totalSuccessesColumn lang =
       column       = buildRegularStandingColumn "total_successes" caption getter
   in  column { columnCaption = columnCaption column ! title captionTitle }
 
+totalAttemptsColumn :: [Lang] -> StandingColumn
+totalAttemptsColumn lang =
+  let caption = "!"
+      getter _ = rowAttempts . rowStats
+      captionTitle = preEscapedToValue $ translate lang MsgAttemptsCaptionTitle
+      column       = buildRegularStandingColumn "total_attempts" caption getter
+  in  column { columnCaption = columnCaption column ! title captionTitle }
+
 totalScoreColumn :: [Lang] -> StandingConfig -> StandingSource -> StandingColumn
 totalScoreColumn lang StandingConfig {..} StandingSource {..} =
   let caption      = preEscapedText "&Sigma;"
@@ -155,6 +163,7 @@ getColumnByVariant lang cfg src columnV = case columnV of
   PlaceColumnVariant           -> placeColumn lang
   NameColumnVariant            -> contestantNameColumn lang
   SuccessesColumnVariant       -> totalSuccessesColumn lang
+  AttemptsColumnVariant        -> totalAttemptsColumn lang
   ScoreColumnVariant           -> totalScoreColumn lang cfg src
   LastSuccessTimeColumnVariant -> lastSuccessTimeColumn lang
 

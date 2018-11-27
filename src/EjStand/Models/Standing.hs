@@ -124,6 +124,7 @@ data ConditionalStyle = ConditionalStyle { conditions :: ![Comparison Rational]
 data ColumnVariant = PlaceColumnVariant
                    | NameColumnVariant
                    | SuccessesColumnVariant
+                   | AttemptsColumnVariant
                    | ScoreColumnVariant
                    | LastSuccessTimeColumnVariant
                    deriving (Show, Eq, Bounded, Enum)
