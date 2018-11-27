@@ -136,8 +136,8 @@ mkADTReader ''ColumnVariant "readColumnVariant" (Text.unpack . fromJust . Text.s
 
 data StandingConfig = StandingConfig { standingName          :: !Text
                                      , standingContests      :: !(Set Integer)
-                                     , contestNamePattern    :: !(Maybe (RE.Regex, RE.Replacer))
                                      , internalName          :: !Text
+                                     , contestNamePattern    :: !(Maybe (RE.Regex, RE.Replacer))
                                      , reversedContestOrder  :: !Bool
                                      , displayedColumns      :: ![ColumnVariant]
                                      , rowSortingOrder       :: ![(OrderType, ColumnVariant)]

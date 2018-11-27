@@ -309,8 +309,8 @@ buildStandingConfig :: TraversingState StandingConfig
 buildStandingConfig = do
   standingName         <- takeMandatoryValue |> toTextValue $ "Name"
   standingContests     <- takeMandatoryValue |> toTextValue |> toIntervalValue $ "Contests"
-  contestNamePattern   <- takeUniqueValue ||> toNestedConfig |.> buildContestNamePattern $ "ContestNamePattern"
   internalName         <- takeMandatoryValue |> toTextValue $ "InternalName"
+  contestNamePattern   <- takeUniqueValue ||> toNestedConfig |.> buildContestNamePattern $ "ContestNamePattern"
   reversedContestOrder <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ReversedContestOrder"
   displayedColumns     <-
     takeUniqueValue ||> toTextValue ||> toColumnVariantL .> fromMaybe defaultDisplayedColumns $ "DisplayedColumns"
@@ -331,8 +331,8 @@ buildStandingConfig = do
   return $ StandingConfig
     { standingName          = standingName
     , standingContests      = standingContests
-    , contestNamePattern    = contestNamePattern
     , internalName          = internalName
+    , contestNamePattern    = contestNamePattern
     , reversedContestOrder  = reversedContestOrder
     , displayedColumns      = displayedColumns
     , rowSortingOrder       = rowSortingOrder
