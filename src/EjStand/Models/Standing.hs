@@ -12,6 +12,8 @@ module EjStand.Models.Standing
   , RunStatusType(..)
   , FixedDeadline(..)
   , ConditionalStyle(..)
+  , ColumnVariant(..)
+  , OrderType(..)
   , ComparisonSign(..)
   , Comparison(..)
   , defaultGlobalConfiguration
@@ -19,10 +21,12 @@ module EjStand.Models.Standing
   , signDisplay
   , signFunction
   , readSign
+  , readColumnVariant
   , checkComparison
   )
 where
 
+import           Data.List                      ( (\\) )
 import           Data.Map.Strict                ( Map
                                                 , (!)
                                                 )
@@ -34,6 +38,7 @@ import           Data.Set                       ( Set )
 import           Data.String                    ( IsString )
 import           Data.Text                      ( Text )
 import           Data.Time                      ( UTCTime )
+import           EjStand.Internals.ADTReader    ( mkADTReader )
 import           EjStand.Internals.Core
 import qualified EjStand.Internals.Regex       as RE
 import           EjStand.Models.Base
@@ -115,20 +120,34 @@ data ConditionalStyle = ConditionalStyle { conditions :: ![Comparison Rational]
                                          }
                                          deriving (Show)
 
+data ColumnVariant = PlaceColumnVariant
+                   | NameColumnVariant
+                   | SuccessesColumnVariant
+                   | ScoreColumnVariant
+                   | LastSuccessTimeColumnVariant
+                   deriving (Show, Eq, Bounded, Enum)
+
+data OrderType = Ascending | Descending
+                 deriving (Show, Eq, Bounded, Enum)
+
+mkADTReader ''ColumnVariant "readColumnVariant" (\\ "ColumnVariant")
+
 data StandingConfig = StandingConfig { standingName          :: !Text
                                      , standingContests      :: !(Set Integer)
                                      , contestNamePattern    :: !(Maybe (RE.Regex, RE.Replacer))
                                      , internalName          :: !Text
                                      , reversedContestOrder  :: !Bool
+                                     , displayedColumns      :: ![ColumnVariant]
+                                     , rowSortingOrder       :: ![(OrderType, ColumnVariant)]
+                                     , conditionalStyles     :: ![ConditionalStyle]
                                      , enableDeadlines       :: !Bool
                                      , deadlinePenalty       :: !Rational
-                                     , showProblemStatistics :: !Bool
+                                     , fixedDeadlines        :: ![FixedDeadline]
                                      , enableScores          :: !Bool
                                      , onlyScoreLastSubmit   :: !Bool
                                      , showAttemptsNumber    :: !Bool
                                      , showLanguages         :: !Bool
-                                     , fixedDeadlines        :: ![FixedDeadline]
-                                     , conditionalStyles     :: ![ConditionalStyle]
+                                     , showProblemStatistics :: !Bool
                                      }
 
 data RunStatusType =  Ignore | Mistake | Rejected | Processing | Pending | Success | Disqualified | Error

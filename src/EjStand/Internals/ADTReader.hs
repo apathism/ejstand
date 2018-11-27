@@ -23,19 +23,19 @@ getConstructors name = do
             _                    -> Nothing
         _ -> Nothing
 
-mkReaderTuple :: Con -> Q Exp
-mkReaderTuple (NormalC name []) =
-    let leftStr = LitE . StringL . nameBase $ name
+mkReaderTuple :: Con -> (String -> String) -> Q Exp
+mkReaderTuple (NormalC name []) conNameT =
+    let leftStr = LitE . StringL . conNameT . nameBase $ name
         left    = AppE (UnboundVarE 'fromString) leftStr
         right   = ConE name
     in  return $ TupE [left, right]
-mkReaderTuple _ = fail "ADTReader: Either not a normal constructor presented or it has additional arguments"
+mkReaderTuple _ _ = fail "ADTReader: Either not a normal constructor presented or it has additional arguments"
 
-mkReaderList :: [Con] -> Q Exp
-mkReaderList cons = ListE <$> mapM mkReaderTuple cons
+mkReaderList :: [Con] -> (String -> String) -> Q Exp
+mkReaderList cons conNameT = ListE <$> mapM (($ conNameT) . mkReaderTuple) cons
 
-mkReaderMap :: [Con] -> Q Exp
-mkReaderMap cons = AppE (VarE 'Map.fromList) <$> mkReaderList cons
+mkReaderMap :: [Con] -> (String -> String) -> Q Exp
+mkReaderMap cons conNameT = AppE (VarE 'Map.fromList) <$> mkReaderList cons conNameT
 
 -- Represents the type:
 --   (IsString s, Ord s) => s -> ADT
@@ -46,10 +46,10 @@ mkADTReaderType adt = do
         type'   = ArrowT `AppT` keyTypeName `AppT` (ConT ''Maybe `AppT` ConT adt)
     return $ ForallT [] context type'
 
-mkADTReader :: Name -> String -> Q [Dec]
-mkADTReader adt readerName = do
+mkADTReader :: Name -> String -> (String -> String) -> Q [Dec]
+mkADTReader adt readerName conNameT = do
     cons <- getConstructors adt
-    rMap <- mkReaderMap cons
+    rMap <- mkReaderMap cons conNameT
     let name = mkName readerName
     lookupF <- [| (!?) |]
     let right = AppE lookupF rMap
