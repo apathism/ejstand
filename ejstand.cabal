@@ -1,5 +1,5 @@
 name:                  ejstand
-version:               0.4.0
+version:               0.5.0
 synopsis:              Ejudge Configurable Web Standings Daemon for Multiple Contests
 homepage:              https://apathism.net/git/apathism/ejstand
 bug-reports:           https://apathism.net/git/apathism/ejstand/issues
