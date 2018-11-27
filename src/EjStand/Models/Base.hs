@@ -80,7 +80,7 @@ data RunStatus = OK | CE | RT | TL | PE | WA | CF | PT | AC | IG | DQ
                | CD | CG | AV | EM | VS | VT
                deriving (Show, Eq, Ord, Bounded, Enum)
 
-mkADTReader ''RunStatus "readRunStatus"
+mkADTReader ''RunStatus "readRunStatus" id
 
 data Run = Run { runID         :: !Integer
                , runContest    :: !Integer

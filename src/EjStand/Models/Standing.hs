@@ -12,6 +12,8 @@ module EjStand.Models.Standing
   , RunStatusType(..)
   , FixedDeadline(..)
   , ConditionalStyle(..)
+  , ColumnVariant(..)
+  , OrderType(..)
   , ComparisonSign(..)
   , Comparison(..)
   , defaultGlobalConfiguration
@@ -19,10 +21,12 @@ module EjStand.Models.Standing
   , signDisplay
   , signFunction
   , readSign
+  , readColumnVariant
   , checkComparison
   )
 where
 
+import           Data.Maybe                     ( fromJust )
 import           Data.Map.Strict                ( Map
                                                 , (!)
                                                 )
@@ -33,7 +37,9 @@ import           Data.Semigroup                 ( Semigroup
 import           Data.Set                       ( Set )
 import           Data.String                    ( IsString )
 import           Data.Text                      ( Text )
+import qualified Data.Text                     as Text
 import           Data.Time                      ( UTCTime )
+import           EjStand.Internals.ADTReader    ( mkADTReader )
 import           EjStand.Internals.Core
 import qualified EjStand.Internals.Regex       as RE
 import           EjStand.Models.Base
@@ -115,20 +121,35 @@ data ConditionalStyle = ConditionalStyle { conditions :: ![Comparison Rational]
                                          }
                                          deriving (Show)
 
+data ColumnVariant = PlaceColumnVariant
+                   | NameColumnVariant
+                   | SuccessesColumnVariant
+                   | AttemptsColumnVariant
+                   | ScoreColumnVariant
+                   | LastSuccessTimeColumnVariant
+                   deriving (Show, Eq, Bounded, Enum)
+
+data OrderType = Ascending | Descending
+                 deriving (Show, Eq, Bounded, Enum)
+
+mkADTReader ''ColumnVariant "readColumnVariant" (Text.unpack . fromJust . Text.stripSuffix "ColumnVariant" . Text.pack)
+
 data StandingConfig = StandingConfig { standingName          :: !Text
                                      , standingContests      :: !(Set Integer)
-                                     , contestNamePattern    :: !(Maybe (RE.Regex, RE.Replacer))
                                      , internalName          :: !Text
+                                     , contestNamePattern    :: !(Maybe (RE.Regex, RE.Replacer))
                                      , reversedContestOrder  :: !Bool
+                                     , displayedColumns      :: ![ColumnVariant]
+                                     , rowSortingOrder       :: ![(OrderType, ColumnVariant)]
+                                     , conditionalStyles     :: ![ConditionalStyle]
                                      , enableDeadlines       :: !Bool
                                      , deadlinePenalty       :: !Rational
-                                     , showProblemStatistics :: !Bool
+                                     , fixedDeadlines        :: ![FixedDeadline]
                                      , enableScores          :: !Bool
                                      , onlyScoreLastSubmit   :: !Bool
                                      , showAttemptsNumber    :: !Bool
                                      , showLanguages         :: !Bool
-                                     , fixedDeadlines        :: ![FixedDeadline]
-                                     , conditionalStyles     :: ![ConditionalStyle]
+                                     , showProblemStatistics :: !Bool
                                      }
 
 data RunStatusType =  Ignore | Mistake | Rejected | Processing | Pending | Success | Disqualified | Error
@@ -190,7 +211,8 @@ data StandingRow = StandingRow { rowContestant :: !Contestant
                                deriving (Show)
 
 data StandingColumn = StandingColumn { columnCaption  :: !Markup
-                                     , columnRowValue :: !((Integer, StandingRow) -> Markup)
+                                     , columnRowValue :: !(Integer -> StandingRow -> Markup)
+                                     , columnRowOrder :: !(StandingRow -> StandingRow -> Ordering)
                                      }
 
 data Standing = Standing { standingConfig   :: !StandingConfig

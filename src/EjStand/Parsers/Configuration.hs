@@ -70,6 +70,7 @@ data ParsingException = NoValue Text
                       | InvalidInterval Text
                       | InvalidCondition Text Text
                       | InvalidRegex Text Text
+                      | InvalidColumnName Text Text
                       | UnexpectedKey Text
 
 instance Exception ParsingException
@@ -87,6 +88,7 @@ instance Show ParsingException where
   show (InvalidCondition key value) = "Condition expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
   show (InvalidInterval key)        = "Invalid interval on key \"" ++ unpack key ++ "\""
   show (InvalidRegex key value)     = "Unable to parse value \"" ++ unpack value ++ "\" to regular expression on key \"" ++ unpack key ++ "\""
+  show (InvalidColumnName key col)  = "Unknown column name \"" ++ unpack col ++ "\" on key \"" ++ unpack key ++ "\""
   show (UnexpectedKey key)          = "Unexpected key \"" ++ unpack key ++ "\""
 
 -- Function tools
@@ -235,6 +237,30 @@ toRegex key value = case RE.buildRegex value of
 toRegexReplacer :: Text -> Text -> RE.Replacer
 toRegexReplacer _ = RE.buildReplacer
 
+toColumnVariant :: Text -> Text -> ColumnVariant
+toColumnVariant key value =
+  let value' = Text.strip value
+  in  case readColumnVariant value' of
+        Nothing   -> throw $ InvalidColumnName key value'
+        (Just cv) -> cv
+
+toColumnVariantL :: Text -> Text -> [ColumnVariant]
+toColumnVariantL key value = toColumnVariant key <$> Text.splitOn "," value
+
+toRowSortingOrderL :: Text -> Text -> [(OrderType, ColumnVariant)]
+toRowSortingOrderL key value = toRowSortingOrder key . Text.strip <$> Text.splitOn "," value
+  where
+    cutOrderSuffix :: Text -> Maybe (OrderType, Text)
+    cutOrderSuffix text = case "[v]" `Text.stripSuffix` text of
+      (Just p) -> Just (Ascending, p)
+      Nothing  -> case "[^]" `Text.stripSuffix` text of
+        (Just p) -> Just (Descending, p)
+        Nothing   -> Nothing
+
+    toRowSortingOrder :: Text -> Text -> (OrderType, ColumnVariant)
+    toRowSortingOrder key value = let (order, value') = fromMaybe (Ascending, value) $ cutOrderSuffix value
+                                  in  (order, toColumnVariant key value')
+
 ensureEmptyState :: TraversingState ()
 ensureEmptyState = do
   cfg <- get
@@ -273,40 +299,52 @@ buildNestedOptions builder optionName = do
   nested <- takeValuesByKey ||> toNestedConfig $ optionName
   return $ builder <$> nested
 
+defaultDisplayedColumns :: [ColumnVariant]
+defaultDisplayedColumns = [PlaceColumnVariant, NameColumnVariant, ScoreColumnVariant]
+
+defaultSortingOrder :: [(OrderType, ColumnVariant)]
+defaultSortingOrder = [(Descending, ScoreColumnVariant), (Ascending, NameColumnVariant)]
+
 buildStandingConfig :: TraversingState StandingConfig
 buildStandingConfig = do
-  name                 <- takeMandatoryValue |> toTextValue $ "Name"
-  contests             <- takeMandatoryValue |> toTextValue |> toIntervalValue $ "Contests"
-  contestNamePattern   <- takeUniqueValue ||> toNestedConfig |.> buildContestNamePattern $ "ContestNamePattern"
+  standingName         <- takeMandatoryValue |> toTextValue $ "Name"
+  standingContests     <- takeMandatoryValue |> toTextValue |> toIntervalValue $ "Contests"
   internalName         <- takeMandatoryValue |> toTextValue $ "InternalName"
+  contestNamePattern   <- takeUniqueValue ||> toNestedConfig |.> buildContestNamePattern $ "ContestNamePattern"
   reversedContestOrder <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ReversedContestOrder"
-  enableDeadlines      <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "EnableDeadlines"
-  deadlinePenalty      <- if enableDeadlines
+  displayedColumns     <-
+    takeUniqueValue ||> toTextValue ||> toColumnVariantL .> fromMaybe defaultDisplayedColumns $ "DisplayedColumns"
+  rowSortingOrder <-
+    takeUniqueValue ||> toTextValue ||> toRowSortingOrderL .> fromMaybe defaultSortingOrder $ "RowSortingOrder"
+  conditionalStyles <- buildNestedOptions buildConditionalStyle "ConditionalStyle"
+  enableDeadlines   <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "EnableDeadlines"
+  deadlinePenalty   <- if enableDeadlines
     then takeMandatoryValue |> toTextValue |> toRatio $ "DeadlinePenalty"
     else return $ 0 % 1
-  showProblemStatistics <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ShowProblemStatistics"
+  fixedDeadlines        <- buildNestedOptions buildExtraDeadline "SetFixedDeadline"
   enableScores          <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "EnableScores"
   onlyScoreLastSubmit   <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "OnlyScoreLastSubmit"
   showAttemptsNumber    <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe True $ "ShowAttemptsNumber"
   showLanguages         <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ShowLanguages"
-  fixedDeadlines        <- buildNestedOptions buildExtraDeadline "SetFixedDeadline"
-  conditionalStyles     <- buildNestedOptions buildConditionalStyle "ConditionalStyle"
+  showProblemStatistics <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ShowProblemStatistics"
   !_                    <- ensureEmptyState
   return $ StandingConfig
-    { standingName          = name
-    , standingContests      = contests
-    , contestNamePattern    = contestNamePattern
+    { standingName          = standingName
+    , standingContests      = standingContests
     , internalName          = internalName
+    , contestNamePattern    = contestNamePattern
     , reversedContestOrder  = reversedContestOrder
+    , displayedColumns      = displayedColumns
+    , rowSortingOrder       = rowSortingOrder
+    , conditionalStyles     = conditionalStyles
     , enableDeadlines       = enableDeadlines
     , deadlinePenalty       = deadlinePenalty
-    , showProblemStatistics = showProblemStatistics
+    , fixedDeadlines        = fixedDeadlines
     , enableScores          = enableScores
     , onlyScoreLastSubmit   = onlyScoreLastSubmit
     , showAttemptsNumber    = showAttemptsNumber
-    , fixedDeadlines        = fixedDeadlines
-    , conditionalStyles     = conditionalStyles
     , showLanguages         = showLanguages
+    , showProblemStatistics = showProblemStatistics
     }
 
 parseStandingConfig :: FilePath -> IO StandingConfig

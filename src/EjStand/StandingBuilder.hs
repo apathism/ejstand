@@ -7,19 +7,20 @@ module EjStand.StandingBuilder
   )
 where
 
-import           Data.List                      ( sortOn )
+import           Data.List                      ( sortBy
+                                                , sortOn
+                                                )
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( catMaybes )
 import           Data.Ratio                     ( (%) )
 import qualified Data.Set                      as Set
 import           Data.Text                      ( unpack )
 import           Data.Time                      ( UTCTime )
-import           EjStand.Internals.Core         ( (==>) )
 import           EjStand.Models.Base
 import           EjStand.Models.Standing
 import           EjStand.Parsers.Data           ( parseEjudgeXMLs )
 import           EjStand.Parsers.EjudgeOptions  ( updateStandingSourceWithProblemConfigurations )
-import           EjStand.Web.HtmlElements
+import           EjStand.Web.HtmlElements       ( getColumnByVariant )
 import           Safe                           ( headMay
                                                 , lastMay
                                                 )
@@ -149,26 +150,28 @@ buildProblems (reversedContestOrder -> True) = sortOn cmp . Map.elems . problems
   where cmp = ([negate . problemContest, problemID] <*>) . return
 buildProblems _ = Map.elems . problems
 
-sortRows :: [StandingRow] -> [StandingRow]
-sortRows = sortOn (comparator . calculateRowStats)
+sortRows :: [(OrderType, StandingColumn)] -> [StandingRow] -> [StandingRow]
+sortRows orderer = sortBy (comparator orderer)
  where
-  comparator :: StandingRowStats -> (Rational, Integer, Maybe UTCTime)
-  comparator StandingRowStats {..} = (negate rowScore, negate rowSuccesses, rowLastTimeSuccess)
-
-buildColumns :: [Lang] -> StandingConfig -> StandingSource -> [StandingColumn]
-buildColumns lang cfg@StandingConfig {..} src = mconcat
-  [ [placeColumn lang, contestantNameColumn lang, totalScoreColumn cfg src]
-  , (enableDeadlines || enableScores) ==> totalSuccessesColumn
-  , [lastSuccessTimeColumn lang]
-  ]
+  comparator :: [(OrderType, StandingColumn)] -> StandingRow -> StandingRow -> Ordering
+  comparator [] _ _ = EQ
+  comparator ((ord, column) : tail) row1 row2 =
+    let result         = (columnRowOrder column) row1 row2
+        resultWithType = case ord of
+          Ascending  -> result
+          Descending -> compare EQ result
+    in  case resultWithType of
+          EQ -> comparator tail row1 row2
+          x  -> x
 
 buildStanding :: [Lang] -> StandingConfig -> StandingSource -> Standing
-buildStanding lang cfg src =
+buildStanding lang cfg@StandingConfig {..} src =
   let problems = buildProblems cfg src
+      orderer  = (\(ord, col) -> (ord, getColumnByVariant lang cfg src col)) <$> rowSortingOrder
   in  Standing
         { standingConfig   = cfg
         , standingSource   = src
         , standingProblems = problems
-        , standingRows     = sortRows $ buildRows cfg src problems
-        , standingColumns  = buildColumns lang cfg src
+        , standingRows     = sortRows orderer $ buildRows cfg src problems
+        , standingColumns  = getColumnByVariant lang cfg src <$> displayedColumns
         }

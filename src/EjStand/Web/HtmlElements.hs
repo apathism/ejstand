@@ -12,6 +12,7 @@ module EjStand.Web.HtmlElements
   , totalScoreColumn
   , totalSuccessesColumn
   , lastSuccessTimeColumn
+  , getColumnByVariant
   , renderStandingProblemSuccesses
   , renderCell
   )
@@ -40,6 +41,7 @@ import           Prelude                 hiding ( div
                                                 , span
                                                 )
 import qualified Prelude                        ( div )
+import           Text.Blaze.Internal            ( Attributable )
 import           Text.Blaze.Html                ( Markup
                                                 , toMarkup
                                                 )
@@ -49,9 +51,7 @@ import           Text.Blaze.Html5        hiding ( style
                                                 )
 import           Text.Blaze.Html5.Attributes
                                          hiding ( span )
-import           Text.Hamlet                    ( Html
-                                                , Render
-                                                )
+import           Text.Hamlet                    ( Render )
 import           Text.Shakespeare.I18N
 
 -- Internationalization
@@ -60,8 +60,8 @@ data EjStandLocale = EjStandLocale
 
 mkMessage "EjStandLocale" "locale" defaultLanguage
 
-translate :: [Lang] -> EjStandLocaleMessage -> Markup
-translate lang = preEscapedText . renderMessage EjStandLocale lang
+translate :: [Lang] -> EjStandLocaleMessage -> Text
+translate = renderMessage EjStandLocale
 
 -- Useless stub for routing: EjStand handles routing by itself
 
@@ -90,50 +90,82 @@ instance ToMarkup UTCTime where
 
 -- Columns rendering
 
-calculateConditionalStyle :: [ConditionalStyle] -> Rational -> (Html -> Html) -> Html -> Html
+calculateConditionalStyle :: Attributable h => [ConditionalStyle] -> Rational -> h -> h
 calculateConditionalStyle [] _ html = html
 calculateConditionalStyle (ConditionalStyle {..} : tail) value html
   | checkComparison value `all` conditions = html ! style (toValue styleValue)
   | otherwise                              = calculateConditionalStyle tail value html
 
-placeColumn :: [Lang] -> StandingColumn
-placeColumn lang = StandingColumn caption value
+buildCustomDisplayedStandingColumn
+  :: Ord a => Text -> Markup -> (Maybe Integer -> StandingRow -> a) -> (a -> Markup) -> StandingColumn
+buildCustomDisplayedStandingColumn className caption getter displayF = StandingColumn caption' markupValue order
  where
-  caption = th ! class_ "place" ! rowspan "2" $ translate lang MsgPlace
-  value (place, _) = td ! class_ "place" $ toMarkup place
+  caption' = th ! class_ (preEscapedToValue className) ! rowspan "2" $ caption
+  markupValue place row = (displayF $ getter (Just place) row) ! class_ (preEscapedToValue className)
+  order row1 row2 = getter Nothing row1 `compare` getter Nothing row2
+
+buildRegularStandingColumn
+  :: (ToMarkup a, Ord a) => Text -> Markup -> (Maybe Integer -> StandingRow -> a) -> StandingColumn
+buildRegularStandingColumn cN cap getter = buildCustomDisplayedStandingColumn cN cap getter displayF
+  where displayF value = td $ toMarkup value
+
+placeColumn :: [Lang] -> StandingColumn
+placeColumn lang = StandingColumn caption markupValue order
+ where
+  caption = th ! class_ "place" ! rowspan "2" $ preEscapedText $ translate lang MsgPlace
+  markupValue place _ = td ! class_ "place" $ toMarkup place
+  order _ _ = EQ
 
 contestantNameColumn :: [Lang] -> StandingColumn
-contestantNameColumn lang = StandingColumn caption value
+contestantNameColumn lang = buildRegularStandingColumn "contestant" caption getter
  where
-  caption = th ! class_ "contestant" ! rowspan "2" $ translate lang MsgContestant
-  value (_, row) = td ! class_ "contestant" $ toMarkup . contestantName . rowContestant $ row
+  caption = preEscapedText $ translate lang MsgContestant
+  getter _ = contestantName . rowContestant
 
-totalSuccessesColumn :: StandingColumn
-totalSuccessesColumn = StandingColumn caption value
- where
-  caption = th ! class_ "total_successes" ! rowspan "2" $ "="
-  value (_, row) = td ! class_ "total_successes" $ toMarkup . rowSuccesses . rowStats $ row
+totalSuccessesColumn :: [Lang] -> StandingColumn
+totalSuccessesColumn lang =
+  let caption = "="
+      getter _ = rowSuccesses . rowStats
+      captionTitle = preEscapedToValue $ translate lang MsgSuccessesCaptionTitle
+      column       = buildRegularStandingColumn "total_successes" caption getter
+  in  column { columnCaption = columnCaption column ! title captionTitle }
 
-totalScoreColumn :: StandingConfig -> StandingSource -> StandingColumn
-totalScoreColumn StandingConfig {..} StandingSource {..} = StandingColumn caption value
- where
-  maxScore = if enableScores
-    then Map.foldl' (\accum p -> accum + problemMaxScore p) 0 problems
-    else toInteger $ Map.size problems
-  caption = th ! class_ "total_score" ! rowspan "2" $ preEscapedText "&Sigma;"
-  value (_, StandingRow {..}) =
-    calculateConditionalStyle conditionalStyles relativeScore td ! class_ "total_score" $ toMarkup score
-   where
-    score         = rowScore rowStats
-    relativeScore = score / (maxScore % 1)
+totalAttemptsColumn :: [Lang] -> StandingColumn
+totalAttemptsColumn lang =
+  let caption = "!"
+      getter _ = rowAttempts . rowStats
+      captionTitle = preEscapedToValue $ translate lang MsgAttemptsCaptionTitle
+      column       = buildRegularStandingColumn "total_attempts" caption getter
+  in  column { columnCaption = columnCaption column ! title captionTitle }
+
+totalScoreColumn :: [Lang] -> StandingConfig -> StandingSource -> StandingColumn
+totalScoreColumn lang StandingConfig {..} StandingSource {..} =
+  let caption      = preEscapedText "&Sigma;"
+      captionTitle = preEscapedToValue $ translate lang MsgTotalScoreCaptionTitle
+      getter _ = rowScore . rowStats
+      maxScore = if enableScores then sum $ problemMaxScore <$> problems else toInteger $ Map.size problems
+      displayer score = calculateConditionalStyle conditionalStyles (score / (maxScore % 1)) td $ toMarkup score
+      column = buildCustomDisplayedStandingColumn "total_score" caption getter displayer
+  in  column { columnCaption = columnCaption column ! title captionTitle }
 
 lastSuccessTimeColumn :: [Lang] -> StandingColumn
-lastSuccessTimeColumn lang = StandingColumn caption value
- where
-  caption = th ! class_ "last_success_time" ! rowspan "2" $ translate lang MsgLastSuccessTime
-  value (_, row) = td ! class_ "last_success_time" $ case rowLastTimeSuccess $ rowStats row of
-    Nothing   -> ""
-    Just time -> toMarkup time
+lastSuccessTimeColumn lang =
+  let caption      = toMarkup $ translate lang MsgLastSuccessTime
+      captionTitle = preEscapedToValue $ translate lang MsgLastSuccessTimeCaptionTitle
+      getter _ row = rowLastTimeSuccess $ rowStats row
+      displayF Nothing     = td ""
+      displayF (Just time) = td $ toMarkup time
+      column = buildCustomDisplayedStandingColumn "last_success_time" caption getter displayF
+  in  column { columnCaption = columnCaption column ! title captionTitle }
+
+getColumnByVariant :: [Lang] -> StandingConfig -> StandingSource -> ColumnVariant -> StandingColumn
+getColumnByVariant lang cfg src columnV = case columnV of
+  PlaceColumnVariant           -> placeColumn lang
+  NameColumnVariant            -> contestantNameColumn lang
+  SuccessesColumnVariant       -> totalSuccessesColumn lang
+  AttemptsColumnVariant        -> totalAttemptsColumn lang
+  ScoreColumnVariant           -> totalScoreColumn lang cfg src
+  LastSuccessTimeColumnVariant -> lastSuccessTimeColumn lang
 
 -- Cell rendering
 
@@ -202,7 +234,10 @@ renderProblemSuccesses Standing {..} Problem {..} =
 
 renderStandingProblemSuccesses :: [Lang] -> Standing -> Markup
 renderStandingProblemSuccesses lang standing@Standing {..} =
-  let header = td ! class_ "problem_successes row_header" ! colspan (toValue . length $ standingColumns) $ translate
-        lang
-        MsgCorrectSolutions
+  let header =
+        td
+          ! class_ "problem_successes row_header"
+          ! colspan (toValue . length $ standingColumns)
+          $ preEscapedText
+          $ translate lang MsgCorrectSolutions
   in  tr $ foldl (>>) header $ renderProblemSuccesses standing <$> standingProblems

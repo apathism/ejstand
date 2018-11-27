@@ -24,10 +24,10 @@ $doctype 5
                 $forall Problem{problemShortName, problemLongName} <- standingProblems
                     <th class="problem" title="#{problemShortName}: #{problemLongName}">
                         #{problemShortName}
-            $forall tRow@(_, row) <- enumerate standingRows
+            $forall (place, row) <- enumerate standingRows
                 <tr>
                     $forall column <- standingColumns
-                        #{columnRowValue column $ tRow}
+                        #{columnRowValue column place row}
                     $forall (problem, cell) <- fmap (getRowCellByProblem row) $ standingProblems
                         #{renderCell standing row problem cell}
             $case problemSuccesses

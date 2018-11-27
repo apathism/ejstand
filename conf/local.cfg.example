@@ -96,6 +96,49 @@ InternalName = example
 -- ReversedContestOrder = False
 
 --|
+--|  Option "DisplayedColumns"
+--|    Required:      optional
+--|    Default value: Place, Name, Score
+--|
+--|    By default EjStand only shows user place, name and score,
+--|    but using this setting you can redefine which column you
+--|    want to be displayed in your standing, and in which order
+--|    they must appear.
+--|
+--|    List of available column names:
+--|      1) Place
+--|      2) Name
+--|      3) Score
+--|      4) Successes       (solved problems)
+--|      5) Attempts        (number of unsuccessful submits)
+--|      6) LastSuccessTime
+--|
+--|    Option value is a comma-seperated non-empty list of column
+--|    names.
+--|
+
+-- DisplayedColumns = Place, Name, Score
+
+--|
+--|  Option "RowSortingOrder"
+--|    Required:      optional
+--|    Default value: Score[^], Name[v]
+--|
+--|    This option sets how rows should be sorted in a table.
+--|    Its value is a comma-seperated non-empty list of columns
+--|    with an optional suffix
+--|      1) [v]  (for ascending order)
+--|      2) [^]  (for descending order)
+--|
+--|    By default order is ascending.
+--|
+--|    Note that columns may be hidden by "DisplayedColumns"
+--|    but still affect ordering with this option.
+--|
+
+-- RowSortingOrder = Score[^], Name[v]
+
+--|
 --|  Option "EnableDeadlines"
 --|    Required:      optional
 --|    Default value: False

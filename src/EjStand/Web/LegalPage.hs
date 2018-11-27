@@ -18,6 +18,7 @@ import           Data.Text.Encoding             ( decodeUtf8 )
 import qualified Data.Text.Lazy                as LT
 import           EjStand.Models.Standing        ( GlobalConfiguration(..) )
 import           EjStand.Web.HtmlElements
+import           Text.Blaze                     ( preEscapedText )
 import           Text.Blaze.Html.Renderer.Text  ( renderHtml )
 import           Text.Hamlet                    ( ihamletFile )
 import           Text.Shakespeare.I18N          ( Lang )
@@ -36,4 +37,4 @@ getCabalPackages = sortOn packageName . catMaybes $ toCabalPackage <$> $(embedDi
 
 renderLegalCredits :: GlobalConfiguration -> [Lang] -> LT.Text
 renderLegalCredits GlobalConfiguration {..} lang =
-  renderHtml $ $(ihamletFile "templates/credits.hamlet") (translate lang) skipUrlRendering
+  renderHtml $ $(ihamletFile "templates/credits.hamlet") (preEscapedText . translate lang) skipUrlRendering
