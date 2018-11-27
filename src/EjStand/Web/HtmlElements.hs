@@ -60,8 +60,8 @@ data EjStandLocale = EjStandLocale
 
 mkMessage "EjStandLocale" "locale" defaultLanguage
 
-translate :: [Lang] -> EjStandLocaleMessage -> Markup
-translate lang = preEscapedText . renderMessage EjStandLocale lang
+translate :: [Lang] -> EjStandLocaleMessage -> Text
+translate = renderMessage EjStandLocale
 
 -- Useless stub for routing: EjStand handles routing by itself
 
@@ -112,44 +112,50 @@ buildRegularStandingColumn cN cap getter = buildCustomDisplayedStandingColumn cN
 placeColumn :: [Lang] -> StandingColumn
 placeColumn lang = StandingColumn caption markupValue order
  where
-  caption = th ! class_ "place" ! rowspan "2" $ toMarkup $ translate lang MsgPlace
+  caption = th ! class_ "place" ! rowspan "2" $ preEscapedText $ translate lang MsgPlace
   markupValue place _ = td ! class_ "place" $ toMarkup place
   order _ _ = EQ
 
 contestantNameColumn :: [Lang] -> StandingColumn
 contestantNameColumn lang = buildRegularStandingColumn "contestant" caption getter
  where
-  caption = toMarkup $ translate lang MsgContestant
+  caption = preEscapedText $ translate lang MsgContestant
   getter _ = contestantName . rowContestant
 
-totalSuccessesColumn :: StandingColumn
-totalSuccessesColumn = buildRegularStandingColumn "total_successes" caption getter
- where
-  caption = "="
-  getter _ = rowSuccesses . rowStats
+totalSuccessesColumn :: [Lang] -> StandingColumn
+totalSuccessesColumn lang =
+  let caption = "="
+      getter _ = rowSuccesses . rowStats
+      captionTitle = preEscapedToValue $ translate lang MsgSuccessesCaptionTitle
+      column       = buildRegularStandingColumn "total_successes" caption getter
+  in  column { columnCaption = columnCaption column ! title captionTitle }
 
-totalScoreColumn :: StandingConfig -> StandingSource -> StandingColumn
-totalScoreColumn StandingConfig {..} StandingSource {..} =
-  let caption = preEscapedText "&Sigma;"
+totalScoreColumn :: [Lang] -> StandingConfig -> StandingSource -> StandingColumn
+totalScoreColumn lang StandingConfig {..} StandingSource {..} =
+  let caption      = preEscapedText "&Sigma;"
+      captionTitle = preEscapedToValue $ translate lang MsgTotalScoreCaptionTitle
       getter _ = rowScore . rowStats
       maxScore = if enableScores then sum $ problemMaxScore <$> problems else toInteger $ Map.size problems
       displayer score = calculateConditionalStyle conditionalStyles (score / (maxScore % 1)) td $ toMarkup score
-  in  buildCustomDisplayedStandingColumn "total_score" caption getter displayer
+      column = buildCustomDisplayedStandingColumn "total_score" caption getter displayer
+  in  column { columnCaption = columnCaption column ! title captionTitle }
 
 lastSuccessTimeColumn :: [Lang] -> StandingColumn
-lastSuccessTimeColumn lang = buildCustomDisplayedStandingColumn "last_success_time" caption getter displayF
- where
-  caption = toMarkup $ translate lang MsgLastSuccessTime
-  getter _ row = rowLastTimeSuccess $ rowStats row
-  displayF Nothing     = td ""
-  displayF (Just time) = td $ toMarkup time
+lastSuccessTimeColumn lang =
+  let caption      = toMarkup $ translate lang MsgLastSuccessTime
+      captionTitle = preEscapedToValue $ translate lang MsgLastSuccessTimeCaptionTitle
+      getter _ row = rowLastTimeSuccess $ rowStats row
+      displayF Nothing     = td ""
+      displayF (Just time) = td $ toMarkup time
+      column = buildCustomDisplayedStandingColumn "last_success_time" caption getter displayF
+  in  column { columnCaption = columnCaption column ! title captionTitle }
 
 getColumnByVariant :: [Lang] -> StandingConfig -> StandingSource -> ColumnVariant -> StandingColumn
 getColumnByVariant lang cfg src columnV = case columnV of
   PlaceColumnVariant           -> placeColumn lang
   NameColumnVariant            -> contestantNameColumn lang
-  SuccessesColumnVariant       -> totalSuccessesColumn
-  ScoreColumnVariant           -> totalScoreColumn cfg src
+  SuccessesColumnVariant       -> totalSuccessesColumn lang
+  ScoreColumnVariant           -> totalScoreColumn lang cfg src
   LastSuccessTimeColumnVariant -> lastSuccessTimeColumn lang
 
 -- Cell rendering
@@ -219,7 +225,10 @@ renderProblemSuccesses Standing {..} Problem {..} =
 
 renderStandingProblemSuccesses :: [Lang] -> Standing -> Markup
 renderStandingProblemSuccesses lang standing@Standing {..} =
-  let header = td ! class_ "problem_successes row_header" ! colspan (toValue . length $ standingColumns) $ translate
-        lang
-        MsgCorrectSolutions
+  let header =
+        td
+          ! class_ "problem_successes row_header"
+          ! colspan (toValue . length $ standingColumns)
+          $ preEscapedText
+          $ translate lang MsgCorrectSolutions
   in  tr $ foldl (>>) header $ renderProblemSuccesses standing <$> standingProblems
