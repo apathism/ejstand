@@ -26,7 +26,7 @@ module EjStand.Models.Standing
   )
 where
 
-import           Data.List                      ( (\\) )
+import           Data.Maybe                     ( fromJust )
 import           Data.Map.Strict                ( Map
                                                 , (!)
                                                 )
@@ -37,6 +37,7 @@ import           Data.Semigroup                 ( Semigroup
 import           Data.Set                       ( Set )
 import           Data.String                    ( IsString )
 import           Data.Text                      ( Text )
+import qualified Data.Text                     as Text
 import           Data.Time                      ( UTCTime )
 import           EjStand.Internals.ADTReader    ( mkADTReader )
 import           EjStand.Internals.Core
@@ -130,7 +131,7 @@ data ColumnVariant = PlaceColumnVariant
 data OrderType = Ascending | Descending
                  deriving (Show, Eq, Bounded, Enum)
 
-mkADTReader ''ColumnVariant "readColumnVariant" (\\ "ColumnVariant")
+mkADTReader ''ColumnVariant "readColumnVariant" (Text.unpack . fromJust . Text.stripSuffix "ColumnVariant" . Text.pack)
 
 data StandingConfig = StandingConfig { standingName          :: !Text
                                      , standingContests      :: !(Set Integer)

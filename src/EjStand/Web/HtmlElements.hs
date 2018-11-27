@@ -12,7 +12,7 @@ module EjStand.Web.HtmlElements
   , totalScoreColumn
   , totalSuccessesColumn
   , lastSuccessTimeColumn
-  , getColumnByName
+  , getColumnByVariant
   , renderStandingProblemSuccesses
   , renderCell
   )
@@ -144,14 +144,13 @@ lastSuccessTimeColumn lang = buildCustomDisplayedStandingColumn "last_success_ti
   displayF Nothing     = td ""
   displayF (Just time) = td $ toMarkup time
 
-getColumnByName :: [Lang] -> StandingConfig -> StandingSource -> Text -> Maybe StandingColumn
-getColumnByName lang cfg src columnName = case columnName of
-  "Place"       -> Just $ placeColumn lang
-  "Name"        -> Just $ contestantNameColumn lang
-  "Successes"   -> Just $ totalSuccessesColumn
-  "Score"       -> Just $ totalScoreColumn cfg src
-  "LastSuccess" -> Just $ lastSuccessTimeColumn lang
-  _             -> Nothing
+getColumnByVariant :: [Lang] -> StandingConfig -> StandingSource -> ColumnVariant -> StandingColumn
+getColumnByVariant lang cfg src columnV = case columnV of
+  PlaceColumnVariant           -> placeColumn lang
+  NameColumnVariant            -> contestantNameColumn lang
+  SuccessesColumnVariant       -> totalSuccessesColumn
+  ScoreColumnVariant           -> totalScoreColumn cfg src
+  LastSuccessTimeColumnVariant -> lastSuccessTimeColumn lang
 
 -- Cell rendering
 
