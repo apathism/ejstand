@@ -204,7 +204,7 @@ toRatio key value = case map (toInteger key) $ Text.splitOn "/" value of
   _      -> throw $ RationalExpected key value
 
 toUTC :: Text -> Text -> UTCTime
-toUTC key value = case parseTimeM True defaultTimeLocale "%F %R" $ unpack value of
+toUTC key value = case parseTimeM True defaultTimeLocale "%F %T" $ unpack value of
   (Just value) -> value
   Nothing      -> throw $ TimeExpected key value
 
