@@ -11,7 +11,11 @@ import           Data.List                      ( sortBy
                                                 , sortOn
                                                 )
 import qualified Data.Map.Strict               as Map
-import           Data.Maybe                     ( catMaybes )
+import           Data.Map.Strict                ( (!) )
+import           Data.Maybe                     ( catMaybes
+                                                , fromJust
+                                                , fromMaybe
+                                                )
 import           Data.Ratio                     ( (%) )
 import qualified Data.Set                      as Set
 import           Data.Text                      ( unpack )
@@ -23,6 +27,7 @@ import           EjStand.Parsers.EjudgeOptions  ( updateStandingSourceWithProble
 import           EjStand.Web.HtmlElements       ( getColumnByVariant )
 import           Safe                           ( headMay
                                                 , lastMay
+                                                , minimumMay
                                                 )
 import           Text.Printf                    ( printf )
 import           Text.Shakespeare.I18N          ( Lang )
@@ -54,9 +59,15 @@ calculateDeadline StandingConfig {..} StandingSource {..} prob@Problem {..} user
 
 -- Standing building
 
-defaultCell :: StandingCell
-defaultCell =
-  StandingCell { cellType = Ignore, cellIsOverdue = False, cellScore = 0, cellAttempts = 0, cellMainRun = Nothing }
+defaultCell :: Contest -> StandingCell
+defaultCell Contest {..} = StandingCell
+  { cellType      = Ignore
+  , cellIsOverdue = False
+  , cellScore     = 0
+  , cellAttempts  = 0
+  , cellMainRun   = Nothing
+  , cellStartTime = fromJust contestStartTime
+  }
 
 applyRunDeadline :: Maybe (UTCTime, Rational) -> Run -> (Run, Bool)
 applyRunDeadline Nothing run = (run, False)
@@ -98,26 +109,34 @@ setCellMainRunForce = setCellMainRun True
 setCellMainRunMaybe :: StandingConfig -> Problem -> (Run, Bool) -> StandingCell -> StandingCell
 setCellMainRunMaybe = setCellMainRun False
 
-applicateRun :: StandingConfig -> Problem -> (Run, Bool) -> StandingCell -> StandingCell
+applicateRun :: StandingConfig -> Problem -> StandingCell -> (Run, Bool) -> StandingCell
 -- 0 priority: Ignore
-applicateRun _ _ (getRunStatusType . runStatus -> Ignore, _) cell = cell
+applicateRun _ _ cell (getRunStatusType . runStatus -> Ignore, _) = cell
 -- 1 priority: Error
-applicateRun _ _ _ cell@StandingCell { cellType = Error, ..} = cell
-applicateRun cfg prob runT@(getRunStatusType . runStatus -> Error, _) cell =
+applicateRun _ _ cell@StandingCell { cellType = Error, ..} _ = cell
+applicateRun cfg prob cell runT@(getRunStatusType . runStatus -> Error, _) =
   (setCellMainRunForce cfg prob runT cell) { cellScore = 0 }
 -- 2 priority: Disqualified
-applicateRun _ _ _ cell@StandingCell { cellType = Disqualified, ..} = cell
-applicateRun cfg prob runT@(getRunStatusType . runStatus -> Disqualified, _) cell =
+applicateRun _ _ cell@StandingCell { cellType = Disqualified, ..} _ = cell
+applicateRun cfg prob cell runT@(getRunStatusType . runStatus -> Disqualified, _) =
   (setCellMainRunForce cfg prob runT cell) { cellScore = 0 }
 -- Extra priorities: Other statuses
-applicateRun cfg prob runT cell = setCellMainRunMaybe cfg prob runT cell
+applicateRun cfg prob cell runT = setCellMainRunMaybe cfg prob runT cell
+
+getVirtualStart :: StandingSource -> Problem -> Contestant -> Maybe UTCTime
+getVirtualStart StandingSource {..} Problem {..} Contestant {..} = minimumMay $ runTime <$> filter
+  ((== VS) . runStatus)
+  (Map.elems $ filterRunMap problemContest contestantID Nothing runs)
 
 buildCell :: StandingConfig -> StandingSource -> Problem -> Contestant -> StandingCell
 buildCell cfg@StandingConfig {..} src@StandingSource {..} prob@Problem {..} user@Contestant {..} =
-  let runsList  = filterRunMap problemContest contestantID (Just problemID) runs
-      deadline  = calculateDeadline cfg src prob user
-      deadlineT = (, deadlinePenalty) <$> deadline
-  in  foldl (flip $ applicateRun cfg prob) defaultCell $ applyRunDeadline deadlineT <$> runsList
+  let runsList     = filterRunMap problemContest contestantID (Just problemID) runs
+      deadline     = calculateDeadline cfg src prob user
+      deadlineT    = (, deadlinePenalty) <$> deadline
+      startCell    = defaultCell $ contests ! problemContest
+      virtualStart = if showSuccessTime then getVirtualStart src prob user else Nothing
+      cell         = foldl (applicateRun cfg prob) startCell $ applyRunDeadline deadlineT <$> runsList
+  in  cell { cellStartTime = fromMaybe (cellStartTime cell) virtualStart }
 
 calculateCellStats :: StandingCell -> StandingRowStats
 calculateCellStats StandingCell {..} = if cellType /= Success
@@ -156,7 +175,7 @@ sortRows orderer = sortBy (comparator orderer)
   comparator :: [(OrderType, StandingColumn)] -> StandingRow -> StandingRow -> Ordering
   comparator [] _ _ = EQ
   comparator ((ord, column) : tail) row1 row2 =
-    let result         = (columnRowOrder column) row1 row2
+    let result         = columnRowOrder column row1 row2
         resultWithType = case ord of
           Ascending  -> result
           Descending -> compare EQ result

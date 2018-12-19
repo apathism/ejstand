@@ -249,17 +249,17 @@ toColumnVariantL key value = toColumnVariant key <$> Text.splitOn "," value
 
 toRowSortingOrderL :: Text -> Text -> [(OrderType, ColumnVariant)]
 toRowSortingOrderL key value = toRowSortingOrder key . Text.strip <$> Text.splitOn "," value
-  where
-    cutOrderSuffix :: Text -> Maybe (OrderType, Text)
-    cutOrderSuffix text = case "[v]" `Text.stripSuffix` text of
-      (Just p) -> Just (Ascending, p)
-      Nothing  -> case "[^]" `Text.stripSuffix` text of
-        (Just p) -> Just (Descending, p)
-        Nothing   -> Nothing
+ where
+  cutOrderSuffix :: Text -> Maybe (OrderType, Text)
+  cutOrderSuffix text = case "[v]" `Text.stripSuffix` text of
+    (Just p) -> Just (Ascending, p)
+    Nothing  -> case "[^]" `Text.stripSuffix` text of
+      (Just p) -> Just (Descending, p)
+      Nothing  -> Nothing
 
-    toRowSortingOrder :: Text -> Text -> (OrderType, ColumnVariant)
-    toRowSortingOrder key value = let (order, value') = fromMaybe (Ascending, value) $ cutOrderSuffix value
-                                  in  (order, toColumnVariant key value')
+  toRowSortingOrder :: Text -> Text -> (OrderType, ColumnVariant)
+  toRowSortingOrder key value =
+    let (order, value') = fromMaybe (Ascending, value) $ cutOrderSuffix value in (order, toColumnVariant key value')
 
 ensureEmptyState :: TraversingState ()
 ensureEmptyState = do
@@ -325,6 +325,7 @@ buildStandingConfig = do
   enableScores          <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "EnableScores"
   onlyScoreLastSubmit   <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "OnlyScoreLastSubmit"
   showAttemptsNumber    <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe True $ "ShowAttemptsNumber"
+  showSuccessTime       <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ShowSuccessTime"
   showLanguages         <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ShowLanguages"
   showProblemStatistics <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ShowProblemStatistics"
   !_                    <- ensureEmptyState
@@ -343,6 +344,7 @@ buildStandingConfig = do
     , enableScores          = enableScores
     , onlyScoreLastSubmit   = onlyScoreLastSubmit
     , showAttemptsNumber    = showAttemptsNumber
+    , showSuccessTime       = showSuccessTime
     , showLanguages         = showLanguages
     , showProblemStatistics = showProblemStatistics
     }

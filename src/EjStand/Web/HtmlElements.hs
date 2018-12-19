@@ -29,8 +29,10 @@ import           Data.Ratio                     ( Ratio
                                                 )
 import           Data.Text                      ( Text )
 import qualified Data.Text                     as T
-import           Data.Time                      ( UTCTime
+import           Data.Time                      ( NominalDiffTime
+                                                , UTCTime
                                                 , defaultTimeLocale
+                                                , diffUTCTime
                                                 )
 import           Data.Time.Format               ( formatTime )
 import           EjStand                        ( defaultLanguage )
@@ -52,6 +54,7 @@ import           Text.Blaze.Html5        hiding ( style
 import           Text.Blaze.Html5.Attributes
                                          hiding ( span )
 import           Text.Hamlet                    ( Render )
+import           Text.Printf                    ( printf )
 import           Text.Shakespeare.I18N
 
 -- Internationalization
@@ -188,10 +191,23 @@ attemptsCellContent StandingCell {..} = if cellType == Ignore
     Mistake -> cellAttempts
     _       -> cellAttempts + 1
 
+displayContestTime :: NominalDiffTime -> Markup
+displayContestTime time =
+  let total_minutes = (floor time) `Prelude.div` 60 :: Integer
+      hours         = total_minutes `Prelude.div` 60
+      minutes       = total_minutes `Prelude.mod` 60
+  in  toMarkup (printf "%d:%02d" hours minutes :: String)
+
+successTimeCellContent :: CellContentBuilder
+successTimeCellContent StandingCell {..} = case cellMainRun of
+  Nothing       -> mempty
+  Just Run {..} -> span ! class_ "success_time" $ displayContestTime $ runTime `diffUTCTime` cellStartTime
+
 selectAdditionalCellContentBuilders :: Standing -> [CellContentBuilder]
 selectAdditionalCellContentBuilders Standing { standingConfig = StandingConfig {..}, ..} = mconcat
   [ enableScores ==> scoreCellContent
   , showAttemptsNumber ==> if enableScores then attemptsCellContent else wrongAttemptsCellContent
+  , showSuccessTime ==> successTimeCellContent
   ]
 
 buildCellTitle :: Standing -> StandingRow -> Problem -> StandingCell -> Text

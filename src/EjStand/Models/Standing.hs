@@ -148,6 +148,7 @@ data StandingConfig = StandingConfig { standingName          :: !Text
                                      , enableScores          :: !Bool
                                      , onlyScoreLastSubmit   :: !Bool
                                      , showAttemptsNumber    :: !Bool
+                                     , showSuccessTime       :: !Bool
                                      , showLanguages         :: !Bool
                                      , showProblemStatistics :: !Bool
                                      }
@@ -184,6 +185,7 @@ data StandingCell = StandingCell { cellType      :: !RunStatusType
                                  , cellScore     :: !Rational
                                  , cellAttempts  :: !Integer
                                  , cellMainRun   :: !(Maybe Run)
+                                 , cellStartTime :: !UTCTime
                                  }
                                  deriving (Show)
 

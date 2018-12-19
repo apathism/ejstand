@@ -71,6 +71,12 @@ td.disqualified, td.error, td.processing {
   content: close-quote;
 }
 
+.success_time {
+  color: #666666;
+  display: block;
+  font-size: 8pt;
+}
+
 td.success .score, td.overdue .score {
   font-weight: bold;
 }
