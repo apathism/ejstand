@@ -257,6 +257,17 @@ InternalName = example
 -- ShowAttemptsNumber = True
 
 --|
+--|  Option "ShowSuccessTime"
+--|    Required:      optional
+--|    Default value: False
+--|
+--|    Turns on/off displaying time for a first successful run for each
+--|    contestant/task.
+--|
+
+-- ShowSuccessTime = False
+
+--|
 --|  Option "ShowLanguages"
 --|    Required:      optional
 --|    Default value: False

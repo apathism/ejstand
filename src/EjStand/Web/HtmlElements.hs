@@ -199,9 +199,11 @@ displayContestTime time =
   in  toMarkup (printf "%d:%02d" hours minutes :: String)
 
 successTimeCellContent :: CellContentBuilder
-successTimeCellContent StandingCell {..} = case cellMainRun of
-  Nothing       -> mempty
-  Just Run {..} -> span ! class_ "success_time" $ displayContestTime $ runTime `diffUTCTime` cellStartTime
+successTimeCellContent StandingCell {..} = if cellType /= Success
+  then mempty
+  else case cellMainRun of
+    Nothing       -> mempty
+    Just Run {..} -> span ! class_ "success_time" $ displayContestTime $ runTime `diffUTCTime` cellStartTime
 
 selectAdditionalCellContentBuilders :: Standing -> [CellContentBuilder]
 selectAdditionalCellContentBuilders Standing { standingConfig = StandingConfig {..}, ..} = mconcat
