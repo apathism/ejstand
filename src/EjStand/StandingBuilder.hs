@@ -1,5 +1,4 @@
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE TupleSections   #-}
 {-# LANGUAGE ViewPatterns    #-}
 module EjStand.StandingBuilder
   ( prepareStandingSource
@@ -69,20 +68,20 @@ defaultCell Contest {..} = StandingCell
   , cellStartTime = fromJust contestStartTime
   }
 
-applyRunDeadline :: Maybe (UTCTime, Rational) -> Run -> (Run, Bool)
-applyRunDeadline Nothing run = (run, False)
-applyRunDeadline (Just (time, penalty)) run@Run {..} | runTime < time = (run, False)
-                                                     | otherwise = (run { runScore = (* penalty) <$> runScore }, True)
+applyRunDeadline :: Maybe UTCTime -> Run -> (Run, Bool)
+applyRunDeadline Nothing     run          = (run, False)
+applyRunDeadline (Just time) run@Run {..} = (run, runTime >= time)
 
 getRunScore :: StandingConfig -> Problem -> (Run, Bool) -> Integer -> Rational
 getRunScore StandingConfig {..} Problem {..} (Run {..}, overdue) attempts =
-  (if enableDeadlines && overdue then deadlinePenalty else 1) * if enableScores
-    then case runScore of
-      Nothing      -> 0
-      (Just score) -> max 0 (score - attempts * problemRunPenalty % 1)
-    else case getRunStatusType runStatus of
-      Success -> 1
-      _       -> 0
+  let deadlineMultiplier = if enableDeadlines && overdue then deadlinePenalty else 1
+      (contextMaxScore, runPenalty, fixedScore) =
+        if enableScores then (problemMaxScore, attempts * problemRunPenalty, runScore) else (1, 0, Nothing)
+      statusBasedRunScore = case getRunStatusType runStatus of
+        Success -> contextMaxScore
+        _       -> 0
+      score = fromMaybe (statusBasedRunScore % 1) fixedScore
+  in  0 `max` score * deadlineMultiplier - runPenalty % 1
 
 recalculateCellAttempts :: StandingConfig -> (Run, Bool) -> StandingCell -> StandingCell
 recalculateCellAttempts _ (Run {..}, _) cell@StandingCell {..} | cellType >= Pending = cell
@@ -132,10 +131,9 @@ buildCell :: StandingConfig -> StandingSource -> Problem -> Contestant -> Standi
 buildCell cfg@StandingConfig {..} src@StandingSource {..} prob@Problem {..} user@Contestant {..} =
   let runsList     = filterRunMap problemContest contestantID (Just problemID) runs
       deadline     = calculateDeadline cfg src prob user
-      deadlineT    = (, deadlinePenalty) <$> deadline
       startCell    = defaultCell $ contests ! problemContest
       virtualStart = if showSuccessTime then getVirtualStart src prob user else Nothing
-      cell         = foldl (applicateRun cfg prob) startCell $ applyRunDeadline deadlineT <$> runsList
+      cell         = foldl (applicateRun cfg prob) startCell $ applyRunDeadline deadline <$> runsList
   in  cell { cellStartTime = fromMaybe (cellStartTime cell) virtualStart }
 
 calculateCellStats :: StandingCell -> StandingRowStats

@@ -59,7 +59,7 @@ updateProblemWithContestConfigurations lst p@Problem {..} =
         [ownConfiguration] <- Just $ filter ((== Just problemID) . problemIDField) lst
         Just $ mergeAllAncestors ownConfiguration lst
   in  p { problemMaxScore   = fromMaybe problemMaxScore (maxScore =<< mergedConfiguration)
-        , problemRunPenalty = fromMaybe problemMaxScore (runPenalty =<< mergedConfiguration)
+        , problemRunPenalty = fromMaybe problemRunPenalty (runPenalty =<< mergedConfiguration)
         }
 
 updateProblemWithConfigurations :: Map Integer [ProblemConfiguration] -> Problem -> Problem
