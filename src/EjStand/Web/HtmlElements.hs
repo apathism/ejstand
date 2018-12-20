@@ -104,7 +104,7 @@ buildCustomDisplayedStandingColumn
 buildCustomDisplayedStandingColumn className caption getter displayF = StandingColumn caption' markupValue order
  where
   caption' = th ! class_ (preEscapedToValue className) ! rowspan "2" $ caption
-  markupValue place row = (displayF $ getter (Just place) row) ! class_ (preEscapedToValue className)
+  markupValue place row = displayF (getter (Just place) row) ! class_ (preEscapedToValue className)
   order row1 row2 = getter Nothing row1 `compare` getter Nothing row2
 
 buildRegularStandingColumn
@@ -193,7 +193,7 @@ attemptsCellContent StandingCell {..} = if cellType == Ignore
 
 displayContestTime :: NominalDiffTime -> Markup
 displayContestTime time =
-  let total_minutes = (floor time) `Prelude.div` 60 :: Integer
+  let total_minutes = floor time `Prelude.div` 60 :: Integer
       hours         = total_minutes `Prelude.div` 60
       minutes       = total_minutes `Prelude.mod` 60
   in  toMarkup (printf "%d:%02d" hours minutes :: String)
