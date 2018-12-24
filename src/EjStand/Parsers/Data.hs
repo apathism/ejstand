@@ -13,7 +13,8 @@ import           Control.Exception              ( Exception
                                                 , throw
                                                 )
 import           Control.Monad                  ( unless )
-import           Control.Monad.State.Strict     ( State
+import           Control.Monad.Trans.State.Strict
+                                                ( State
                                                 , execState
                                                 , get
                                                 , modify

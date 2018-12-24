@@ -15,8 +15,13 @@ import           Control.Exception              ( Exception
                                                 , catch
                                                 , throw
                                                 )
-import           Control.Monad.State.Strict     ( State
+import           Control.Monad                  ( join )
+import           Control.Monad.IO.Class         ( MonadIO(..) )
+import           Control.Monad.Trans.State.Strict
+                                                ( State
+                                                , StateT
                                                 , evalState
+                                                , evalStateT
                                                 , get
                                                 , put
                                                 )
@@ -105,6 +110,9 @@ instance Show ParsingException where
 (||>) :: (Functor f, Functor g) => (a -> f (g b)) -> (a -> b -> c) -> a -> f (g c)
 (||>) f1 f2 x = (f1 |.> f2 x) x
 
+(||=>) :: (Traversable t, Monad m) => (a -> m (t b)) -> (a -> b -> m c) -> a -> m (t c)
+(||=>) f1 f2 x = join $ sequence . (f2 x <$>) <$> f1 x
+
 -- Internal representation of configuration tree
 
 data ConfigValue = TextValue Text
@@ -158,22 +166,22 @@ buildConfig =
 
 -- Traversing configuration tree
 
-type TraversingState = State Configuration
+type TraversingState = StateT Configuration
 
-takeValuesByKey :: Text -> TraversingState [ConfigValue]
+takeValuesByKey :: Monad m => Text -> TraversingState m [ConfigValue]
 takeValuesByKey key = do
   config <- get
   put $ Map.delete key config
   return $ fromMaybe [] $ config !? key
 
-takeUniqueValue :: Text -> TraversingState (Maybe ConfigValue)
+takeUniqueValue :: Monad m => Text -> TraversingState m (Maybe ConfigValue)
 takeUniqueValue key = unique <$> takeValuesByKey key
  where
   unique :: [a] -> Maybe a
   unique (_ : _ : _) = throw $ DuplicateKey key
   unique list        = listToMaybe list
 
-takeMandatoryValue :: Text -> TraversingState ConfigValue
+takeMandatoryValue :: Monad m => Text -> TraversingState m ConfigValue
 takeMandatoryValue key = fromMaybe (throw $ UndefinedKey key) <$> takeUniqueValue key
 
 toTextValue :: Text -> ConfigValue -> Text
@@ -261,7 +269,10 @@ toRowSortingOrderL key value = toRowSortingOrder key . Text.strip <$> Text.split
   toRowSortingOrder key value =
     let (order, value') = fromMaybe (Ascending, value) $ cutOrderSuffix value in (order, toColumnVariant key value')
 
-ensureEmptyState :: TraversingState ()
+toFileContents :: Text -> Text -> TraversingState IO Text
+toFileContents key filename = liftIO $ decodeUtf8 <$> B.readFile (Text.unpack filename)
+
+ensureEmptyState :: Monad m => StateT Configuration m ()
 ensureEmptyState = do
   cfg <- get
   return $ if Map.null cfg
@@ -294,7 +305,7 @@ buildContestNamePattern = evalState $ do
   !_       <- ensureEmptyState
   return (regex, replacer)
 
-buildNestedOptions :: (Configuration -> a) -> Text -> TraversingState [a]
+buildNestedOptions :: (Configuration -> a) -> Text -> TraversingState IO [a]
 buildNestedOptions builder optionName = do
   nested <- takeValuesByKey ||> toNestedConfig $ optionName
   return $ builder <$> nested
@@ -305,7 +316,7 @@ defaultDisplayedColumns = [PlaceColumnVariant, NameColumnVariant, ScoreColumnVar
 defaultSortingOrder :: [(OrderType, ColumnVariant)]
 defaultSortingOrder = [(Descending, ScoreColumnVariant), (Ascending, NameColumnVariant)]
 
-buildStandingConfig :: TraversingState StandingConfig
+buildStandingConfig :: TraversingState IO StandingConfig
 buildStandingConfig = do
   standingName         <- takeMandatoryValue |> toTextValue $ "Name"
   standingContests     <- takeMandatoryValue |> toTextValue |> toIntervalValue $ "Contests"
@@ -316,6 +327,8 @@ buildStandingConfig = do
     takeUniqueValue ||> toTextValue ||> toColumnVariantL .> fromMaybe defaultDisplayedColumns $ "DisplayedColumns"
   rowSortingOrder <-
     takeUniqueValue ||> toTextValue ||> toRowSortingOrderL .> fromMaybe defaultSortingOrder $ "RowSortingOrder"
+  headerAppendix    <- takeUniqueValue ||> toTextValue ||=> toFileContents $ "headerAppendixFile"
+  disableDefaultCSS <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "DisableDefaultCSS"
   conditionalStyles <- buildNestedOptions buildConditionalStyle "ConditionalStyle"
   enableDeadlines   <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "EnableDeadlines"
   deadlinePenalty   <- if enableDeadlines
@@ -337,6 +350,8 @@ buildStandingConfig = do
     , reversedContestOrder  = reversedContestOrder
     , displayedColumns      = displayedColumns
     , rowSortingOrder       = rowSortingOrder
+    , headerAppendix        = headerAppendix
+    , disableDefaultCSS     = disableDefaultCSS
     , conditionalStyles     = conditionalStyles
     , enableDeadlines       = enableDeadlines
     , deadlinePenalty       = deadlinePenalty
@@ -353,7 +368,7 @@ parseStandingConfig :: FilePath -> IO StandingConfig
 parseStandingConfig path = do
   contents <- decodeUtf8 <$> B.readFile path
   let cfg = buildConfig contents
-  return $ evalState buildStandingConfig cfg
+  evalStateT buildStandingConfig cfg
 
 parsePossibleStandingConfigFile :: FilePath -> IO (Maybe StandingConfig)
 parsePossibleStandingConfigFile path =
@@ -368,8 +383,8 @@ retrieveStandingConfigs = parseStandingConfigDirectory . unpack . standingConfig
 
 -- Global configuration
 
-buildGlobalConfiguration :: Configuration -> GlobalConfiguration
-buildGlobalConfiguration = evalState $ do
+buildGlobalConfiguration :: Configuration -> IO GlobalConfiguration
+buildGlobalConfiguration = evalStateT $ do
   xmlPattern   <- takeUniqueValue ||> toTextValue .> fromMaybe xmlFilePattern $ "XMLFilePattern"
   serveCfgPath <-
     takeUniqueValue ||> toTextValue .> fromMaybe ejudgeServeConfigurationsPath $ "EjudgeServeConfigurationsPath"
@@ -385,7 +400,7 @@ parseGlobalConfiguration :: FilePath -> IO GlobalConfiguration
 parseGlobalConfiguration path = do
   contents <- decodeUtf8 <$> B.readFile path
   let cfg = buildConfig contents
-  return $ buildGlobalConfiguration cfg
+  buildGlobalConfiguration cfg
 
 retrieveGlobalConfiguration :: [FilePath] -> IO (Maybe GlobalConfiguration)
 retrieveGlobalConfiguration []            = return Nothing

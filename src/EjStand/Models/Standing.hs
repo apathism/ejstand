@@ -141,6 +141,8 @@ data StandingConfig = StandingConfig { standingName          :: !Text
                                      , reversedContestOrder  :: !Bool
                                      , displayedColumns      :: ![ColumnVariant]
                                      , rowSortingOrder       :: ![(OrderType, ColumnVariant)]
+                                     , disableDefaultCSS     :: !Bool
+                                     , headerAppendix        :: !(Maybe Text)
                                      , conditionalStyles     :: ![ConditionalStyle]
                                      , enableDeadlines       :: !Bool
                                      , deadlinePenalty       :: !Rational

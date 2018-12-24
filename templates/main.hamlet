@@ -21,8 +21,8 @@ $doctype 5
                             <th colspan="#{cols}" class="contest" title="#{contestName}">
                                 #{getShortContestName cfg contest}
             <tr>
-                $forall Problem{problemShortName, problemLongName} <- standingProblems
-                    <th class="problem" title="#{problemShortName}: #{problemLongName}">
+                $forall Problem{problemContest, problemID, problemShortName, problemLongName} <- standingProblems
+                    <th class="problem" title="#{problemShortName}: #{problemLongName}"  id="problem-#{problemContest}-#{problemID}">
                         #{problemShortName}
             $forall (place, row) <- enumerate standingRows
                 <tr>
