@@ -16,7 +16,7 @@ for dependency in `stack ls dependencies --separator=-`; do
     then
         echo "Downloading license for ${dependency}..."
 	filename="third-party/licenses/${dependency%-*}.txt"
-	weburl="http://hackage.haskell.org/package/${dependency}/src/LICENSE"
+	weburl="http://hackage.haskell.org/package/${dependency%-*}/src/LICENSE"
         wget -q -O "${filename}" "${weburl}" || failure "${filename}"
     fi
 done
