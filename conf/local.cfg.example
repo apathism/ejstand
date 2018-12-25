@@ -279,6 +279,31 @@ InternalName = example
 -- ShowLanguages = False
 
 --|
+--|  Option "HeaderAppendixFile"
+--|    Required: optional
+--|
+--|    This option provides a way to inject some HTML code into <head> tag.
+--|    You should specify here a file which will be included to the page header
+--|    code. It can contain almost everything: all HTML tags, CSS styles,
+--|    JavaScript. The path to the file is relative to configuration file by
+--|    default, but can also be absolute.
+--|
+
+-- HeaderAppendixFile = appendix.inc
+
+--|
+--|  Option "DisableDefaultCSS"
+--|    Required:      optional
+--|    Default value: False
+--|
+--|    This option set to true disables including default CSS file to page
+--|    header. It will look ugly, so this option is intended to be used with
+--|    HeaderAppendixFile, where you can declare alternative CSS.
+--|
+
+-- DisableDefaultCSS = False
+
+--|
 --|  Section "ConditionalStyle"
 --|
 --|    Required: optional (can be specified more than once)
