@@ -1,6 +1,7 @@
 # No source configurations or data
 **/*.xml
 **/*.cfg
+**/*.inc
 
 # No Stack files
 .stack-work/**

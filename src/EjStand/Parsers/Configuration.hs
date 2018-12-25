@@ -13,9 +13,9 @@ where
 import           Control.Exception              ( Exception
                                                 , IOException
                                                 , catch
+                                                , handle
                                                 , throw
                                                 )
-import           Control.Monad                  ( join )
 import           Control.Monad.IO.Class         ( MonadIO(..) )
 import           Control.Monad.Trans.State.Strict
                                                 ( State
@@ -76,6 +76,7 @@ data ParsingException = NoValue Text
                       | InvalidCondition Text Text
                       | InvalidRegex Text Text
                       | InvalidColumnName Text Text
+                      | FileNotFound Text Text
                       | UnexpectedKey Text
 
 instance Exception ParsingException
@@ -94,6 +95,7 @@ instance Show ParsingException where
   show (InvalidInterval key)        = "Invalid interval on key \"" ++ unpack key ++ "\""
   show (InvalidRegex key value)     = "Unable to parse value \"" ++ unpack value ++ "\" to regular expression on key \"" ++ unpack key ++ "\""
   show (InvalidColumnName key col)  = "Unknown column name \"" ++ unpack col ++ "\" on key \"" ++ unpack key ++ "\""
+  show (FileNotFound key filename)  = "File \"" ++ unpack filename ++ "\" was mentioned in key \"" ++ unpack key ++ "\" value, but can't be found or unreadable"
   show (UnexpectedKey key)          = "Unexpected key \"" ++ unpack key ++ "\""
 
 -- Function tools
@@ -111,7 +113,7 @@ instance Show ParsingException where
 (||>) f1 f2 x = (f1 |.> f2 x) x
 
 (||=>) :: (Traversable t, Monad m) => (a -> m (t b)) -> (a -> b -> m c) -> a -> m (t c)
-(||=>) f1 f2 x = join $ sequence . (f2 x <$>) <$> f1 x
+(||=>) f1 f2 x = f1 x >>= (sequence . (f2 x <$>))
 
 -- Internal representation of configuration tree
 
@@ -270,7 +272,18 @@ toRowSortingOrderL key value = toRowSortingOrder key . Text.strip <$> Text.split
     let (order, value') = fromMaybe (Ascending, value) $ cutOrderSuffix value in (order, toColumnVariant key value')
 
 toFileContents :: Text -> Text -> TraversingState IO Text
-toFileContents key filename = liftIO $ decodeUtf8 <$> B.readFile (Text.unpack filename)
+toFileContents key filename = liftIO $ handle handler $ decodeUtf8 <$> B.readFile (Text.unpack filename)
+ where
+  handler :: IOException -> IO a
+  handler _ = throw $ FileNotFound key filename
+
+transformHomePath :: Text -> Text -> Text -> Text
+transformHomePath cfgpath _ path = if "/" `Text.isPrefixOf` path
+  then path
+  else
+    let (base, _) = Text.breakOnEnd "/" cfgpath
+        base'     = if "/" `Text.isSuffixOf` base then base else "./"
+    in  base' <> path
 
 ensureEmptyState :: Monad m => StateT Configuration m ()
 ensureEmptyState = do
@@ -316,8 +329,8 @@ defaultDisplayedColumns = [PlaceColumnVariant, NameColumnVariant, ScoreColumnVar
 defaultSortingOrder :: [(OrderType, ColumnVariant)]
 defaultSortingOrder = [(Descending, ScoreColumnVariant), (Ascending, NameColumnVariant)]
 
-buildStandingConfig :: TraversingState IO StandingConfig
-buildStandingConfig = do
+buildStandingConfig :: Text -> TraversingState IO StandingConfig
+buildStandingConfig path = do
   standingName         <- takeMandatoryValue |> toTextValue $ "Name"
   standingContests     <- takeMandatoryValue |> toTextValue |> toIntervalValue $ "Contests"
   internalName         <- takeMandatoryValue |> toTextValue $ "InternalName"
@@ -327,7 +340,8 @@ buildStandingConfig = do
     takeUniqueValue ||> toTextValue ||> toColumnVariantL .> fromMaybe defaultDisplayedColumns $ "DisplayedColumns"
   rowSortingOrder <-
     takeUniqueValue ||> toTextValue ||> toRowSortingOrderL .> fromMaybe defaultSortingOrder $ "RowSortingOrder"
-  headerAppendix    <- takeUniqueValue ||> toTextValue ||=> toFileContents $ "headerAppendixFile"
+  headerAppendix <-
+    takeUniqueValue ||> toTextValue ||> transformHomePath path ||=> toFileContents $ "HeaderAppendixFile"
   disableDefaultCSS <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "DisableDefaultCSS"
   conditionalStyles <- buildNestedOptions buildConditionalStyle "ConditionalStyle"
   enableDeadlines   <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "EnableDeadlines"
@@ -368,7 +382,7 @@ parseStandingConfig :: FilePath -> IO StandingConfig
 parseStandingConfig path = do
   contents <- decodeUtf8 <$> B.readFile path
   let cfg = buildConfig contents
-  evalStateT buildStandingConfig cfg
+  evalStateT (buildStandingConfig (Text.pack path)) cfg
 
 parsePossibleStandingConfigFile :: FilePath -> IO (Maybe StandingConfig)
 parsePossibleStandingConfigFile path =

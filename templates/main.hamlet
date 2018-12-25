@@ -3,7 +3,10 @@ $doctype 5
     <head>
         <meta http-equiv="content-type" content="text/html; charset=UTF-8">
         <title>#{standingName}
-        <link rel="stylesheet" href="#{webRoot}ejstand.css">
+        $if not disableDefaultCSS
+            <link rel="stylesheet" href="#{webRoot}ejstand.css">
+        $maybe appendix <- headerAppendix
+            #{preEscapedText appendix}
     <body>
         <h1>
             #{standingName}
@@ -25,7 +28,7 @@ $doctype 5
                     <th class="problem" title="#{problemShortName}: #{problemLongName}"  id="problem-#{problemContest}-#{problemID}">
                         #{problemShortName}
             $forall (place, row) <- enumerate standingRows
-                <tr>
+                <tr id="contestant-#{contestantID $ rowContestant row}">
                     $forall column <- standingColumns
                         #{columnRowValue column place row}
                     $forall (problem, cell) <- fmap (getRowCellByProblem row) $ standingProblems
