@@ -1,4 +1,5 @@
 Place: Место
+UserID: UID
 Contestant: Участник
 TotalScoreCaptionTitle: Суммарный балл за все задачи
 SuccessesCaptionTitle: Успешных решений

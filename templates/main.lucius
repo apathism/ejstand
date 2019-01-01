@@ -46,7 +46,7 @@ table.standing td, table.standing th {
   white-space: nowrap;
 }
 
-.place, .total_score, .total_successes, .total_attempts, .last_success_time, .contest, .problem, th, .row_value {
+.place, .user_id, .total_score, .total_successes, .total_attempts, .last_success_time, .contest, .problem, th, .row_value {
   text-align: center;
 }
 

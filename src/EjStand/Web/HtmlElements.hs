@@ -76,20 +76,20 @@ skipUrlRendering _ _ = "/"
 -- Non-standart types rendering
 
 instance (ToMarkup a, Integral a) => ToMarkup (Ratio a) where
-    toMarkup x = let (a, b) = (numerator x, denominator x)
-                     aDiv = a `Prelude.div` b
-                     aMod = a `mod` b
-                 in
-                  if aMod /= 0 then do
-                    when (aDiv /= 0) (toMarkup aDiv)
-                    sup (toMarkup aMod)
-                    preEscapedText "&frasl;"
-                    sub (toMarkup b)
-                  else
-                    toMarkup aDiv
+  toMarkup x =
+    let (a, b) = (numerator x, denominator x)
+        aDiv   = a `Prelude.div` b
+        aMod   = a `mod` b
+    in  if aMod /= 0
+          then do
+            when (aDiv /= 0) (toMarkup aDiv)
+            sup (toMarkup aMod)
+            preEscapedText "&frasl;"
+            sub (toMarkup b)
+          else toMarkup aDiv
 
 instance ToMarkup UTCTime where
-    toMarkup = toMarkup . formatTime defaultTimeLocale "%d.%m.%y %R"
+  toMarkup = toMarkup . formatTime defaultTimeLocale "%d.%m.%y %R"
 
 -- Columns rendering
 
@@ -118,6 +118,12 @@ placeColumn lang = StandingColumn caption markupValue order
   caption = th ! class_ "place" ! rowspan "2" $ preEscapedText $ translate lang MsgPlace
   markupValue place _ = td ! class_ "place" $ toMarkup place
   order _ _ = EQ
+
+userIDColumn :: [Lang] -> StandingColumn
+userIDColumn lang = buildRegularStandingColumn "user_id" caption getter
+ where
+  caption = preEscapedText $ translate lang MsgUserID
+  getter _ = contestantID . rowContestant
 
 contestantNameColumn :: [Lang] -> StandingColumn
 contestantNameColumn lang = buildRegularStandingColumn "contestant" caption getter
@@ -164,6 +170,7 @@ lastSuccessTimeColumn lang =
 getColumnByVariant :: [Lang] -> StandingConfig -> StandingSource -> ColumnVariant -> StandingColumn
 getColumnByVariant lang cfg src columnV = case columnV of
   PlaceColumnVariant           -> placeColumn lang
+  UserIDColumnVariant          -> userIDColumn lang
   NameColumnVariant            -> contestantNameColumn lang
   SuccessesColumnVariant       -> totalSuccessesColumn lang
   AttemptsColumnVariant        -> totalAttemptsColumn lang

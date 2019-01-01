@@ -96,7 +96,7 @@ onExceptionRespond respond =
 newtype RoutingException = DuplicateRoutes ByteString
 
 instance Show RoutingException where
-    show (DuplicateRoutes text) = "Multiple routes for URL " ++ BSC8.unpack text
+  show (DuplicateRoutes text) = "Multiple routes for URL " ++ BSC8.unpack text
 
 instance Exception RoutingException
 

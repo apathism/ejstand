@@ -1,4 +1,5 @@
 Place: Place
+UserID: UID
 Contestant: Contestant
 TotalScoreCaptionTitle: Total score for all tasks
 SuccessesCaptionTitle: Successful solutions

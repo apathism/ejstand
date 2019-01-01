@@ -82,21 +82,33 @@ data ParsingException = NoValue Text
 instance Exception ParsingException
 
 instance Show ParsingException where
-  show (NoValue key)                = "Value expected for key \"" ++ unpack key ++ "\", but got no = or {"
-  show (UndefinedKey key)           = "No key \"" ++ unpack key ++ "\" found, but it's mandatory for a config"
-  show (DuplicateKey key)           = "Key \"" ++ unpack key ++ "\" has multiple values, but must be unique"
-  show (TextValueExpected key)      = "Text value at key \"" ++ unpack key ++ "\" expected, but other type of value found"
-  show (NestedConfigExpected key)   = "Nested configuration at key \"" ++ unpack key ++ "\" expected, but other type of value found"
-  show (IntegerExpected key value)  = "Integer expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
-  show (BoolExpected key value)     = "Bool expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
-  show (RationalExpected key value) = "Rational expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
-  show (TimeExpected key value)     = "Time expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
-  show (InvalidCondition key value) = "Condition expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
-  show (InvalidInterval key)        = "Invalid interval on key \"" ++ unpack key ++ "\""
-  show (InvalidRegex key value)     = "Unable to parse value \"" ++ unpack value ++ "\" to regular expression on key \"" ++ unpack key ++ "\""
-  show (InvalidColumnName key col)  = "Unknown column name \"" ++ unpack col ++ "\" on key \"" ++ unpack key ++ "\""
-  show (FileNotFound key filename)  = "File \"" ++ unpack filename ++ "\" was mentioned in key \"" ++ unpack key ++ "\" value, but can't be found or unreadable"
-  show (UnexpectedKey key)          = "Unexpected key \"" ++ unpack key ++ "\""
+  show (NoValue           key) = "Value expected for key \"" ++ unpack key ++ "\", but got no = or {"
+  show (UndefinedKey      key) = "No key \"" ++ unpack key ++ "\" found, but it's mandatory for a config"
+  show (DuplicateKey      key) = "Key \"" ++ unpack key ++ "\" has multiple values, but must be unique"
+  show (TextValueExpected key) = "Text value at key \"" ++ unpack key ++ "\" expected, but other type of value found"
+  show (NestedConfigExpected key) =
+    "Nested configuration at key \"" ++ unpack key ++ "\" expected, but other type of value found"
+  show (IntegerExpected key value) =
+    "Integer expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
+  show (BoolExpected key value) =
+    "Bool expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
+  show (RationalExpected key value) =
+    "Rational expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
+  show (TimeExpected key value) =
+    "Time expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
+  show (InvalidCondition key value) =
+    "Condition expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
+  show (InvalidInterval key) = "Invalid interval on key \"" ++ unpack key ++ "\""
+  show (InvalidRegex key value) =
+    "Unable to parse value \"" ++ unpack value ++ "\" to regular expression on key \"" ++ unpack key ++ "\""
+  show (InvalidColumnName key col) = "Unknown column name \"" ++ unpack col ++ "\" on key \"" ++ unpack key ++ "\""
+  show (FileNotFound key filename) =
+    "File \""
+      ++ unpack filename
+      ++ "\" was mentioned in key \""
+      ++ unpack key
+      ++ "\" value, but can't be found or unreadable"
+  show (UnexpectedKey key) = "Unexpected key \"" ++ unpack key ++ "\""
 
 -- Function tools
 
@@ -356,27 +368,26 @@ buildStandingConfig path = do
   showLanguages         <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ShowLanguages"
   showProblemStatistics <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ShowProblemStatistics"
   !_                    <- ensureEmptyState
-  return $ StandingConfig
-    { standingName          = standingName
-    , standingContests      = standingContests
-    , internalName          = internalName
-    , contestNamePattern    = contestNamePattern
-    , reversedContestOrder  = reversedContestOrder
-    , displayedColumns      = displayedColumns
-    , rowSortingOrder       = rowSortingOrder
-    , headerAppendix        = headerAppendix
-    , disableDefaultCSS     = disableDefaultCSS
-    , conditionalStyles     = conditionalStyles
-    , enableDeadlines       = enableDeadlines
-    , deadlinePenalty       = deadlinePenalty
-    , fixedDeadlines        = fixedDeadlines
-    , enableScores          = enableScores
-    , onlyScoreLastSubmit   = onlyScoreLastSubmit
-    , showAttemptsNumber    = showAttemptsNumber
-    , showSuccessTime       = showSuccessTime
-    , showLanguages         = showLanguages
-    , showProblemStatistics = showProblemStatistics
-    }
+  return $ StandingConfig { standingName          = standingName
+                          , standingContests      = standingContests
+                          , internalName          = internalName
+                          , contestNamePattern    = contestNamePattern
+                          , reversedContestOrder  = reversedContestOrder
+                          , displayedColumns      = displayedColumns
+                          , rowSortingOrder       = rowSortingOrder
+                          , headerAppendix        = headerAppendix
+                          , disableDefaultCSS     = disableDefaultCSS
+                          , conditionalStyles     = conditionalStyles
+                          , enableDeadlines       = enableDeadlines
+                          , deadlinePenalty       = deadlinePenalty
+                          , fixedDeadlines        = fixedDeadlines
+                          , enableScores          = enableScores
+                          , onlyScoreLastSubmit   = onlyScoreLastSubmit
+                          , showAttemptsNumber    = showAttemptsNumber
+                          , showSuccessTime       = showSuccessTime
+                          , showLanguages         = showLanguages
+                          , showProblemStatistics = showProblemStatistics
+                          }
 
 parseStandingConfig :: FilePath -> IO StandingConfig
 parseStandingConfig path = do

@@ -54,7 +54,7 @@ data StandingSource = StandingSource { contests    :: !(Map Integer Contest)
                      deriving (Show)
 
 instance Semigroup StandingSource where
-  (<>) x y = fromTuple $ toTuple x <> toTuple y where
+  (<>) x y = fromTuple $ toTuple x <> toTuple y   where
     toTuple z = (contests z, contestants z, languages z, problems z, runs z)
     fromTuple (a, b, c, d, e) = StandingSource a b c d e
 
@@ -71,14 +71,13 @@ data GlobalConfiguration = GlobalConfiguration { xmlFilePattern                :
                                                deriving (Show)
 
 defaultGlobalConfiguration :: GlobalConfiguration
-defaultGlobalConfiguration = GlobalConfiguration
-  { xmlFilePattern                = "/home/judges/%06d/var/status/dir/external.xml"
-  , ejudgeServeConfigurationsPath = "/home/judges/%06d/conf/serve.cfg"
-  , standingConfigurationsPath    = "/etc/ejstand/cfg/"
-  , ejStandPort                   = 80
-  , ejStandHostname               = "127.0.0.1"
-  , webRoot                       = "/"
-  }
+defaultGlobalConfiguration = GlobalConfiguration { xmlFilePattern = "/home/judges/%06d/var/status/dir/external.xml"
+                                                 , ejudgeServeConfigurationsPath = "/home/judges/%06d/conf/serve.cfg"
+                                                 , standingConfigurationsPath    = "/etc/ejstand/cfg/"
+                                                 , ejStandPort                   = 80
+                                                 , ejStandHostname               = "127.0.0.1"
+                                                 , webRoot                       = "/"
+                                                 }
 
 data ComparisonSign = Less | LessOrEq | Greater | GreaterOrEq | Equal | NotEqual
   deriving (Show, Eq, Bounded, Enum)
@@ -122,6 +121,7 @@ data ConditionalStyle = ConditionalStyle { conditions :: ![Comparison Rational]
                                          deriving (Show)
 
 data ColumnVariant = PlaceColumnVariant
+                   | UserIDColumnVariant
                    | NameColumnVariant
                    | SuccessesColumnVariant
                    | AttemptsColumnVariant
@@ -199,10 +199,10 @@ data StandingRowStats = StandingRowStats { rowSuccesses       :: !Integer
                                          deriving (Show, Eq)
 
 instance Semigroup StandingRowStats where
-  statA <> statB = StandingRowStats { rowSuccesses = rowSuccesses statA + rowSuccesses statB
-                                    , rowAttempts  = rowAttempts statA + rowAttempts statB
+  statA <> statB = StandingRowStats { rowSuccesses       = rowSuccesses statA + rowSuccesses statB
+                                    , rowAttempts        = rowAttempts statA + rowAttempts statB
                                     , rowLastTimeSuccess = rowLastTimeSuccess statA `max` rowLastTimeSuccess statB
-                                    , rowScore = rowScore statA + rowScore statB
+                                    , rowScore           = rowScore statA + rowScore statB
                                     }
 
 instance Monoid StandingRowStats where
