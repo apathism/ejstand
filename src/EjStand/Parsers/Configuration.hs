@@ -82,33 +82,29 @@ data ParsingException = NoValue Text
 instance Exception ParsingException
 
 instance Show ParsingException where
-  show (NoValue           key) = "Value expected for key \"" ++ unpack key ++ "\", but got no = or {"
-  show (UndefinedKey      key) = "No key \"" ++ unpack key ++ "\" found, but it's mandatory for a config"
-  show (DuplicateKey      key) = "Key \"" ++ unpack key ++ "\" has multiple values, but must be unique"
-  show (TextValueExpected key) = "Text value at key \"" ++ unpack key ++ "\" expected, but other type of value found"
+  show (NoValue           key) = sconcat ["Value expected for key \"", key, "\", but got no = or {"]
+  show (UndefinedKey      key) = sconcat ["No key \"", key, "\" found, but it's mandatory for a config"]
+  show (DuplicateKey      key) = sconcat ["Key \"", key, "\" has multiple values, but must be unique"]
+  show (TextValueExpected key) = sconcat ["Text value at key \"", key, "\" expected, but other type of value found"]
   show (NestedConfigExpected key) =
-    "Nested configuration at key \"" ++ unpack key ++ "\" expected, but other type of value found"
+    sconcat ["Nested configuration at key \"", key, "\" expected, but other type of value found"]
   show (IntegerExpected key value) =
-    "Integer expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
+    sconcat ["Integer expected, but \"", value, "\" got while parsing value of key \"", key, "\""]
   show (BoolExpected key value) =
-    "Bool expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
+    sconcat ["Bool expected, but \"", value, "\" got while parsing value of key \"", key, "\""]
   show (RationalExpected key value) =
-    "Rational expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
+    sconcat ["Rational expected, but \"", value, "\" got while parsing value of key \"", key, "\""]
   show (TimeExpected key value) =
-    "Time expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
+    sconcat ["Time expected, but \"", value, "\" got while parsing value of key \"", key, "\""]
   show (InvalidCondition key value) =
-    "Condition expected, but \"" ++ unpack value ++ "\" got while parsing value of key \"" ++ unpack key ++ "\""
-  show (InvalidInterval key) = "Invalid interval on key \"" ++ unpack key ++ "\""
+    sconcat ["Condition expected, but \"", value, "\" got while parsing value of key \"", key, "\""]
+  show (InvalidInterval key) = sconcat ["Invalid interval on key \"", key, "\""]
   show (InvalidRegex key value) =
-    "Unable to parse value \"" ++ unpack value ++ "\" to regular expression on key \"" ++ unpack key ++ "\""
-  show (InvalidColumnName key col) = "Unknown column name \"" ++ unpack col ++ "\" on key \"" ++ unpack key ++ "\""
+    sconcat ["Unable to parse value \"", value, "\" to regular expression on key \"", key, "\""]
+  show (InvalidColumnName key col) = sconcat ["Unknown column name \"", col, "\" on key \"", key, "\""]
   show (FileNotFound key filename) =
-    "File \""
-      ++ unpack filename
-      ++ "\" was mentioned in key \""
-      ++ unpack key
-      ++ "\" value, but can't be found or unreadable"
-  show (UnexpectedKey key) = "Unexpected key \"" ++ unpack key ++ "\""
+    sconcat ["File \"", filename, "\" was mentioned in key \"", key, "\" value, but can't be found or unreadable"]
+  show (UnexpectedKey key) = sconcat ["Unexpected key \"", key, "\""]
 
 -- Function tools
 

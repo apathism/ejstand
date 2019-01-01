@@ -35,6 +35,7 @@ import           Data.Time                      ( UTCTime
                                                 , defaultTimeLocale
                                                 , parseTimeM
                                                 )
+import           EjStand.Internals.Core         ( sconcat )
 import           EjStand.Models.Base
 import           EjStand.Models.Standing        ( StandingSource(..) )
 import qualified Xeno.SAX                      as Xeno
@@ -48,18 +49,15 @@ data ParsingException = DuplicateKey         !ByteString
                       | InvalidContestNumber !Int
                       | RunsInNotStartedContest
 
-mconcat' :: [ByteString] -> String
-mconcat' = BSC8.unpack . mconcat
-
 instance Exception ParsingException
 
 instance Show ParsingException where
-  show (DuplicateKey key)       = mconcat' ["Duplicate value for key \"", key, "\" for the same tag"]
-  show (MissingKey key)         = mconcat' ["Key \"", key, "\" expected, but not found"]
-  show (InvalidInteger str)     = mconcat' ["Can't convert string value \"", str, "\" to integer"]
-  show (InvalidContestNumber n) = concat ["There must be only one contest in XML file, but ", show n, " got"]
-  show (InvalidRunStatus str)   = mconcat' ["Can't convert string \"", str, "\" to run status"]
-  show RunsInNotStartedContest  = "There are runs in a contest which has not started yet"
+  show (DuplicateKey         key) = sconcat ["Duplicate value for key \"", key, "\" for the same tag"]
+  show (MissingKey           key) = sconcat ["Key \"", key, "\" expected, but not found"]
+  show (InvalidInteger       str) = sconcat ["Can't convert string value \"", str, "\" to integer"]
+  show (InvalidContestNumber n  ) = sconcat ["There must be only one contest in XML file, but ", show n, " got"]
+  show (InvalidRunStatus     str) = sconcat ["Can't convert string \"", str, "\" to run status"]
+  show RunsInNotStartedContest    = "There are runs in a contest which has not started yet"
 
 -- Map operations
 
