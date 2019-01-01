@@ -59,14 +59,13 @@ calculateDeadline StandingConfig {..} StandingSource {..} prob@Problem {..} user
 -- Standing building
 
 defaultCell :: Contest -> StandingCell
-defaultCell Contest {..} = StandingCell
-  { cellType      = Ignore
-  , cellIsOverdue = False
-  , cellScore     = 0
-  , cellAttempts  = 0
-  , cellMainRun   = Nothing
-  , cellStartTime = fromJust contestStartTime
-  }
+defaultCell Contest {..} = StandingCell { cellType      = Ignore
+                                        , cellIsOverdue = False
+                                        , cellScore     = 0
+                                        , cellAttempts  = 0
+                                        , cellMainRun   = Nothing
+                                        , cellStartTime = fromJust contestStartTime
+                                        }
 
 applyRunDeadline :: Maybe UTCTime -> Run -> (Run, Bool)
 applyRunDeadline Nothing     run          = (run, False)
@@ -80,7 +79,7 @@ getRunScore StandingConfig {..} Problem {..} (Run {..}, overdue) attempts =
       statusBasedRunScore = case getRunStatusType runStatus of
         Success -> contextMaxScore
         _       -> 0
-      score = fromMaybe (statusBasedRunScore % 1) fixedScore
+      score               = fromMaybe (statusBasedRunScore % 1) fixedScore
   in  0 `max` score * deadlineMultiplier - runPenalty % 1
 
 recalculateCellAttempts :: StandingConfig -> (Run, Bool) -> StandingCell -> StandingCell
@@ -110,9 +109,9 @@ setCellMainRunMaybe = setCellMainRun False
 
 applicateRun :: StandingConfig -> Problem -> StandingCell -> (Run, Bool) -> StandingCell
 -- 0 priority: Ignore
-applicateRun _ _ cell (getRunStatusType . runStatus -> Ignore, _) = cell
+applicateRun _ _ cell                                      (getRunStatusType . runStatus -> Ignore, _) = cell
 -- 1 priority: Error
-applicateRun _ _ cell@StandingCell { cellType = Error, ..} _ = cell
+applicateRun _ _ cell@StandingCell { cellType = Error, ..} _                                           = cell
 applicateRun cfg prob cell runT@(getRunStatusType . runStatus -> Error, _) =
   (setCellMainRunForce cfg prob runT cell) { cellScore = 0 }
 -- 2 priority: Disqualified
@@ -139,12 +138,11 @@ buildCell cfg@StandingConfig {..} src@StandingSource {..} prob@Problem {..} user
 calculateCellStats :: StandingCell -> StandingRowStats
 calculateCellStats StandingCell {..} = if cellType /= Success
   then mempty { rowScore = cellScore }
-  else StandingRowStats
-    { rowSuccesses       = 1
-    , rowAttempts        = cellAttempts
-    , rowScore           = cellScore
-    , rowLastTimeSuccess = runTime <$> cellMainRun
-    }
+  else StandingRowStats { rowSuccesses       = 1
+                        , rowAttempts        = cellAttempts
+                        , rowScore           = cellScore
+                        , rowLastTimeSuccess = runTime <$> cellMainRun
+                        }
 
 calculateRowStats :: StandingRow -> StandingRowStats
 calculateRowStats StandingRow {..} = mconcat $ calculateCellStats <$> Map.elems rowCells
@@ -185,10 +183,9 @@ buildStanding :: [Lang] -> StandingConfig -> StandingSource -> Standing
 buildStanding lang cfg@StandingConfig {..} src =
   let problems = buildProblems cfg src
       orderer  = (\(ord, col) -> (ord, getColumnByVariant lang cfg src col)) <$> rowSortingOrder
-  in  Standing
-        { standingConfig   = cfg
-        , standingSource   = src
-        , standingProblems = problems
-        , standingRows     = sortRows orderer $ buildRows cfg src problems
-        , standingColumns  = getColumnByVariant lang cfg src <$> displayedColumns
-        }
+  in  Standing { standingConfig   = cfg
+               , standingSource   = src
+               , standingProblems = problems
+               , standingRows     = sortRows orderer $ buildRows cfg src problems
+               , standingColumns  = getColumnByVariant lang cfg src <$> displayedColumns
+               }

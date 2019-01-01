@@ -234,7 +234,7 @@ renderCell st@Standing { standingConfig = StandingConfig {..}, ..} row problem c
   ifNotScores x = if enableScores then mempty else x
   cellTag'                               = cellTag ! title (toValue $ buildCellTitle st row problem cell)
   (cellTag, cellValue, allowCellContent) = case cellType of
-    Success -> if cellIsOverdue
+    Success      -> if cellIsOverdue
       then (td ! class_ "overdue", ifNotScores $ addRunStatusCellText "+.", True)
       else (td ! class_ "success", ifNotScores $ addRunStatusCellText "+", True)
     Processing   -> (td ! class_ "processing", ifNotScores $ addRunStatusCellText "-", True)

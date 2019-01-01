@@ -30,14 +30,14 @@ defaultGlobalConfigurationPaths = ["/etc/ejstand.cfg", "/etc/ejstand/ejstand.cfg
 parseCLIArguments :: Parser CLIArguments
 parseCLIArguments =
   CLIArguments
-    <$>  option
-           (Just <$> str)
-           (long "config" <> short 'c' <> metavar "FILE" <> help "Path to main configururation file" <> value Nothing)
-    <*>  option (Just <$> str)
-                (long "hostname" <> short 'h' <> metavar "HOSTNAME" <> help "Hostname to listen to" <> value Nothing)
+    <$> option
+          (Just <$> str)
+          (long "config" <> short 'c' <> metavar "FILE" <> help "Path to main configururation file" <> value Nothing)
+    <*> option (Just <$> str)
+               (long "hostname" <> short 'h' <> metavar "HOSTNAME" <> help "Hostname to listen to" <> value Nothing)
     <*> option (Just <$> auto) (long "port" <> short 'p' <> metavar "PORT" <> help "Port to listen to" <> value Nothing)
     <**> abortOption (InfoMsg versionString) (long "version" <> help "Show version information" <> hidden)
-    <**> abortOption ShowHelpText            (long "help" <> help "Show this help text" <> hidden)
+    <**> abortOption ShowHelpText (long "help" <> help "Show this help text" <> hidden)
 
 getGlobalConfigurationByCLIArguments :: CLIArguments -> IO GlobalConfiguration
 getGlobalConfigurationByCLIArguments CLIArguments {..} =

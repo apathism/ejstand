@@ -145,7 +145,7 @@ runEjStandRequest global request respond = handleSomeException (onExceptionRespo
       respond $ responseBS status200 [("Content-Type", "text/html")] $ encodeUtf8 $ insertPageGenerationTime
         pageGenerationTime
         pageContents
-    _ -> throw $ DuplicateRoutes path
+    _            -> throw $ DuplicateRoutes path
 
 ejStandWebServer :: GlobalConfiguration -> IO ()
 ejStandWebServer global@GlobalConfiguration {..} =

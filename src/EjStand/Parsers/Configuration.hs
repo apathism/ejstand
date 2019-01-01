@@ -339,21 +339,21 @@ defaultSortingOrder = [(Descending, ScoreColumnVariant), (Ascending, NameColumnV
 
 buildStandingConfig :: Text -> TraversingState IO StandingConfig
 buildStandingConfig path = do
-  standingName         <- takeMandatoryValue |> toTextValue $ "Name"
-  standingContests     <- takeMandatoryValue |> toTextValue |> toIntervalValue $ "Contests"
-  internalName         <- takeMandatoryValue |> toTextValue $ "InternalName"
-  contestNamePattern   <- takeUniqueValue ||> toNestedConfig |.> buildContestNamePattern $ "ContestNamePattern"
-  reversedContestOrder <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ReversedContestOrder"
-  displayedColumns     <-
+  standingName          <- takeMandatoryValue |> toTextValue $ "Name"
+  standingContests      <- takeMandatoryValue |> toTextValue |> toIntervalValue $ "Contests"
+  internalName          <- takeMandatoryValue |> toTextValue $ "InternalName"
+  contestNamePattern    <- takeUniqueValue ||> toNestedConfig |.> buildContestNamePattern $ "ContestNamePattern"
+  reversedContestOrder  <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ReversedContestOrder"
+  displayedColumns      <-
     takeUniqueValue ||> toTextValue ||> toColumnVariantL .> fromMaybe defaultDisplayedColumns $ "DisplayedColumns"
-  rowSortingOrder <-
+  rowSortingOrder       <-
     takeUniqueValue ||> toTextValue ||> toRowSortingOrderL .> fromMaybe defaultSortingOrder $ "RowSortingOrder"
-  headerAppendix <-
+  headerAppendix        <-
     takeUniqueValue ||> toTextValue ||> transformHomePath path ||=> toFileContents $ "HeaderAppendixFile"
-  disableDefaultCSS <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "DisableDefaultCSS"
-  conditionalStyles <- buildNestedOptions buildConditionalStyle "ConditionalStyle"
-  enableDeadlines   <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "EnableDeadlines"
-  deadlinePenalty   <- if enableDeadlines
+  disableDefaultCSS     <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "DisableDefaultCSS"
+  conditionalStyles     <- buildNestedOptions buildConditionalStyle "ConditionalStyle"
+  enableDeadlines       <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "EnableDeadlines"
+  deadlinePenalty       <- if enableDeadlines
     then takeMandatoryValue |> toTextValue |> toRatio $ "DeadlinePenalty"
     else return 0
   fixedDeadlines        <- buildNestedOptions buildExtraDeadline "SetFixedDeadline"

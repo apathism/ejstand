@@ -65,7 +65,7 @@ instance Show ParsingException where
 (!?) = Map.lookup
 
 (!) :: ByteString -> Map ByteString v -> v
-key !mp = case key !? mp of
+key ! mp = case key !? mp of
   Nothing      -> throw $ MissingKey key
   (Just value) -> value
 
@@ -231,7 +231,7 @@ parseEjudgeXML file = catch (onlyIfStarted . processRawXML <$> BS.readFile file)
     [contest] -> case contestStartTime contest of
       Nothing -> Nothing
       _       -> Just src
-    lst -> throw $ InvalidContestNumber $ length lst
+    lst       -> throw $ InvalidContestNumber $ length lst
 
 parseEjudgeXMLs :: [FilePath] -> IO StandingSource
 parseEjudgeXMLs filelist = do

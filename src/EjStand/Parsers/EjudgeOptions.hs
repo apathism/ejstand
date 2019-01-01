@@ -86,22 +86,22 @@ readInteger value = case signed decimal value of
 foldProblemConfiguration :: Maybe ProblemConfiguration -> (Text, Text) -> Maybe ProblemConfiguration
 foldProblemConfiguration Nothing   _     = Nothing
 foldProblemConfiguration (Just pc) tuple = case tuple of
-  ("id", value) -> case problemIDField pc of
+  ("id"         , value) -> case problemIDField pc of
     Nothing -> Just $ pc { problemIDField = readInteger value }
     _       -> Nothing
-  ("short_name", value) -> case shortName pc of
+  ("short_name" , value) -> case shortName pc of
     Nothing -> Just $ pc { shortName = Just value }
     _       -> Nothing
-  ("super", value) -> case ancestorTaskName pc of
+  ("super"      , value) -> case ancestorTaskName pc of
     Nothing -> Just $ pc { ancestorTaskName = Just value }
     _       -> Nothing
-  ("full_score", value) -> case maxScore pc of
+  ("full_score" , value) -> case maxScore pc of
     Nothing -> Just $ pc { maxScore = readInteger value }
     _       -> Nothing
   ("run_penalty", value) -> case runPenalty pc of
     Nothing -> Just $ pc { runPenalty = readInteger value }
     _       -> Nothing
-  _ -> Just pc
+  _                      -> Just pc
 
 analyzeProblemSection :: [Text] -> Maybe ProblemConfiguration
 analyzeProblemSection =

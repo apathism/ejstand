@@ -73,10 +73,10 @@ data GlobalConfiguration = GlobalConfiguration { xmlFilePattern                :
 defaultGlobalConfiguration :: GlobalConfiguration
 defaultGlobalConfiguration = GlobalConfiguration { xmlFilePattern = "/home/judges/%06d/var/status/dir/external.xml"
                                                  , ejudgeServeConfigurationsPath = "/home/judges/%06d/conf/serve.cfg"
-                                                 , standingConfigurationsPath    = "/etc/ejstand/cfg/"
-                                                 , ejStandPort                   = 80
-                                                 , ejStandHostname               = "127.0.0.1"
-                                                 , webRoot                       = "/"
+                                                 , standingConfigurationsPath = "/etc/ejstand/cfg/"
+                                                 , ejStandPort = 80
+                                                 , ejStandHostname = "127.0.0.1"
+                                                 , webRoot = "/"
                                                  }
 
 data ComparisonSign = Less | LessOrEq | Greater | GreaterOrEq | Equal | NotEqual
