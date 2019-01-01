@@ -25,7 +25,6 @@ import           Data.Maybe                     ( catMaybes )
 import           Data.Ratio                     ( Ratio
                                                 , denominator
                                                 , numerator
-                                                , (%)
                                                 )
 import           Data.Text                      ( Text )
 import qualified Data.Text                     as T
@@ -153,7 +152,7 @@ totalScoreColumn lang StandingConfig {..} StandingSource {..} =
       captionTitle = preEscapedToValue $ translate lang MsgTotalScoreCaptionTitle
       getter _ = rowScore . rowStats
       maxScore = if enableScores then sum $ problemMaxScore <$> problems else toInteger $ Map.size problems
-      displayer score = calculateConditionalStyle conditionalStyles (score / (maxScore % 1)) td $ toMarkup score
+      displayer score = calculateConditionalStyle conditionalStyles (score / fromInteger maxScore) td $ toMarkup score
       column = buildCustomDisplayedStandingColumn "total_score" caption getter displayer
   in  column { columnCaption = columnCaption column ! title captionTitle }
 

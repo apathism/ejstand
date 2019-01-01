@@ -359,7 +359,7 @@ buildStandingConfig path = do
   enableDeadlines   <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "EnableDeadlines"
   deadlinePenalty   <- if enableDeadlines
     then takeMandatoryValue |> toTextValue |> toRatio $ "DeadlinePenalty"
-    else return $ 0 % 1
+    else return 0
   fixedDeadlines        <- buildNestedOptions buildExtraDeadline "SetFixedDeadline"
   enableScores          <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "EnableScores"
   onlyScoreLastSubmit   <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "OnlyScoreLastSubmit"
