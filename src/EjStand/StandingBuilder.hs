@@ -108,18 +108,13 @@ setCellMainRunMaybe :: StandingConfig -> Problem -> (Run, Bool) -> StandingCell 
 setCellMainRunMaybe = setCellMainRun False
 
 applicateRun :: StandingConfig -> Problem -> StandingCell -> (Run, Bool) -> StandingCell
--- 0 priority: Ignore
-applicateRun _ _ cell                                      (getRunStatusType . runStatus -> Ignore, _) = cell
--- 1 priority: Error
-applicateRun _ _ cell@StandingCell { cellType = Error, ..} _                                           = cell
-applicateRun cfg prob cell runT@(getRunStatusType . runStatus -> Error, _) =
-  (setCellMainRunForce cfg prob runT cell) { cellScore = 0 }
--- 2 priority: Disqualified
-applicateRun _ _ cell@StandingCell { cellType = Disqualified, ..} _ = cell
-applicateRun cfg prob cell runT@(getRunStatusType . runStatus -> Disqualified, _) =
-  (setCellMainRunForce cfg prob runT cell) { cellScore = 0 }
--- Extra priorities: Other statuses
-applicateRun cfg prob cell runT = setCellMainRunMaybe cfg prob runT cell
+applicateRun cfg prob cell@StandingCell {..} runT@(Run {..}, _)
+  | getRunStatusType runStatus == Ignore       = cell
+  | cellType == Error                          = cell
+  | getRunStatusType runStatus == Error        = (setCellMainRunForce cfg prob runT cell) { cellScore = 0 }
+  | cellType == Disqualified                   = cell
+  | getRunStatusType runStatus == Disqualified = (setCellMainRunForce cfg prob runT cell) { cellScore = 0 }
+  | otherwise                                  = setCellMainRunMaybe cfg prob runT cell
 
 getVirtualStart :: StandingSource -> Problem -> Contestant -> Maybe UTCTime
 getVirtualStart StandingSource {..} Problem {..} Contestant {..} = minimumMay $ runTime <$> filter
