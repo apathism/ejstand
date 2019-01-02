@@ -1,5 +1,4 @@
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE ViewPatterns    #-}
 module EjStand.StandingBuilder
   ( prepareStandingSource
   , buildStanding
@@ -156,9 +155,11 @@ buildRows :: StandingConfig -> StandingSource -> [Problem] -> [StandingRow]
 buildRows cfg src probs = buildRow cfg src probs <$> Map.elems (contestants src)
 
 buildProblems :: StandingConfig -> StandingSource -> [Problem]
-buildProblems (reversedContestOrder -> True) = sortOn cmp . Map.elems . problems
-  where cmp = ([negate . problemContest, problemID] <*>) . return
-buildProblems _ = Map.elems . problems
+buildProblems StandingConfig {..} | reversedContestOrder = sortOn reversedCmp . elementsF
+                                  | otherwise            = elementsF
+ where
+  reversedCmp = ([negate . problemContest, problemID] <*>) . return
+  elementsF   = Map.elems . problems
 
 sortRows :: [(OrderType, StandingColumn)] -> [StandingRow] -> [StandingRow]
 sortRows orderer = sortBy (comparator orderer)
