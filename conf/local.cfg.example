@@ -106,12 +106,13 @@ InternalName = example
 --|    they must appear.
 --|
 --|    List of available column names:
---|      1) Place
---|      2) Name
---|      3) Score
---|      4) Successes       (solved problems)
---|      5) Attempts        (number of unsuccessful submits)
---|      6) LastSuccessTime
+--|      1) UserID
+--|      2) Place
+--|      3) Name
+--|      4) Score
+--|      5) Successes       (solved problems)
+--|      6) Attempts        (number of unsuccessful submits)
+--|      7) LastSuccessTime
 --|
 --|    Option value is a comma-seperated non-empty list of column
 --|    names.
