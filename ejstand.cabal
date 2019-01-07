@@ -39,6 +39,7 @@ executable ejstand
                        EjStand.Internals.Core
                        EjStand.Internals.ELang.AST
                        EjStand.Internals.ELang.Lexer
+                       EjStand.Internals.ELang.Parser
                        EjStand.Internals.ELang.Value
                        EjStand.Internals.Regex
                        EjStand.Models.Base

@@ -13,7 +13,7 @@ import           Data.Text                      ( Text )
 import           EjStand.Internals.Core         ( IdentifiableBy(..) )
 import           EjStand.Internals.ELang.Value  ( Value(..) )
 
-data ASTElement = ASTIntegerConstant !Value
+data ASTElement = ASTConstant !Value
                 | ASTVariable !Text
                 | ASTList !(Seq ASTElement)
                 | ASTMap !(Map Text ASTElement)
@@ -38,3 +38,6 @@ instance IdentifiableBy Text (Binding m) where
 data OperatorMeta = OperatorMeta { operatorMetaName     :: !Text
                                  , operatorMetaPriority :: !Int
                                  }
+
+instance IdentifiableBy Text OperatorMeta where
+  getID = operatorMetaName
