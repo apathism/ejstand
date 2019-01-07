@@ -1,8 +1,6 @@
-{-# LANGUAGE FlexibleInstances      #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE MultiParamTypeClasses  #-}
-{-# LANGUAGE TemplateHaskell        #-}
-{-# LANGUAGE UndecidableInstances   #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TemplateHaskell       #-}
 module EjStand.Models.Base
   ( Contestant(..)
   , Contest(..)
@@ -10,34 +8,18 @@ module EjStand.Models.Base
   , Language(..)
   , RunStatus(..)
   , Run(..)
-  , IdentifiableBy(..)
   , RunIdentification
-  , fromIdentifiableList
   , filterRunMap
   , readRunStatus
   )
 where
 
-import           Data.Function                  ( on )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 import           Data.Text                      ( Text )
 import           Data.Time                      ( UTCTime )
 import           EjStand.Internals.ADTReader    ( mkADTReader )
-
--- Identifiable typeclass and some related operations
-
-class IdentifiableBy k a | a -> k where
-  getID :: a -> k
-
-instance {-# OVERLAPPABLE #-} (Eq k, IdentifiableBy k a) => Eq a where
-  (==) = (==) `on` getID
-
-instance {-# OVERLAPPABLE #-} (Ord k, IdentifiableBy k a) => Ord a where
-  compare = compare `on` getID
-
-fromIdentifiableList :: (Ord k, IdentifiableBy k a) => [a] -> Map k a
-fromIdentifiableList lst = Map.fromList $ (\x -> (getID x, x)) <$> lst
+import           EjStand.Internals.Core         ( IdentifiableBy(..) )
 
 -- Models
 

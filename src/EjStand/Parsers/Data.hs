@@ -35,7 +35,9 @@ import           Data.Time                      ( UTCTime
                                                 , defaultTimeLocale
                                                 , parseTimeM
                                                 )
-import           EjStand.Internals.Core         ( sconcat )
+import           EjStand.Internals.Core         ( fromIdentifiableList
+                                                , sconcat
+                                                )
 import           EjStand.Models.Base
 import           EjStand.Models.Standing        ( StandingSource(..) )
 import qualified Xeno.SAX                      as Xeno
