@@ -1,20 +1,20 @@
 name:                  ejstand
 version:               0.5.0
 synopsis:              Ejudge Configurable Web Standings Daemon for Multiple Contests
-homepage:              https://apathism.net/git/apathism/ejstand
-bug-reports:           https://apathism.net/git/apathism/ejstand/issues
+homepage:              https://github.com/apathism/ejstand
+bug-reports:           https://github.com/apathism/ejstand/issues
 license:               AGPL-3
 license-file:          LICENSE
 author:                Ivan Koryabkin <apathism@apathism.net>
 maintainer:            Ivan Koryabkin <apathism@apathism.net>
-copyright:             (c) 2018 Ivan Koryabkin
+copyright:             (c) 2018-2019 Ivan Koryabkin
 category:              Web
 build-type:            Simple
 cabal-version:         >=1.10
 
 source-repository head
   type:                git
-  location:            https://apathism.net/git/apathism/ejstand.git
+  location:            https://github.com/apathism/ejstand.git
 
 executable ejstand
   main-is:             Main.hs
