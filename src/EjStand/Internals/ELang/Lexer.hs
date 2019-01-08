@@ -29,6 +29,7 @@ data Lexem = OpenParenthesis
            | FunctionName !Text
            | VariableName !Text
            | OperatorName !Text
+           deriving (Show, Eq)
 
 readEscapeSequence :: Char -> Either Text Text
 readEscapeSequence 'n'  = Right "\n"
