@@ -21,6 +21,7 @@ import           Control.Monad.Trans.State.Strict
 import           Data.Function                  ( on )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
+import qualified Data.Sequence                 as Seq
 import           Data.Text                      ( Text )
 import qualified Data.Text                     as Text
 import           EjStand.Internals.Core         ( fromIdentifiableList )
@@ -135,7 +136,7 @@ parseOperand = peekLexem >>= \case
     dropLexem
     exp <- parseListArguments
     assertNextLexem CloseBracket
-    return (ASTList exp)
+    return . ASTList . Seq.fromList $ exp
   Just (FunctionName value)  -> do
     dropLexem
     assertNextLexem OpenParenthesis
