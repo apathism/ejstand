@@ -105,7 +105,7 @@ parseExpression = parseExpression' [] []
     shouldApply <- predicateF x
     if shouldApply
       then case expressionStack of
-        (e2 : e1 : eRest) -> applyOperatorMetaWhile predicateF xs ((ASTOperator operatorMetaName (e1, e2)) : eRest)
+        (e2 : e1 : eRest) -> applyOperatorMetaWhile predicateF xs (ASTOperator operatorMetaName (e1, e2) : eRest)
         _                 -> throwE $ "Not enough arguments supplied for operator " <> operatorMetaName
       else return (operatorStack, expressionStack)
 
