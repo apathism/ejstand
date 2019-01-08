@@ -1,22 +1,29 @@
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
-module EjStand.Internals.ELang.Parser where
+module EjStand.Internals.ELang.Syntax
+  ( runSyntaxAnalyzer
+  , runSyntaxAnalyzerStrict
+  )
+where
 
 import           Control.Monad.Trans.Class      ( lift )
 import           Control.Monad.Trans.Except     ( ExceptT
+                                                , runExceptT
                                                 , throwE
                                                 )
 import           Control.Monad.Trans.State.Strict
                                                 ( State
                                                 , get
                                                 , modify'
+                                                , runState
                                                 )
 import           Data.Function                  ( on )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 import           Data.Text                      ( Text )
 import qualified Data.Text                     as Text
+import           EjStand.Internals.Core         ( fromIdentifiableList )
 import           EjStand.Internals.ELang.AST    ( ASTElement(..)
                                                 , OperatorMeta(..)
                                                 , OperatorAssociativity(..)
@@ -168,3 +175,19 @@ parseMap = do
     Just Comma -> dropLexem >> parseMap
     _          -> return Map.empty
   if label `Map.member` tail then throwE "Duplicate key in ELang map value" else return $ Map.insert label value tail
+
+-- Entry points for syntax analyzer
+
+runSyntaxAnalyzer :: [OperatorMeta] -> [Lexem] -> Either Text (ASTElement, [Lexem])
+runSyntaxAnalyzer operatorL lexems =
+  let operatorM            = fromIdentifiableList operatorL
+      initialState         = ASTParsingState lexems operatorM
+      (result, finalState) = runState (runExceptT parseExpression) initialState
+  in  case result of
+        Left  msg   -> Left msg
+        Right value -> Right (value, getLexems finalState)
+
+runSyntaxAnalyzerStrict :: [OperatorMeta] -> [Lexem] -> Either Text ASTElement
+runSyntaxAnalyzerStrict operatorL lexems = runSyntaxAnalyzer operatorL lexems >>= \case
+  (e, []) -> Right e
+  _       -> Left "Extra lexems in ELang input after end of expression"
