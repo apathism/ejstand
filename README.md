@@ -1,5 +1,9 @@
 # EjStand
 
+[![Github Release](https://img.shields.io/github/release/apathism/ejstand.svg)](https://github.com/apathism/ejstand/releases)
+[![Build Status](https://img.shields.io/travis/apathism/ejstand.svg)](https://travis-ci.org/apathism/ejstand)
+[![License](https://img.shields.io/github/license/apathism/ejstand.svg)](https://www.gnu.org/licenses/agpl-3.0.en.html)
+
 EjStand is a simple and configurable web standings daemon for ejudge contest
 management system. It's intended to be used in situations when standing contains
 results from different contests or when standing needs some additional display
@@ -9,8 +13,8 @@ options not supported by ejudge.
 
 ### Installing
 
-EjStand is written in Haskell programming language and can be easily
-built with [Stack tool](https://www.haskellstack.org/).
+EjStand is written in Haskell and can be easily built with
+[Stack tool](https://www.haskellstack.org/).
 
 ```bash
 cd ejstand
@@ -51,7 +55,7 @@ sudo install -Dm644 conf/global.cfg.example /etc/ejstand.cfg
 
 Most of the time it makes sense to set up EjStand next to ejudge, and that means
 that you're probably want some kind of directory (for example, /ejstand) on
-your Apache/nginx/whatever-you-use to be proxied to EjStand.
+your Apache/nginx/whatever-you-use-webserver to be proxied to EjStand.
 
 This [article](https://www.nginx.com/resources/wiki/start/topics/examples/likeapache/)
 can help you to setup your global server in a proper way.
@@ -59,18 +63,20 @@ can help you to setup your global server in a proper way.
 ## Bugs & Issues
 
 You must be kiddin'. There are no bugs in this software. But if you think there
-are, you can write your issue [here](https://apathism.net/git/apathism/ejstand/issues),
-and maybe I'll review it someday. Or you can just fix it yourself and send me a pull
-request. Speaking of which...
+are, you can write your issue [here](https://github.com/apathism/ejstand/issues).
+Please describe all steps to reproduce your bug, your EjStand version and ejudge
+files which are parsed (if possible).
 
 ## Contributing
 
-There is no strict policies about contributing. The only two conditions of merging
-code upstream are:
-1. I like your patch (or at least it's not awful, so I can tweak some parts of
-   it);
+There are no strict policies about contributing and all your patches are
+welcomed. Your pull requests must meet only three requirements:
+
+1. the patch is sane and doesn't break any existing features;
 2. you agree with project license, and allow to distribute your code under its
-   conditions.
+   conditions;
+3. the code is well-formatted with `utils/restyle_code.sh` script or
+   [Brittany](https://github.com/lspitzner/brittany) with the same options.
 
 ## License
 
@@ -78,15 +84,6 @@ This project is licensed under the
 [GNU AGPL license](https://www.gnu.org/licenses/agpl-3.0.en.html) version 3.
 See LICENSE file for more details.
 
-EjStand uses a lot of third-party libraries licensed under BSD2/BSD3/MIT licenses.
-You can review third-party licenses in `third-party/licenses` directory.
-
-If you want to use this program under other license, you can contact
-[me](https://apathism.net/contacts) personally, and we'll discuss conditions
-of licensing.
-
-## Authors
-
-Currently, only one person :)
-
-* Ivan Koryabkin
+EjStand uses a lot of third-party libraries licensed under permissive open
+source licenses. You can review third-party licenses in `third-party/licenses`
+directory.

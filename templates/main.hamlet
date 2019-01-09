@@ -39,7 +39,7 @@ $doctype 5
                 $of Nothing
         <div class="footer">
             <p class="copyright">
-                _{MsgPageGenerationTime "https://apathism.net/git/apathism/ejstand" getTextVersion}
+                _{MsgPageGenerationTime "https://github.com/apathism/ejstand" getTextVersion}
             <p class="license">
                 _{MsgEjStandLicense }
             <p class="third-party">
