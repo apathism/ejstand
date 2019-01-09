@@ -1,7 +1,8 @@
 # EjStand
 
-[![github release](https://img.shields.io/github/release/apathism/ejstand.svg)](https://github.com/apathism/ejstand/releases)
-[![license](https://img.shields.io/github/license/apathism/ejstand.svg)](https://www.gnu.org/licenses/agpl-3.0.en.html)
+[![Github Release](https://img.shields.io/github/release/apathism/ejstand.svg)](https://github.com/apathism/ejstand/releases)
+[![Build Status](https://img.shields.io/travis/apathism/ejstand.svg)](https://travis-ci.org/apathism/ejstand)
+[![License](https://img.shields.io/github/license/apathism/ejstand.svg)](https://www.gnu.org/licenses/agpl-3.0.en.html)
 
 EjStand is a simple and configurable web standings daemon for ejudge contest
 management system. It's intended to be used in situations when standing contains
