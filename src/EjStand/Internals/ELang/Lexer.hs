@@ -10,10 +10,12 @@ import           Data.Char                      ( isDigit
                                                 , isLower
                                                 , isPunctuation
                                                 , isSpace
+                                                , isSymbol
                                                 )
 import           Data.Text                      ( Text )
 import qualified Data.Text                     as Text
 import           Data.Text.Read                 ( decimal )
+import           EjStand.Internals.Core         ( (|||) )
 
 data Lexem = OpenParenthesis
            | CloseParenthesis
@@ -78,8 +80,8 @@ parseLexem source = case Text.uncons source of
         (number, r) <- either (Left . Text.pack) Right $ decimal source
         t           <- parseLexem r
         Right (IntegerConst number : t)
-      | isPunctuation c -> do
-        let (l, r) = Text.span isPunctuation source
+      | isPunctuation c || isSymbol c -> do
+        let (l, r) = Text.span (isPunctuation ||| isSymbol) source
         t <- parseLexem r
         Right (OperatorName l : t)
       | isLetter c -> do

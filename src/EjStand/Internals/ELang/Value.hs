@@ -1,17 +1,19 @@
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 module EjStand.Internals.ELang.Value
   ( FromValue(..)
   , ToValue(..)
   , Value(..)
+  , displayValueType
+  , displayValuesType
   )
 where
 
-import qualified Data.Foldable                 as Foldable
 import           Data.Map.Strict                ( Map )
 import           Data.Ratio                     ( Rational )
 import           Data.Sequence                  ( Seq )
-import qualified Data.Sequence                 as Seq
 import           Data.Text                      ( Text )
+import           Data.Text                     as Text
 
 -- Values 
 
@@ -22,6 +24,7 @@ data Value = ValueVoid
            | ValueText !Text
            | ValueList !(Seq Value)
            | ValueMap !(Map Text Value)
+           deriving (Show, Eq)
 
 -- ToValue class
 
@@ -43,15 +46,6 @@ instance ToValue Bool where
 instance ToValue Text where
   toValue = ValueText
 
-instance ToValue a => ToValue (Seq a) where
-  toValue = ValueList . fmap toValue
-
-instance ToValue a => ToValue [a] where
-  toValue = ValueList . Seq.fromList . fmap toValue
-
-instance ToValue a => ToValue (Map Text a) where
-  toValue = ValueMap . fmap toValue
-
 -- FromValue class
 
 class FromValue a where
@@ -67,6 +61,7 @@ instance FromValue Integer where
 
 instance FromValue Rational where
   fromValue (ValueRational v) = Just v
+  fromValue (ValueInt      v) = Just . fromInteger $ v
   fromValue _                 = Nothing
 
 instance FromValue Bool where
@@ -77,13 +72,16 @@ instance FromValue Text where
   fromValue (ValueText v) = Just v
   fromValue _             = Nothing
 
-instance FromValue a => FromValue (Seq a) where
-  fromValue (ValueList v) = sequence $ fromValue <$> v
-  fromValue _             = Nothing
+-- Type displaying
 
-instance FromValue a => FromValue [a] where
-  fromValue = ((Foldable.toList :: Seq b -> [b]) <$>) . fromValue
+displayValueType :: Value -> Text
+displayValueType ValueVoid         = "Void"
+displayValueType (ValueInt      _) = "Int"
+displayValueType (ValueRational _) = "Rational"
+displayValueType (ValueBool     _) = "Bool"
+displayValueType (ValueText     _) = "Text"
+displayValueType (ValueList     _) = "List"
+displayValueType (ValueMap      _) = "Map"
 
-instance FromValue a => FromValue (Map Text a) where
-  fromValue (ValueMap v) = sequence $ fromValue <$> v
-  fromValue _            = Nothing
+displayValuesType :: [Value] -> Text
+displayValuesType lst = "(" <> (Text.intercalate ", " $ displayValueType <$> lst) <> ")"

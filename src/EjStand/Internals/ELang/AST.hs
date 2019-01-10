@@ -3,8 +3,6 @@ module EjStand.Internals.ELang.AST
   ( ASTElement(..)
   , Binding(..)
   , BindingMap
-  , FunctionF
-  , OperatorF
   , OperatorMeta(..)
   , OperatorAssociativity(..)
   )
@@ -25,18 +23,16 @@ data ASTElement = ASTConstant !Value
                               , operatorArguments :: !(ASTElement, ASTElement) }
                 | ASTFunctionCall { functionName :: !Text
                                   , functionArguments :: ![ASTElement] }
-
-type OperatorF m = Value -> Value -> ExceptT Text m Value
-type FunctionF m = [Value] -> ExceptT Text m Value
+                deriving (Show)
 
 data Binding m = VariableBinding { bindingName  :: !Text
                                  , bindingValue :: !(m Value)
                                  }
                | OperatorBinding { bindingName     :: !Text
-                                 , bindingOperator :: !(OperatorF m)
+                                 , bindingOperator :: !(Value -> Value -> ExceptT Text m Value)
                                  }
                | FunctionBinding { bindingName     :: !Text
-                                 , bindingFunction :: !(FunctionF m)
+                                 , bindingFunction :: !([Value] -> ExceptT Text m Value)
                                  }
 
 instance IdentifiableBy Text (Binding m) where
