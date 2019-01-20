@@ -10,8 +10,13 @@ module EjStand.Internals.ELang.Library
   )
 where
 
+import           Control.Monad                  ( mzero )
 import           Control.Monad.Trans.Except     ( ExceptT(..)
                                                 , throwE
+                                                )
+import           Control.Monad.Trans.Maybe      ( MaybeT(..)
+                                                , exceptToMaybeT
+                                                , maybeToExceptT
                                                 )
 import           Data.Fixed                     ( mod' )
 import           Data.Functor.Identity          ( Identity )
@@ -31,35 +36,43 @@ import           EjStand.Internals.ELang.AST    ( Binding(..)
 import           EjStand.Internals.ELang.Value  ( FromValue(..)
                                                 , ToValue(..)
                                                 , Value(..)
-                                                , displayValuesType
                                                 )
 import           Safe                           ( headMay )
 
 -- Helper functions
 
 class NativeFunction f where
-  fromNative :: f -> [Value] -> Maybe Value
+  fromNative :: Monad m => f -> [Value] -> MaybeT m Value
 
-instance ToValue a => NativeFunction a where
-  fromNative result [] = Just . toValue $ result
-  fromNative _      _  = Nothing
+instance (ToValue a) => NativeFunction a where
+  fromNative result [] = return . toValue $ result
+  fromNative _      _  = mzero
 
 instance {-# OVERLAPPING #-} (FromValue a, NativeFunction r) => NativeFunction (a -> r) where
-  fromNative _    []                        = Nothing
+  fromNative _    []                        = mzero
   fromNative func (firstValue : tailValues) = do
-    val <- fromValue firstValue
+    val <- MaybeT . return $ fromValue firstValue
     fromNative (func val) tailValues
 
-invalidArgumentsError :: Monad m => Text -> [Value] -> ExceptT Text m a
-invalidArgumentsError name args = throwE $ mconcat [name, " doesn't take arguments of type ", displayValuesType args]
+invalidArgumentsError :: Text -> [Value] -> Text
+invalidArgumentsError name args = mconcat [name, " didn't accepted arguments ", Text.pack (show args)]
 
-mergeNativeToFunction :: Monad m => [[Value] -> Maybe Value] -> Text -> [Value] -> ExceptT Text m Value
-mergeNativeToFunction handlers name args = case headMay $ catMaybes [ handler args | handler <- handlers ] of
-  Nothing -> invalidArgumentsError name args
-  Just x  -> return x
+mergeNativeToFunction :: Monad m => [[Value] -> MaybeT m Value] -> Text -> [Value] -> ExceptT Text m Value
+mergeNativeToFunction handlers name args = maybeToExceptT (invalidArgumentsError name args) . MaybeT $ do
+  calls <- sequence [ runMaybeT (handler args) | handler <- handlers ]
+  return . headMay . catMaybes $ calls
 
-mergeNativeToOperator :: Monad m => [[Value] -> Maybe Value] -> OperatorMeta -> Value -> Value -> ExceptT Text m Value
+mergeNativeToOperator
+  :: Monad m => [[Value] -> MaybeT m Value] -> OperatorMeta -> Value -> Value -> ExceptT Text m Value
 mergeNativeToOperator handlers OperatorMeta {..} v1 v2 = mergeNativeToFunction handlers operatorMetaName [v1, v2]
+
+listFoldable1 :: Monad m => CombinedFunction m -> [Value] -> MaybeT m Value
+listFoldable1 cf@(_, f) lst = case lst of
+  []      -> mzero
+  [x    ] -> return x
+  (e : t) -> do
+    resultTail <- listFoldable1 cf t
+    exceptToMaybeT $ f [e, resultTail]
 
 -- Binding builders
 
@@ -82,7 +95,7 @@ functionToBinding (name, func) = FunctionBinding name func
   +---+------+------------------------------------------------+----------+
   | P | Sign | Description                                    | Operands |
   +---+------+------------------------------------------------+----------+
-  | 9 |  ->  | Indexing                                       |  I  TLM  |
+  | 9 |  _   | Indexing                                       |  I  TLM  |
   | 8 |  **  | Power                                          |  IR      |
   | 7 |  *   | Multiplication                                 |  IR      |
   |   |  /   | Division                                       |  IR      |
@@ -105,7 +118,7 @@ functionToBinding (name, func) = FunctionBinding name func
 -}
 
 operatorIndex :: Monad m => CombinedOperator m
-operatorIndex = OperatorMeta "->" 9 LeftAssociativity ==> operatorF
+operatorIndex = OperatorMeta "_" 9 LeftAssociativity ==> operatorF
  where
   operatorF :: Monad m => OperatorMeta -> Value -> Value -> ExceptT Text m Value
   operatorF _ (ValueText text) (ValueInt index) = return $ if index < 0 || index >= toInteger (Text.length text)
@@ -113,7 +126,7 @@ operatorIndex = OperatorMeta "->" 9 LeftAssociativity ==> operatorF
     else ValueText . Text.singleton . Text.index text . fromInteger $ index
   operatorF _ (ValueList lst) (ValueInt index) = return . fromMaybe ValueVoid $ fromInteger index `Seq.lookup` lst
   operatorF _ (ValueMap map) (ValueText key) = return . fromMaybe ValueVoid $ key `Map.lookup` map
-  operatorF OperatorMeta {..} v1 v2 = invalidArgumentsError operatorMetaName [v1, v2]
+  operatorF OperatorMeta {..} v1 v2 = throwE $ invalidArgumentsError operatorMetaName [v1, v2]
 
 operatorPower :: Monad m => CombinedOperator m
 operatorPower = OperatorMeta "**" 8 RightAssociativity
@@ -149,7 +162,7 @@ operatorConcat = OperatorMeta "++" 5 LeftAssociativity ==> operatorF
   operatorF :: Monad m => OperatorMeta -> Value -> Value -> ExceptT Text m Value
   operatorF _                 (ValueText s1) (ValueText s2) = return . ValueText $ s1 <> s2
   operatorF _                 (ValueList l1) (ValueList l2) = return . ValueList $ l1 <> l2
-  operatorF OperatorMeta {..} v1             v2             = invalidArgumentsError operatorMetaName [v1, v2]
+  operatorF OperatorMeta {..} v1             v2             = throwE $ invalidArgumentsError operatorMetaName [v1, v2]
 
 operatorLess :: Monad m => CombinedOperator m
 operatorLess = OperatorMeta "<" 4 NonAssociative ==> mergeNativeToOperator
@@ -198,6 +211,38 @@ operatorSeq = (OperatorMeta ";" 1 LeftAssociativity, operatorF)
   operatorF :: Monad m => Value -> Value -> ExceptT Text m Value
   operatorF !_ = return
 
+-- Bool functions
+
+functionNot :: Monad m => CombinedFunction m
+functionNot = "Not" ==> mergeNativeToFunction [fromNative not]
+
+-- Numerical functions
+
+functionAbs :: Monad m => CombinedFunction m
+functionAbs =
+  "Abs" ==> mergeNativeToFunction [fromNative (abs :: Integer -> Integer), fromNative (abs :: Rational -> Rational)]
+
+functionMax :: Monad m => CombinedFunction m
+functionMax = "Max" ==> mergeNativeToFunction
+  [ fromNative (max :: Integer -> Integer -> Integer)
+  , fromNative (max :: Rational -> Rational -> Rational)
+  , fromNative (max :: Text -> Text -> Text)
+  , listFoldable1 functionMax
+  ]
+
+
+-- Control functions
+
+functionIf :: Monad m => CombinedFunction m
+functionIf = "If" ==> functionF
+ where
+  functionF :: Monad m => Text -> [Value] -> ExceptT Text m Value
+  functionF _    [ValueBool True , e1]     = return e1
+  functionF _    [ValueBool False, _ ]     = return ValueVoid
+  functionF _    [ValueBool True , e1, _ ] = return e1
+  functionF _    [ValueBool False, _ , e2] = return e2
+  functionF name args                      = throwE $ invalidArgumentsError name args
+
 -- Operator & Function compilations
 
 allCombinedOperators :: Monad m => [CombinedOperator m]
@@ -222,11 +267,14 @@ allCombinedOperators =
   , operatorSeq
   ]
 
-allFunctionBindings :: Monad m => [Binding m]
-allFunctionBindings = []
+allCombinedFunctions :: Monad m => [CombinedFunction m]
+allCombinedFunctions = [functionNot, functionAbs, functionMax, functionIf]
 
 defaultOperatorMeta :: [OperatorMeta]
 defaultOperatorMeta = fst <$> (allCombinedOperators :: [CombinedOperator Identity])
 
 defaultBindingMap :: Monad m => BindingMap m
-defaultBindingMap = fromIdentifiableList $ allFunctionBindings <> (operatorToBinding <$> allCombinedOperators)
+defaultBindingMap =
+  let operators = fromIdentifiableList (operatorToBinding <$> allCombinedOperators)
+      functions = fromIdentifiableList (functionToBinding <$> allCombinedFunctions)
+  in  operators <> functions

@@ -4,16 +4,19 @@ module EjStand.Internals.ELang.Value
   ( FromValue(..)
   , ToValue(..)
   , Value(..)
-  , displayValueType
-  , displayValuesType
   )
 where
 
+import           Data.Foldable                  ( toList )
+import           Data.List                     as List
 import           Data.Map.Strict                ( Map )
-import           Data.Ratio                     ( Rational )
+import qualified Data.Map.Strict               as Map
+import           Data.Ratio                     ( Rational
+                                                , denominator
+                                                , numerator
+                                                )
 import           Data.Sequence                  ( Seq )
 import           Data.Text                      ( Text )
-import           Data.Text                     as Text
 
 -- Values 
 
@@ -24,7 +27,23 @@ data Value = ValueVoid
            | ValueText !Text
            | ValueList !(Seq Value)
            | ValueMap !(Map Text Value)
-           deriving (Show, Eq)
+           deriving (Eq)
+
+instance Show Value where
+  show ValueVoid         = "void"
+  show (ValueInt      x) = show x
+  show (ValueRational r) = show a <> "/" <> show b
+   where
+    a = numerator r
+    b = denominator r
+  show (ValueBool b) = show b
+  show (ValueText t) = show t
+  show (ValueList l) = show . toList $ l
+  show (ValueMap  m) = "[" <> contents <> "]"
+   where
+    contents = List.intercalate ", " pairs
+    pairs    = displayer <$> Map.toList m
+    displayer (key, value) = show key <> ": " <> show value
 
 -- ToValue class
 
@@ -71,17 +90,3 @@ instance FromValue Bool where
 instance FromValue Text where
   fromValue (ValueText v) = Just v
   fromValue _             = Nothing
-
--- Type displaying
-
-displayValueType :: Value -> Text
-displayValueType ValueVoid         = "Void"
-displayValueType (ValueInt      _) = "Int"
-displayValueType (ValueRational _) = "Rational"
-displayValueType (ValueBool     _) = "Bool"
-displayValueType (ValueText     _) = "Text"
-displayValueType (ValueList     _) = "List"
-displayValueType (ValueMap      _) = "Map"
-
-displayValuesType :: [Value] -> Text
-displayValuesType lst = "(" <> (Text.intercalate ", " $ displayValueType <$> lst) <> ")"
