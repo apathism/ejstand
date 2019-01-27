@@ -42,7 +42,6 @@ import           Prelude                 hiding ( div
                                                 , span
                                                 )
 import qualified Prelude                        ( div )
-import           Text.Blaze.Internal            ( Attributable )
 import           Text.Blaze.Html                ( Markup
                                                 , toMarkup
                                                 )
@@ -92,12 +91,6 @@ instance ToMarkup UTCTime where
 
 -- Columns rendering
 
-calculateConditionalStyle :: Attributable h => [ConditionalStyle] -> Rational -> h -> h
-calculateConditionalStyle [] _ html = html
-calculateConditionalStyle (ConditionalStyle {..} : tail) value html
-  | checkComparison value `all` conditions = html ! style (toValue styleValue)
-  | otherwise                              = calculateConditionalStyle tail value html
-
 buildCustomDisplayedStandingColumn
   :: Ord a => Text -> Markup -> (Maybe Integer -> StandingRow -> a) -> (a -> Markup) -> StandingColumn
 buildCustomDisplayedStandingColumn className caption getter displayF = StandingColumn caption' markupValue order
@@ -146,14 +139,12 @@ totalAttemptsColumn lang =
       column       = buildRegularStandingColumn "total_attempts" caption getter
   in  column { columnCaption = columnCaption column ! title captionTitle }
 
-totalScoreColumn :: [Lang] -> StandingConfig -> StandingSource -> StandingColumn
-totalScoreColumn lang StandingConfig {..} StandingSource {..} =
+totalScoreColumn :: [Lang] -> StandingColumn
+totalScoreColumn lang =
   let caption      = preEscapedText "&Sigma;"
       captionTitle = preEscapedToValue $ translate lang MsgTotalScoreCaptionTitle
       getter _ = rowScore . rowStats
-      maxScore = if enableScores then sum $ problemMaxScore <$> problems else toInteger $ Map.size problems
-      displayer score = calculateConditionalStyle conditionalStyles (score / fromInteger maxScore) td $ toMarkup score
-      column = buildCustomDisplayedStandingColumn "total_score" caption getter displayer
+      column = buildRegularStandingColumn "total_score" caption getter
   in  column { columnCaption = columnCaption column ! title captionTitle }
 
 lastSuccessTimeColumn :: [Lang] -> StandingColumn
@@ -166,14 +157,14 @@ lastSuccessTimeColumn lang =
       column = buildCustomDisplayedStandingColumn "last_success_time" caption getter displayF
   in  column { columnCaption = columnCaption column ! title captionTitle }
 
-getColumnByVariant :: [Lang] -> StandingConfig -> StandingSource -> ColumnVariant -> StandingColumn
-getColumnByVariant lang cfg src columnV = case columnV of
+getColumnByVariant :: [Lang] -> ColumnVariant -> StandingColumn
+getColumnByVariant lang columnV = case columnV of
   PlaceColumnVariant           -> placeColumn lang
   UserIDColumnVariant          -> userIDColumn lang
   NameColumnVariant            -> contestantNameColumn lang
   SuccessesColumnVariant       -> totalSuccessesColumn lang
   AttemptsColumnVariant        -> totalAttemptsColumn lang
-  ScoreColumnVariant           -> totalScoreColumn lang cfg src
+  ScoreColumnVariant           -> totalScoreColumn lang
   LastSuccessTimeColumnVariant -> lastSuccessTimeColumn lang
 
 -- Cell rendering

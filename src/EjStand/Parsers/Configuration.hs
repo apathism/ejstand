@@ -26,9 +26,7 @@ import           Control.Monad.Trans.State.Strict
                                                 , put
                                                 )
 import qualified Data.ByteString               as B
-import           Data.Char                      ( isDigit
-                                                , isLetter
-                                                )
+import           Data.Char                      ( isLetter )
 import qualified Data.Foldable                 as Foldable
 import qualified Data.List                     as List
 import           Data.Map.Strict                ( Map
@@ -54,6 +52,7 @@ import           Data.Time                      ( UTCTime
                                                 , parseTimeM
                                                 )
 import           EjStand.Internals.Core
+import qualified EjStand.Internals.ELang       as ELang
 import qualified EjStand.Internals.Regex       as RE
 import           EjStand.Models.Standing
 import           Prelude                 hiding ( toInteger )
@@ -78,6 +77,7 @@ data ParsingException = NoValue Text
                       | InvalidColumnName Text Text
                       | FileNotFound Text Text
                       | UnexpectedKey Text
+                      | ELangError Text Text
 
 instance Exception ParsingException
 
@@ -104,7 +104,8 @@ instance Show ParsingException where
   show (InvalidColumnName key col) = sconcat ["Unknown column name \"", col, "\" on key \"", key, "\""]
   show (FileNotFound key filename) =
     sconcat ["File \"", filename, "\" was mentioned in key \"", key, "\" value, but can't be found or unreadable"]
-  show (UnexpectedKey key) = sconcat ["Unexpected key \"", key, "\""]
+  show (UnexpectedKey key      ) = sconcat ["Unexpected key \"", key, "\""]
+  show (ELangError key errorMsg) = sconcat ["ELang error occured on key \"", key, "\": ", errorMsg]
 
 -- Function tools
 
@@ -226,18 +227,6 @@ toUTC key value = case parseTimeM True defaultTimeLocale "%F %T" $ unpack value 
   (Just value) -> value
   Nothing      -> throw $ TimeExpected key value
 
-toComparison :: Text -> Text -> Comparison Rational
-toComparison key value =
-  let (op, arg) = Text.break isDigit $ Text.filter (/= ' ') value
-      !sign     = fromMaybe (throw $ InvalidCondition key value) (readSign op)
-      !ratio    = toRatio key arg
-  in  Comparison sign ratio
-
-toComparisons :: Text -> Text -> [Comparison Rational]
-toComparisons key value = case Text.splitOn "," value of
-  []  -> throw $ InvalidCondition key value
-  lst -> toComparison key <$> lst
-
 toIntervalValue :: Text -> Text -> Set Integer
 toIntervalValue key =
   mconcat . map (readInterval key . map (toInteger key . Text.strip) . Text.splitOn "-") . Text.splitOn ","
@@ -254,6 +243,11 @@ toRegex key value = case RE.buildRegex value of
 
 toRegexReplacer :: Text -> Text -> RE.Replacer
 toRegexReplacer _ = RE.buildReplacer
+
+toELangAST :: Text -> Text -> ELang.ASTElement
+toELangAST key value = case ELang.buildAST value of
+  Left  errorMsg -> throw $ ELangError key errorMsg
+  Right ast      -> ast
 
 toColumnVariant :: Text -> Text -> ColumnVariant
 toColumnVariant key value =
@@ -315,7 +309,7 @@ buildExtraDeadline = evalState $ do
 buildConditionalStyle :: Configuration -> ConditionalStyle
 buildConditionalStyle = evalState $ do
   styleValue <- takeMandatoryValue |> toTextValue $ "StyleValue"
-  conditions <- takeMandatoryValue |> toTextValue |> toComparisons $ "Conditions"
+  conditions <- takeMandatoryValue |> toTextValue |> toELangAST $ "Conditions"
   !_         <- ensureEmptyState
   return $ ConditionalStyle conditions styleValue
 

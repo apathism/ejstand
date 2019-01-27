@@ -178,10 +178,10 @@ sortRows orderer = sortBy (comparator orderer)
 buildStanding :: [Lang] -> StandingConfig -> StandingSource -> Standing
 buildStanding lang cfg@StandingConfig {..} src =
   let problems = buildProblems cfg src
-      orderer  = (\(ord, col) -> (ord, getColumnByVariant lang cfg src col)) <$> rowSortingOrder
+      orderer  = (\(ord, col) -> (ord, getColumnByVariant lang col)) <$> rowSortingOrder
   in  Standing { standingConfig   = cfg
                , standingSource   = src
                , standingProblems = problems
                , standingRows     = sortRows orderer $ buildRows cfg src problems
-               , standingColumns  = getColumnByVariant lang cfg src <$> displayedColumns
+               , standingColumns  = getColumnByVariant lang <$> displayedColumns
                }

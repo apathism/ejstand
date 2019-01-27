@@ -14,15 +14,9 @@ module EjStand.Models.Standing
   , ConditionalStyle(..)
   , ColumnVariant(..)
   , OrderType(..)
-  , ComparisonSign(..)
-  , Comparison(..)
   , defaultGlobalConfiguration
   , getRunStatusType
-  , signDisplay
-  , signFunction
-  , readSign
   , readColumnVariant
-  , checkComparison
   )
 where
 
@@ -35,12 +29,12 @@ import           Data.Semigroup                 ( Semigroup
                                                 , (<>)
                                                 )
 import           Data.Set                       ( Set )
-import           Data.String                    ( IsString )
 import           Data.Text                      ( Text )
 import qualified Data.Text                     as Text
 import           Data.Time                      ( UTCTime )
 import           EjStand.Internals.ADTReader    ( mkADTReader )
 import           EjStand.Internals.Core
+import qualified EjStand.Internals.ELang       as ELang
 import qualified EjStand.Internals.Regex       as RE
 import           EjStand.Models.Base
 import           Text.Blaze.Html                ( Markup )
@@ -79,43 +73,13 @@ defaultGlobalConfiguration = GlobalConfiguration { xmlFilePattern = "/home/judge
                                                  , webRoot = "/"
                                                  }
 
-data ComparisonSign = Less | LessOrEq | Greater | GreaterOrEq | Equal | NotEqual
-  deriving (Show, Eq, Bounded, Enum)
-
-data Comparison t = Comparison !ComparisonSign !t
-  deriving (Show, Eq)
-
-signDisplay :: IsString s => ComparisonSign -> s
-signDisplay Less        = "<"
-signDisplay LessOrEq    = "<="
-signDisplay Greater     = ">"
-signDisplay GreaterOrEq = ">="
-signDisplay Equal       = "="
-signDisplay NotEqual    = "/="
-
-signFunction :: Ord t => ComparisonSign -> t -> t -> Bool
-signFunction Less        = (<)
-signFunction LessOrEq    = (<=)
-signFunction Greater     = (>)
-signFunction GreaterOrEq = (>=)
-signFunction Equal       = (==)
-signFunction NotEqual    = (/=)
-
-readSign :: Text -> Maybe ComparisonSign
-readSign text = case filter ((== text) . signDisplay) allValues of
-  [value] -> Just value
-  _       -> Nothing
-
-checkComparison :: Ord t => t -> Comparison t -> Bool
-checkComparison argument (Comparison sign value) = signFunction sign argument value
-
 data FixedDeadline = FixedDeadline { contestIDs    :: !(Set Integer)
                                    , deadline      :: !UTCTime
                                    , contestantIDs :: !(Maybe (Set Integer))
                                    }
                                    deriving (Show)
 
-data ConditionalStyle = ConditionalStyle { conditions :: ![Comparison Rational]
+data ConditionalStyle = ConditionalStyle { conditions :: !ELang.ASTElement
                                          , styleValue :: !Text
                                          }
                                          deriving (Show)

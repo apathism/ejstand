@@ -26,13 +26,13 @@ data ASTElement = ASTConstant !Value
                 deriving (Show)
 
 data Binding m = VariableBinding { bindingName  :: !Text
-                                 , bindingValue :: !(m Value)
+                                 , bindingValue :: m Value
                                  }
                | OperatorBinding { bindingName     :: !Text
-                                 , bindingOperator :: !(Value -> Value -> ExceptT Text m Value)
+                                 , bindingOperator :: Value -> Value -> ExceptT Text m Value
                                  }
                | FunctionBinding { bindingName     :: !Text
-                                 , bindingFunction :: !([Value] -> ExceptT Text m Value)
+                                 , bindingFunction :: [Value] -> ExceptT Text m Value
                                  }
 
 instance IdentifiableBy Text (Binding m) where

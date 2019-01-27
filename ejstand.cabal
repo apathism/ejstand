@@ -37,6 +37,7 @@ executable ejstand
                        EjStand.CLI
                        EjStand.Internals.ADTReader
                        EjStand.Internals.Core
+                       EjStand.Internals.ELang
                        EjStand.Internals.ELang.AST
                        EjStand.Internals.ELang.Eval
                        EjStand.Internals.ELang.Library

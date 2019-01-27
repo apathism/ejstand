@@ -26,6 +26,7 @@ import           Data.Maybe                     ( catMaybes
                                                 )
 import           Data.Text                      ( Text )
 import           Data.Text                     as Text
+import qualified Data.Text.Read                as TextR
 import           Data.Sequence                 as Seq
 import           EjStand.Internals.Core         ( fromIdentifiableList )
 import           EjStand.Internals.ELang.AST    ( Binding(..)
@@ -48,6 +49,10 @@ instance (ToValue a) => NativeFunction a where
   fromNative result [] = return . toValue $ result
   fromNative _      _  = mzero
 
+instance {-# OVERLAPPING #-} (ToValue a) => NativeFunction (Maybe a) where
+  fromNative result [] = return . fromMaybe ValueVoid $ toValue <$> result
+  fromNative _      _  = mzero
+
 instance {-# OVERLAPPING #-} (FromValue a, NativeFunction r) => NativeFunction (a -> r) where
   fromNative _    []                        = mzero
   fromNative func (firstValue : tailValues) = do
@@ -65,6 +70,8 @@ mergeNativeToFunction handlers name args = maybeToExceptT (invalidArgumentsError
 mergeNativeToOperator
   :: Monad m => [[Value] -> MaybeT m Value] -> OperatorMeta -> Value -> Value -> ExceptT Text m Value
 mergeNativeToOperator handlers OperatorMeta {..} v1 v2 = mergeNativeToFunction handlers operatorMetaName [v1, v2]
+
+-- Function patterns
 
 listFoldable1 :: Monad m => CombinedFunction m -> [Value] -> MaybeT m Value
 listFoldable1 cf@(_, f) lst = case lst of
@@ -211,6 +218,20 @@ operatorSeq = (OperatorMeta ";" 1 LeftAssociativity, operatorF)
   operatorF :: Monad m => Value -> Value -> ExceptT Text m Value
   operatorF !_ = return
 
+-- Cast functions
+
+functionToInteger :: Monad m => CombinedFunction m
+functionToInteger = "ToInteger" ==> mergeNativeToFunction
+  [ fromNative (toInteger . fromEnum :: Bool -> Integer)
+  , fromNative (id :: Integer -> Integer)
+  , fromNative (truncate :: Rational -> Integer)
+  , fromNative (either (const Nothing) isFullyRead . (TextR.signed TextR.decimal :: TextR.Reader Integer))
+  ]
+ where
+  isFullyRead :: (a, Text) -> Maybe a
+  isFullyRead (value, "") = Just value
+  isFullyRead _           = Nothing
+
 -- Bool functions
 
 functionNot :: Monad m => CombinedFunction m
@@ -230,6 +251,13 @@ functionMax = "Max" ==> mergeNativeToFunction
   , listFoldable1 functionMax
   ]
 
+functionMin :: Monad m => CombinedFunction m
+functionMin = "Min" ==> mergeNativeToFunction
+  [ fromNative (min :: Integer -> Integer -> Integer)
+  , fromNative (min :: Rational -> Rational -> Rational)
+  , fromNative (min :: Text -> Text -> Text)
+  , listFoldable1 functionMin
+  ]
 
 -- Control functions
 
@@ -268,7 +296,7 @@ allCombinedOperators =
   ]
 
 allCombinedFunctions :: Monad m => [CombinedFunction m]
-allCombinedFunctions = [functionNot, functionAbs, functionMax, functionIf]
+allCombinedFunctions = [functionToInteger, functionNot, functionAbs, functionMax, functionMin, functionIf]
 
 defaultOperatorMeta :: [OperatorMeta]
 defaultOperatorMeta = fst <$> (allCombinedOperators :: [CombinedOperator Identity])
