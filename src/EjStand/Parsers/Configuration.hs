@@ -339,50 +339,52 @@ defaultSortingOrder = [(Descending, ScoreColumnVariant), (Ascending, NameColumnV
 
 buildStandingConfig :: Text -> TraversingState IO StandingConfig
 buildStandingConfig path = do
-  standingName          <- takeMandatoryValue |> toTextValue $ "Name"
-  standingContests      <- takeMandatoryValue |> toTextValue |> toIntervalValue $ "Contests"
-  internalName          <- takeMandatoryValue |> toTextValue $ "InternalName"
-  contestNamePattern    <- takeUniqueValue ||> toNestedConfig |.> buildContestNamePattern $ "ContestNamePattern"
-  reversedContestOrder  <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ReversedContestOrder"
-  displayedColumns      <-
+  standingName           <- takeMandatoryValue |> toTextValue $ "Name"
+  standingContests       <- takeMandatoryValue |> toTextValue |> toIntervalValue $ "Contests"
+  internalName           <- takeMandatoryValue |> toTextValue $ "InternalName"
+  contestNamePattern     <- takeUniqueValue ||> toNestedConfig |.> buildContestNamePattern $ "ContestNamePattern"
+  reversedContestOrder   <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ReversedContestOrder"
+  displayedColumns       <-
     takeUniqueValue ||> toTextValue ||> toColumnVariantL .> fromMaybe defaultDisplayedColumns $ "DisplayedColumns"
-  rowSortingOrder       <-
+  mergeContestantsByName <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "MergeContestantsByName"
+  rowSortingOrder        <-
     takeUniqueValue ||> toTextValue ||> toRowSortingOrderL .> fromMaybe defaultSortingOrder $ "RowSortingOrder"
-  headerAppendix        <-
+  headerAppendix         <-
     takeUniqueValue ||> toTextValue ||> transformHomePath path ||=> toFileContents $ "HeaderAppendixFile"
-  disableDefaultCSS     <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "DisableDefaultCSS"
-  conditionalStyles     <- buildNestedOptions buildConditionalStyle "ConditionalStyle"
-  enableDeadlines       <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "EnableDeadlines"
-  deadlinePenalty       <- if enableDeadlines
+  disableDefaultCSS      <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "DisableDefaultCSS"
+  conditionalStyles      <- buildNestedOptions buildConditionalStyle "ConditionalStyle"
+  enableDeadlines        <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "EnableDeadlines"
+  deadlinePenalty        <- if enableDeadlines
     then takeMandatoryValue |> toTextValue |> toRatio $ "DeadlinePenalty"
     else return 0
-  fixedDeadlines        <- buildNestedOptions buildExtraDeadline "SetFixedDeadline"
-  enableScores          <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "EnableScores"
-  onlyScoreLastSubmit   <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "OnlyScoreLastSubmit"
-  showAttemptsNumber    <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe True $ "ShowAttemptsNumber"
-  showSuccessTime       <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ShowSuccessTime"
-  showLanguages         <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ShowLanguages"
-  showProblemStatistics <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ShowProblemStatistics"
-  !_                    <- ensureEmptyState
-  return $ StandingConfig { standingName          = standingName
-                          , standingContests      = standingContests
-                          , internalName          = internalName
-                          , contestNamePattern    = contestNamePattern
-                          , reversedContestOrder  = reversedContestOrder
-                          , displayedColumns      = displayedColumns
-                          , rowSortingOrder       = rowSortingOrder
-                          , headerAppendix        = headerAppendix
-                          , disableDefaultCSS     = disableDefaultCSS
-                          , conditionalStyles     = conditionalStyles
-                          , enableDeadlines       = enableDeadlines
-                          , deadlinePenalty       = deadlinePenalty
-                          , fixedDeadlines        = fixedDeadlines
-                          , enableScores          = enableScores
-                          , onlyScoreLastSubmit   = onlyScoreLastSubmit
-                          , showAttemptsNumber    = showAttemptsNumber
-                          , showSuccessTime       = showSuccessTime
-                          , showLanguages         = showLanguages
-                          , showProblemStatistics = showProblemStatistics
+  fixedDeadlines         <- buildNestedOptions buildExtraDeadline "SetFixedDeadline"
+  enableScores           <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "EnableScores"
+  onlyScoreLastSubmit    <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "OnlyScoreLastSubmit"
+  showAttemptsNumber     <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe True $ "ShowAttemptsNumber"
+  showSuccessTime        <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ShowSuccessTime"
+  showLanguages          <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ShowLanguages"
+  showProblemStatistics  <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ShowProblemStatistics"
+  !_                     <- ensureEmptyState
+  return $ StandingConfig { standingName           = standingName
+                          , standingContests       = standingContests
+                          , internalName           = internalName
+                          , contestNamePattern     = contestNamePattern
+                          , reversedContestOrder   = reversedContestOrder
+                          , displayedColumns       = displayedColumns
+                          , mergeContestantsByName = mergeContestantsByName
+                          , rowSortingOrder        = rowSortingOrder
+                          , headerAppendix         = headerAppendix
+                          , disableDefaultCSS      = disableDefaultCSS
+                          , conditionalStyles      = conditionalStyles
+                          , enableDeadlines        = enableDeadlines
+                          , deadlinePenalty        = deadlinePenalty
+                          , fixedDeadlines         = fixedDeadlines
+                          , enableScores           = enableScores
+                          , onlyScoreLastSubmit    = onlyScoreLastSubmit
+                          , showAttemptsNumber     = showAttemptsNumber
+                          , showSuccessTime        = showSuccessTime
+                          , showLanguages          = showLanguages
+                          , showProblemStatistics  = showProblemStatistics
                           }
 
 parseStandingConfig :: FilePath -> IO StandingConfig

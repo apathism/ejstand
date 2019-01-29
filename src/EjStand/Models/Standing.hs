@@ -134,25 +134,26 @@ data OrderType = Ascending | Descending
 
 mkADTReader ''ColumnVariant "readColumnVariant" (Text.unpack . fromJust . Text.stripSuffix "ColumnVariant" . Text.pack)
 
-data StandingConfig = StandingConfig { standingName          :: !Text
-                                     , standingContests      :: !(Set Integer)
-                                     , internalName          :: !Text
-                                     , contestNamePattern    :: !(Maybe (RE.Regex, RE.Replacer))
-                                     , reversedContestOrder  :: !Bool
-                                     , displayedColumns      :: ![ColumnVariant]
-                                     , rowSortingOrder       :: ![(OrderType, ColumnVariant)]
-                                     , disableDefaultCSS     :: !Bool
-                                     , headerAppendix        :: !(Maybe Text)
-                                     , conditionalStyles     :: ![ConditionalStyle]
-                                     , enableDeadlines       :: !Bool
-                                     , deadlinePenalty       :: !Rational
-                                     , fixedDeadlines        :: ![FixedDeadline]
-                                     , enableScores          :: !Bool
-                                     , onlyScoreLastSubmit   :: !Bool
-                                     , showAttemptsNumber    :: !Bool
-                                     , showSuccessTime       :: !Bool
-                                     , showLanguages         :: !Bool
-                                     , showProblemStatistics :: !Bool
+data StandingConfig = StandingConfig { standingName           :: !Text
+                                     , standingContests       :: !(Set Integer)
+                                     , internalName           :: !Text
+                                     , contestNamePattern     :: !(Maybe (RE.Regex, RE.Replacer))
+                                     , reversedContestOrder   :: !Bool
+                                     , displayedColumns       :: ![ColumnVariant]
+                                     , mergeContestantsByName :: !Bool
+                                     , rowSortingOrder        :: ![(OrderType, ColumnVariant)]
+                                     , disableDefaultCSS      :: !Bool
+                                     , headerAppendix         :: !(Maybe Text)
+                                     , conditionalStyles      :: ![ConditionalStyle]
+                                     , enableDeadlines        :: !Bool
+                                     , deadlinePenalty        :: !Rational
+                                     , fixedDeadlines         :: ![FixedDeadline]
+                                     , enableScores           :: !Bool
+                                     , onlyScoreLastSubmit    :: !Bool
+                                     , showAttemptsNumber     :: !Bool
+                                     , showSuccessTime        :: !Bool
+                                     , showLanguages          :: !Bool
+                                     , showProblemStatistics  :: !Bool
                                      }
 
 data RunStatusType =  Ignore | Mistake | Rejected | Processing | Pending | Success | Disqualified | Error
