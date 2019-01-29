@@ -5,19 +5,27 @@ module EjStand.StandingBuilder
   )
 where
 
-import           Data.List                      ( sortBy
+import           Data.Functor                   ( (<&>) )
+import           Data.List                      ( foldl'
+                                                , sortBy
                                                 , sortOn
                                                 )
 import qualified Data.Map.Strict               as Map
-import           Data.Map.Strict                ( (!) )
+import           Data.Map.Strict                ( Map
+                                                , (!)
+                                                , (!?)
+                                                )
 import           Data.Maybe                     ( catMaybes
                                                 , fromJust
                                                 , fromMaybe
                                                 )
 import           Data.Ratio                     ( (%) )
 import qualified Data.Set                      as Set
-import           Data.Text                      ( unpack )
+import           Data.Text                      ( Text
+                                                , unpack
+                                                )
 import           Data.Time                      ( UTCTime )
+import           EjStand.Internals.Core         ( fromIdentifiableList ) 
 import           EjStand.Models.Base
 import           EjStand.Models.Standing
 import           EjStand.Parsers.Data           ( parseEjudgeXMLs )
@@ -175,13 +183,34 @@ sortRows orderer = sortBy (comparator orderer)
           EQ -> comparator tail row1 row2
           x  -> x
 
+mergeStandingSourceContestantsByName :: StandingSource -> StandingSource
+mergeStandingSourceContestantsByName src@StandingSource {..} = src { contestants = newContestants, runs = newRuns }
+ where
+  (_, replacerMap, newContestants) =
+    foldl' contestantFoldFunction (Map.empty, Map.empty, contestants) $ Map.elems contestants
+  newRuns =
+    fromIdentifiableList
+      $   Map.elems runs
+      <&> (\run@Run {..} -> case replacerMap !? runContestant of
+            Just newContestant -> run { runContestant = newContestant }
+            Nothing            -> run
+          )
+  contestantFoldFunction
+    :: (Map Text Integer, Map Integer Integer, Map Integer Contestant)
+    -> Contestant
+    -> (Map Text Integer, Map Integer Integer, Map Integer Contestant)
+  contestantFoldFunction (nameIndex, idIndex, contestantMap) c1 = case nameIndex !? contestantName c1 of
+    Nothing     -> (Map.insert (contestantName c1) (contestantID c1) nameIndex, idIndex, contestantMap)
+    (Just c2id) -> (nameIndex, Map.insert (contestantID c1) c2id idIndex, Map.delete (contestantID c1) contestantMap)
+
 buildStanding :: [Lang] -> StandingConfig -> StandingSource -> Standing
 buildStanding lang cfg@StandingConfig {..} src =
-  let problems = buildProblems cfg src
+  let src'     = if mergeContestantsByName then mergeStandingSourceContestantsByName src else src
+      problems = buildProblems cfg src'
       orderer  = (\(ord, col) -> (ord, getColumnByVariant lang col)) <$> rowSortingOrder
   in  Standing { standingConfig   = cfg
-               , standingSource   = src
+               , standingSource   = src'
                , standingProblems = problems
-               , standingRows     = sortRows orderer $ buildRows cfg src problems
+               , standingRows     = sortRows orderer $ buildRows cfg src' problems
                , standingColumns  = getColumnByVariant lang <$> displayedColumns
                }

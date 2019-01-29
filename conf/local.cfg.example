@@ -121,6 +121,17 @@ InternalName = example
 -- DisplayedColumns = Place, Name, Score
 
 --|
+--|  Option "MergeContestantsByName"
+--|    Required:      optional
+--|    Default value: False
+--|
+--|    Enables auto-merging contestants with the same name into single
+--|    contestant with all the runs combined.
+--|
+
+-- MergeContestantsByName = False
+
+--|
 --|  Option "RowSortingOrder"
 --|    Required:      optional
 --|    Default value: Score[^], Name[v]
