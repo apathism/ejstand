@@ -1,11 +1,14 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE FunctionalDependencies    #-}
+{-# LANGUAGE OverloadedStrings         #-}
+{-# LANGUAGE TemplateHaskell           #-}
 module EjStand.Models.Standing
   ( GlobalConfiguration(..)
   , StandingSource(..)
   , StandingConfig(..)
   , StandingCell(..)
   , StandingColumn(..)
+  , GenericStandingColumn(..)
   , StandingRow(..)
   , StandingRowStats(..)
   , Standing(..)
@@ -16,14 +19,13 @@ module EjStand.Models.Standing
   , OrderType(..)
   , defaultGlobalConfiguration
   , getRunStatusType
+  , allColumnVariants
   , readColumnVariant
   )
 where
 
 import           Data.Maybe                     ( fromJust )
-import           Data.Map.Strict                ( Map
-                                                , (!)
-                                                )
+import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 import           Data.Semigroup                 ( Semigroup
                                                 , (<>)
@@ -32,12 +34,25 @@ import           Data.Set                       ( Set )
 import           Data.Text                      ( Text )
 import qualified Data.Text                     as Text
 import           Data.Time                      ( UTCTime )
-import           EjStand.Internals.ADTReader    ( mkADTReader )
+
+import           EjStand.Internals.ADTReader    ( mkADTReader
+                                                , mkADTReaderList
+                                                )
 import           EjStand.Internals.Core
 import qualified EjStand.Internals.ELang       as ELang
 import qualified EjStand.Internals.Regex       as RE
 import           EjStand.Models.Base
-import           Text.Blaze.Html                ( Markup )
+import           Text.Blaze.Html                ( Markup
+                                                , (!)
+                                                , preEscapedTextValue
+                                                )
+import           Text.Blaze.Html5               ( td
+                                                , th
+                                                )
+import           Text.Blaze.Html5.Attributes    ( class_
+                                                , rowspan
+                                                , title
+                                                )
 
 data StandingSource = StandingSource { contests    :: !(Map Integer Contest)
                                      , contestants :: !(Map Integer Contestant)
@@ -91,12 +106,13 @@ data ColumnVariant = PlaceColumnVariant
                    | AttemptsColumnVariant
                    | ScoreColumnVariant
                    | LastSuccessTimeColumnVariant
-                   deriving (Show, Eq, Bounded, Enum)
+                   deriving (Show, Eq, Ord, Bounded, Enum)
 
 data OrderType = Ascending | Descending
                  deriving (Show, Eq, Bounded, Enum)
 
 mkADTReader ''ColumnVariant "readColumnVariant" (Text.unpack . fromJust . Text.stripSuffix "ColumnVariant" . Text.pack)
+mkADTReaderList ''ColumnVariant "allColumnVariants" (Text.unpack . fromJust . Text.stripSuffix "ColumnVariant" . Text.pack)
 
 data StandingConfig = StandingConfig { standingName           :: !Text
                                      , standingContests       :: !(Set Integer)
@@ -108,7 +124,7 @@ data StandingConfig = StandingConfig { standingName           :: !Text
                                      , rowSortingOrder        :: ![(OrderType, ColumnVariant)]
                                      , disableDefaultCSS      :: !Bool
                                      , headerAppendix         :: !(Maybe Text)
-                                     , conditionalStyles      :: ![ConditionalStyle]
+                                     , conditionalStyles      :: !(Map ColumnVariant [ConditionalStyle])
                                      , enableDeadlines        :: !Bool
                                      , deadlinePenalty        :: !Rational
                                      , fixedDeadlines         :: ![FixedDeadline]
@@ -145,7 +161,7 @@ runStatusTypeMap = $( [| runStatusTypeMap' |] )
     ]
 
 getRunStatusType :: RunStatus -> RunStatusType
-getRunStatusType status = runStatusTypeMap ! status
+getRunStatusType = (Map.!) runStatusTypeMap
 
 data StandingCell = StandingCell { cellType      :: !RunStatusType
                                  , cellIsOverdue :: !Bool
@@ -179,14 +195,36 @@ data StandingRow = StandingRow { rowContestant :: !Contestant
                                }
                                deriving (Show)
 
-data StandingColumn = StandingColumn { columnCaption  :: !Markup
-                                     , columnRowValue :: !(Integer -> StandingRow -> Markup)
-                                     , columnRowOrder :: !(StandingRow -> StandingRow -> Ordering)
-                                     }
+class StandingColumn c v | c -> v where
+  columnTagClass :: c -> Text
+  columnCaptionText :: c -> Markup
+  columnValue :: c -> Integer -> StandingRow -> v
+  columnOrder :: c -> StandingRow -> StandingRow -> Ordering
+  columnValueDisplayer :: c -> v -> Markup
+
+  columnCaptionTitleText :: c -> Maybe Text
+  columnCaptionTitleText = const Nothing
+
+  columnCaptionTag :: c -> Markup -> Markup
+  columnCaptionTag column = let base = th ! rowspan "2" ! class_ (preEscapedTextValue . columnTagClass $ column)
+                            in  case columnCaptionTitleText column of
+                              Nothing -> base
+                              Just t  -> base ! title (preEscapedTextValue t)
+
+  columnValueTag :: c -> Markup -> Markup
+  columnValueTag column = td ! class_ (preEscapedTextValue . columnTagClass $ column)
+
+  columnCaption :: c -> Markup
+  columnCaption column = columnCaptionTag column . columnCaptionText $ column
+
+  columnValueCell :: c -> Integer -> StandingRow -> Markup
+  columnValueCell column place row = columnValueTag column . columnValueDisplayer column $ columnValue column place row
+
+data GenericStandingColumn = forall c v . StandingColumn c v => GenericStandingColumn c
 
 data Standing = Standing { standingConfig   :: !StandingConfig
                          , standingSource   :: !StandingSource
                          , standingProblems :: ![Problem]
                          , standingRows     :: ![StandingRow]
-                         , standingColumns  :: ![StandingColumn]
+                         , standingColumns  :: ![GenericStandingColumn]
                          }

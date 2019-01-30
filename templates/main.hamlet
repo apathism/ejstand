@@ -13,7 +13,7 @@ $doctype 5
         _{MsgAdditionalInformation}
         <table class="standing"> 
             <tr>
-                $forall column <- standingColumns
+                $forall (GenericStandingColumn column) <- standingColumns
                     #{columnCaption column}
                 $forall maybeContest <- buildContestList standingSource standingProblems
                     $case maybeContest
@@ -29,8 +29,8 @@ $doctype 5
                         #{problemShortName}
             $forall (place, row) <- enumerate standingRows
                 <tr id="contestant-#{contestantID $ rowContestant row}">
-                    $forall column <- standingColumns
-                        #{columnRowValue column place row}
+                    $forall (GenericStandingColumn column) <- standingColumns
+                        #{columnValueCell column place row}
                     $forall (problem, cell) <- fmap (getRowCellByProblem row) $ standingProblems
                         #{renderCell standing row problem cell}
             $case problemSuccesses

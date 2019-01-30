@@ -1,24 +1,30 @@
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TypeSynonymInstances  #-}
 module EjStand.Web.HtmlElements
   ( EjStandLocaleMessage(..)
   , EjStandRoute(..)
+  , PlaceColumn(..)
+  , UserIDColumn(..)
+  , ContestantNameColumn(..)
+  , TotalScoreColumn(..)
+  , TotalSuccessesColumn(..)
+  , LastSuccessTimeColumn(..)
   , translate
   , skipUrlRendering
-  , placeColumn
-  , contestantNameColumn
-  , totalScoreColumn
-  , totalSuccessesColumn
-  , lastSuccessTimeColumn
   , getColumnByVariant
+  , getColumnsByVariantWithStyles
   , renderStandingProblemSuccesses
   , renderCell
   )
 where
 
 import           Control.Monad                  ( when )
+import           Data.Function                  ( on )
 import           Data.Map.Strict                ( (!?) )
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( catMaybes )
@@ -91,81 +97,87 @@ instance ToMarkup UTCTime where
 
 -- Columns rendering
 
-buildCustomDisplayedStandingColumn
-  :: Ord a => Text -> Markup -> (Maybe Integer -> StandingRow -> a) -> (a -> Markup) -> StandingColumn
-buildCustomDisplayedStandingColumn className caption getter displayF = StandingColumn caption' markupValue order
- where
-  caption' = th ! class_ (preEscapedToValue className) ! rowspan "2" $ caption
-  markupValue place row = displayF (getter (Just place) row) ! class_ (preEscapedToValue className)
-  order row1 row2 = getter Nothing row1 `compare` getter Nothing row2
+newtype PlaceColumn = PlaceColumn { lang :: [Lang] }
 
-buildRegularStandingColumn
-  :: (ToMarkup a, Ord a) => Text -> Markup -> (Maybe Integer -> StandingRow -> a) -> StandingColumn
-buildRegularStandingColumn cN cap getter = buildCustomDisplayedStandingColumn cN cap getter displayF
-  where displayF value = td $ toMarkup value
+instance StandingColumn PlaceColumn Integer where
+  columnTagClass = const "place"
+  columnCaptionText PlaceColumn {..} = preEscapedText $ translate lang MsgPlace
+  columnValue _ = const
+  columnOrder _ _ _ = EQ
+  columnValueDisplayer _ = toMarkup
 
-placeColumn :: [Lang] -> StandingColumn
-placeColumn lang = StandingColumn caption markupValue order
- where
-  caption = th ! class_ "place" ! rowspan "2" $ preEscapedText $ translate lang MsgPlace
-  markupValue place _ = td ! class_ "place" $ toMarkup place
-  order _ _ = EQ
+newtype UserIDColumn = UserIDColumn { lang :: [Lang] }
 
-userIDColumn :: [Lang] -> StandingColumn
-userIDColumn lang = buildRegularStandingColumn "user_id" caption getter
- where
-  caption = preEscapedText $ translate lang MsgUserID
-  getter _ = contestantID . rowContestant
+instance StandingColumn UserIDColumn Integer where
+  columnTagClass = const "user_id"
+  columnCaptionText UserIDColumn {..} = preEscapedText $ translate lang MsgUserID
+  columnValue _ _ = contestantID . rowContestant
+  columnOrder column = compare `on` columnValue column (-1)
+  columnValueDisplayer _ = toMarkup
 
-contestantNameColumn :: [Lang] -> StandingColumn
-contestantNameColumn lang = buildRegularStandingColumn "contestant" caption getter
- where
-  caption = preEscapedText $ translate lang MsgContestant
-  getter _ = contestantName . rowContestant
+newtype ContestantNameColumn = ContestantNameColumn { lang :: [Lang] }
 
-totalSuccessesColumn :: [Lang] -> StandingColumn
-totalSuccessesColumn lang =
-  let caption = "="
-      getter _ = rowSuccesses . rowStats
-      captionTitle = preEscapedToValue $ translate lang MsgSuccessesCaptionTitle
-      column       = buildRegularStandingColumn "total_successes" caption getter
-  in  column { columnCaption = columnCaption column ! title captionTitle }
+instance StandingColumn ContestantNameColumn Text where
+  columnTagClass = const "contestant"
+  columnCaptionText ContestantNameColumn {..} = preEscapedText $ translate lang MsgContestant
+  columnValue _ _ = contestantName . rowContestant
+  columnOrder column = compare `on` columnValue column (-1)
+  columnValueDisplayer _ = toMarkup
 
-totalAttemptsColumn :: [Lang] -> StandingColumn
-totalAttemptsColumn lang =
-  let caption = "!"
-      getter _ = rowAttempts . rowStats
-      captionTitle = preEscapedToValue $ translate lang MsgAttemptsCaptionTitle
-      column       = buildRegularStandingColumn "total_attempts" caption getter
-  in  column { columnCaption = columnCaption column ! title captionTitle }
+newtype TotalSuccessesColumn = TotalSuccessesColumn { lang :: [Lang] }
 
-totalScoreColumn :: [Lang] -> StandingColumn
-totalScoreColumn lang =
-  let caption      = preEscapedText "&Sigma;"
-      captionTitle = preEscapedToValue $ translate lang MsgTotalScoreCaptionTitle
-      getter _ = rowScore . rowStats
-      column = buildRegularStandingColumn "total_score" caption getter
-  in  column { columnCaption = columnCaption column ! title captionTitle }
+instance StandingColumn TotalSuccessesColumn Integer where
+  columnTagClass = const "total_successes"
+  columnCaptionText _ = "="
+  columnCaptionTitleText TotalSuccessesColumn {..} = Just $ translate lang MsgSuccessesCaptionTitle
+  columnValue _ _ = rowSuccesses . rowStats
+  columnOrder column = compare `on` columnValue column (-1)
+  columnValueDisplayer _ = toMarkup
 
-lastSuccessTimeColumn :: [Lang] -> StandingColumn
-lastSuccessTimeColumn lang =
-  let caption      = toMarkup $ translate lang MsgLastSuccessTime
-      captionTitle = preEscapedToValue $ translate lang MsgLastSuccessTimeCaptionTitle
-      getter _ row = rowLastTimeSuccess $ rowStats row
-      displayF Nothing     = td ""
-      displayF (Just time) = td $ toMarkup time
-      column = buildCustomDisplayedStandingColumn "last_success_time" caption getter displayF
-  in  column { columnCaption = columnCaption column ! title captionTitle }
+newtype TotalAttemptsColumn = TotalAttemptsColumn { lang :: [Lang] }
 
-getColumnByVariant :: [Lang] -> ColumnVariant -> StandingColumn
+instance StandingColumn TotalAttemptsColumn Integer where
+  columnTagClass = const "total_attempts"
+  columnCaptionText _ = "!"
+  columnCaptionTitleText TotalAttemptsColumn {..} = Just $ translate lang MsgAttemptsCaptionTitle
+  columnValue _ _ = rowAttempts . rowStats
+  columnOrder column = compare `on` columnValue column (-1)
+  columnValueDisplayer _ = toMarkup
+
+newtype TotalScoreColumn = TotalScoreColumn { lang :: [Lang] }
+
+instance StandingColumn TotalScoreColumn Rational where
+  columnTagClass = const "total_score"
+  columnCaptionText _ = preEscapedText "&Sigma;"
+  columnCaptionTitleText TotalScoreColumn {..} = Just $ translate lang MsgTotalScoreCaptionTitle
+  columnValue _ _ = rowScore . rowStats
+  columnOrder column = compare `on` columnValue column (-1)
+  columnValueDisplayer _ = toMarkup
+
+newtype LastSuccessTimeColumn = LastSuccessTimeColumn { lang :: [Lang] }
+
+instance StandingColumn LastSuccessTimeColumn (Maybe UTCTime) where
+  columnTagClass = const "last_success_time"
+  columnCaptionText LastSuccessTimeColumn {..} = preEscapedText $ translate lang MsgLastSuccessTime
+  columnCaptionTitleText LastSuccessTimeColumn {..} = Just $ translate lang MsgLastSuccessTimeCaptionTitle
+  columnValue _ _ = rowLastTimeSuccess . rowStats
+  columnOrder column = compare `on` columnValue column (-1)
+  columnValueDisplayer _ Nothing     = ""
+  columnValueDisplayer _ (Just time) = toMarkup time
+
+getColumnByVariant :: [Lang] -> ColumnVariant -> GenericStandingColumn
 getColumnByVariant lang columnV = case columnV of
-  PlaceColumnVariant           -> placeColumn lang
-  UserIDColumnVariant          -> userIDColumn lang
-  NameColumnVariant            -> contestantNameColumn lang
-  SuccessesColumnVariant       -> totalSuccessesColumn lang
-  AttemptsColumnVariant        -> totalAttemptsColumn lang
-  ScoreColumnVariant           -> totalScoreColumn lang
-  LastSuccessTimeColumnVariant -> lastSuccessTimeColumn lang
+  PlaceColumnVariant           -> GenericStandingColumn $ PlaceColumn lang
+  UserIDColumnVariant          -> GenericStandingColumn $ UserIDColumn lang
+  NameColumnVariant            -> GenericStandingColumn $ ContestantNameColumn lang
+  SuccessesColumnVariant       -> GenericStandingColumn $ TotalSuccessesColumn lang
+  AttemptsColumnVariant        -> GenericStandingColumn $ TotalAttemptsColumn lang
+  ScoreColumnVariant           -> GenericStandingColumn $ TotalScoreColumn lang
+  LastSuccessTimeColumnVariant -> GenericStandingColumn $ LastSuccessTimeColumn lang
+
+getColumnsByVariantWithStyles
+  :: [Lang] -> StandingConfig -> StandingSource -> [ColumnVariant] -> [GenericStandingColumn]
+getColumnsByVariantWithStyles lang StandingConfig {..} src columnV = getColumnByVariant lang <$> columnV
 
 -- Cell rendering
 

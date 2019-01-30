@@ -2,6 +2,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 module EjStand.Internals.ADTReader
   ( mkADTReader
+  , mkADTReaderList
   )
 where
 
@@ -38,12 +39,21 @@ mkReaderMap :: [Con] -> (String -> String) -> Q Exp
 mkReaderMap cons conNameT = AppE (VarE 'Map.fromList) <$> mkReaderList cons conNameT
 
 -- Represents the type:
---   (IsString s, Ord s) => s -> ADT
+--   (IsString s, Ord s) => s -> Maybe ADT
 mkADTReaderType :: Name -> Q Type
 mkADTReaderType adt = do
-  keyTypeName <- VarT <$> newName "s"
-  let context = (`AppT` keyTypeName) . ConT <$> [''IsString, ''Ord]
-      type'   = ArrowT `AppT` keyTypeName `AppT` (ConT ''Maybe `AppT` ConT adt)
+  strTypeName <- VarT <$> newName "s"
+  let context = (`AppT` strTypeName) . ConT <$> [''IsString, ''Ord]
+      type'   = ArrowT `AppT` strTypeName `AppT` (ConT ''Maybe `AppT` ConT adt)
+  return $ ForallT [] context type'
+
+-- Represents the type:
+--   (IsString s, Ord s) => (s, ADT)
+mkADTReaderListType :: Name -> Q Type
+mkADTReaderListType adt = do
+  strTypeName <- VarT <$> newName "s"
+  let context = [ConT ''IsString `AppT` strTypeName]
+      type'   = ListT `AppT` (TupleT 2 `AppT` strTypeName `AppT` ConT adt)
   return $ ForallT [] context type'
 
 mkADTReader :: Name -> String -> (String -> String) -> Q [Dec]
@@ -54,4 +64,12 @@ mkADTReader adt readerName conNameT = do
   lookupF <- [| (!?) |]
   let right = AppE lookupF rMap
   type_ <- mkADTReaderType adt
-  return [SigD name type_, FunD name [Clause [] (NormalB right) []]]
+  return [SigD name type_, ValD (VarP name) (NormalB right) []]
+
+mkADTReaderList :: Name -> String -> (String -> String) -> Q [Dec]
+mkADTReaderList adt listName conNameT = do
+  cons  <- getConstructors adt
+  rList <- mkReaderList cons conNameT
+  let name = mkName listName
+  type_ <- mkADTReaderListType adt
+  return [SigD name type_, ValD (VarP name) (NormalB rList) []]

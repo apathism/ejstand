@@ -25,12 +25,14 @@ import           Data.Text                      ( Text
                                                 , unpack
                                                 )
 import           Data.Time                      ( UTCTime )
-import           EjStand.Internals.Core         ( fromIdentifiableList ) 
+import           EjStand.Internals.Core         ( fromIdentifiableList )
 import           EjStand.Models.Base
 import           EjStand.Models.Standing
 import           EjStand.Parsers.Data           ( parseEjudgeXMLs )
 import           EjStand.Parsers.EjudgeOptions  ( updateStandingSourceWithProblemConfigurations )
-import           EjStand.Web.HtmlElements       ( getColumnByVariant )
+import           EjStand.Web.HtmlElements       ( getColumnByVariant
+                                                , getColumnsByVariantWithStyles
+                                                )
 import           Safe                           ( headMay
                                                 , lastMay
                                                 , minimumMay
@@ -169,13 +171,13 @@ buildProblems StandingConfig {..} | reversedContestOrder = sortOn reversedCmp . 
   reversedCmp = ([negate . problemContest, problemID] <*>) . return
   elementsF   = Map.elems . problems
 
-sortRows :: [(OrderType, StandingColumn)] -> [StandingRow] -> [StandingRow]
+sortRows :: [(OrderType, GenericStandingColumn)] -> [StandingRow] -> [StandingRow]
 sortRows orderer = sortBy (comparator orderer)
  where
-  comparator :: [(OrderType, StandingColumn)] -> StandingRow -> StandingRow -> Ordering
+  comparator :: [(OrderType, GenericStandingColumn)] -> StandingRow -> StandingRow -> Ordering
   comparator [] _ _ = EQ
-  comparator ((ord, column) : tail) row1 row2 =
-    let result         = columnRowOrder column row1 row2
+  comparator ((ord, GenericStandingColumn column) : tail) row1 row2 =
+    let result         = columnOrder column row1 row2
         resultWithType = case ord of
           Ascending  -> result
           Descending -> compare EQ result
@@ -212,5 +214,5 @@ buildStanding lang cfg@StandingConfig {..} src =
                , standingSource   = src'
                , standingProblems = problems
                , standingRows     = sortRows orderer $ buildRows cfg src' problems
-               , standingColumns  = getColumnByVariant lang <$> displayedColumns
+               , standingColumns  = getColumnsByVariantWithStyles lang cfg src displayedColumns
                }
