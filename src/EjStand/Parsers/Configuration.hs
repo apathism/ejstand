@@ -51,8 +51,8 @@ import           Data.Time                      ( UTCTime
                                                 , defaultTimeLocale
                                                 , parseTimeM
                                                 )
+import qualified EjStand.ELang                 as ELang
 import           EjStand.Internals.Core
-import qualified EjStand.Internals.ELang       as ELang
 import qualified EjStand.Internals.Regex       as RE
 import           EjStand.Models.Standing
 import           Prelude                 hiding ( toInteger )

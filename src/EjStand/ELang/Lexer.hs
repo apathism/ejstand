@@ -1,5 +1,5 @@
 {-# Language OverloadedStrings #-}
-module EjStand.Internals.ELang.Lexer
+module EjStand.ELang.Lexer
   ( Lexem(..)
   , parseLexem
   )

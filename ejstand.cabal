@@ -35,15 +35,15 @@ executable ejstand
   hs-source-dirs:      src
   other-modules:       EjStand
                        EjStand.CLI
+                       EjStand.ELang
+                       EjStand.ELang.AST
+                       EjStand.ELang.Eval
+                       EjStand.ELang.Library
+                       EjStand.ELang.Lexer
+                       EjStand.ELang.Syntax
+                       EjStand.ELang.Value
                        EjStand.Internals.ADTReader
                        EjStand.Internals.Core
-                       EjStand.Internals.ELang
-                       EjStand.Internals.ELang.AST
-                       EjStand.Internals.ELang.Eval
-                       EjStand.Internals.ELang.Library
-                       EjStand.Internals.ELang.Lexer
-                       EjStand.Internals.ELang.Syntax
-                       EjStand.Internals.ELang.Value
                        EjStand.Internals.Regex
                        EjStand.Models.Base
                        EjStand.Models.Standing

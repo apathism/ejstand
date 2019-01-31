@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
-module EjStand.Internals.ELang.AST
+module EjStand.ELang.AST
   ( ASTElement(..)
   , Binding(..)
   , BindingMap
@@ -12,8 +12,8 @@ import           Control.Monad.Trans.Except     ( ExceptT )
 import           Data.Map.Strict                ( Map )
 import           Data.Sequence                 as Seq
 import           Data.Text                      ( Text )
+import           EjStand.ELang.Value            ( Value(..) )
 import           EjStand.Internals.Core         ( IdentifiableBy(..) )
-import           EjStand.Internals.ELang.Value  ( Value(..) )
 
 data ASTElement = ASTConstant !Value
                 | ASTVariable !Text

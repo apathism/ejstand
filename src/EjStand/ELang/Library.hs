@@ -4,7 +4,7 @@
 {-# LANGUAGE RecordWildCards      #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module EjStand.Internals.ELang.Library
+module EjStand.ELang.Library
   ( defaultBindingMap
   , defaultOperatorMeta
   )
@@ -28,16 +28,16 @@ import           Data.Text                      ( Text )
 import           Data.Text                     as Text
 import qualified Data.Text.Read                as TextR
 import           Data.Sequence                 as Seq
-import           EjStand.Internals.Core         ( fromIdentifiableList )
-import           EjStand.Internals.ELang.AST    ( Binding(..)
+import           EjStand.ELang.AST              ( Binding(..)
                                                 , BindingMap
                                                 , OperatorAssociativity(..)
                                                 , OperatorMeta(..)
                                                 )
-import           EjStand.Internals.ELang.Value  ( FromValue(..)
+import           EjStand.ELang.Value            ( FromValue(..)
                                                 , ToValue(..)
                                                 , Value(..)
                                                 )
+import           EjStand.Internals.Core         ( fromIdentifiableList )
 import           Safe                           ( headMay )
 
 -- Helper functions

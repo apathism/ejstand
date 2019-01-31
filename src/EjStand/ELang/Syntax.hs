@@ -1,7 +1,7 @@
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
-module EjStand.Internals.ELang.Syntax
+module EjStand.ELang.Syntax
   ( runSyntaxAnalyzer
   , runSyntaxAnalyzerStrict
   )
@@ -24,13 +24,13 @@ import qualified Data.Map.Strict               as Map
 import qualified Data.Sequence                 as Seq
 import           Data.Text                      ( Text )
 import qualified Data.Text                     as Text
-import           EjStand.Internals.Core         ( fromIdentifiableList )
-import           EjStand.Internals.ELang.AST    ( ASTElement(..)
+import           EjStand.ELang.AST              ( ASTElement(..)
                                                 , OperatorMeta(..)
                                                 , OperatorAssociativity(..)
                                                 )
-import           EjStand.Internals.ELang.Lexer  ( Lexem(..) )
-import           EjStand.Internals.ELang.Value  ( Value(..) )
+import           EjStand.ELang.Lexer            ( Lexem(..) )
+import           EjStand.ELang.Value            ( Value(..) )
+import           EjStand.Internals.Core         ( fromIdentifiableList )
 import           Safe                           ( tailSafe )
 
 {-

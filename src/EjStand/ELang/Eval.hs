@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module EjStand.Internals.ELang.Eval
+module EjStand.ELang.Eval
   ( runEvaluate
   )
 where
@@ -11,11 +11,11 @@ import           Control.Monad.Trans.Except     ( ExceptT
                                                 )
 import           Data.Map.Strict                ( (!?) )
 import           Data.Text                      ( Text )
-import           EjStand.Internals.ELang.AST    ( ASTElement(..)
+import           EjStand.ELang.AST              ( ASTElement(..)
                                                 , Binding(..)
                                                 , BindingMap
                                                 )
-import           EjStand.Internals.ELang.Value  ( Value(..) )
+import           EjStand.ELang.Value            ( Value(..) )
 
 
 evaluate :: Monad m => BindingMap m -> ASTElement -> ExceptT Text m Value

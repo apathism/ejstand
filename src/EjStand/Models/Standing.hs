@@ -34,12 +34,11 @@ import           Data.Set                       ( Set )
 import           Data.Text                      ( Text )
 import qualified Data.Text                     as Text
 import           Data.Time                      ( UTCTime )
-
+import qualified EjStand.ELang                 as ELang
 import           EjStand.Internals.ADTReader    ( mkADTReader
                                                 , mkADTReaderList
                                                 )
 import           EjStand.Internals.Core
-import qualified EjStand.Internals.ELang       as ELang
 import qualified EjStand.Internals.Regex       as RE
 import           EjStand.Models.Base
 import           Text.Blaze.Html                ( Markup

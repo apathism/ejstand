@@ -1,4 +1,4 @@
-module EjStand.Internals.ELang
+module EjStand.ELang
   ( ASTElement(..)
   , buildAST
   , evaluate
@@ -7,15 +7,14 @@ where
 
 import           Data.Functor.Identity          ( Identity(..) )
 import           Data.Text                      ( Text )
-import           EjStand.Internals.ELang.AST    ( ASTElement(..) )
-import           EjStand.Internals.ELang.Eval   ( runEvaluate )
-import           EjStand.Internals.ELang.Lexer  ( parseLexem )
-import           EjStand.Internals.ELang.Library
-                                                ( defaultBindingMap
+import           EjStand.ELang.AST              ( ASTElement(..) )
+import           EjStand.ELang.Eval             ( runEvaluate )
+import           EjStand.ELang.Lexer            ( parseLexem )
+import           EjStand.ELang.Library          ( defaultBindingMap
                                                 , defaultOperatorMeta
                                                 )
-import           EjStand.Internals.ELang.Syntax ( runSyntaxAnalyzerStrict )
-import           EjStand.Internals.ELang.Value  ( Value(..) )
+import           EjStand.ELang.Syntax           ( runSyntaxAnalyzerStrict )
+import           EjStand.ELang.Value            ( Value(..) )
 
 buildAST :: Text -> Either Text ASTElement
 buildAST source = do

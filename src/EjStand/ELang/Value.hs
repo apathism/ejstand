@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
-module EjStand.Internals.ELang.Value
+module EjStand.ELang.Value
   ( FromValue(..)
   , ToValue(..)
   , Value(..)
