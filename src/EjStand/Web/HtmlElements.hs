@@ -1,10 +1,9 @@
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE TemplateHaskell       #-}
-{-# LANGUAGE TypeSynonymInstances  #-}
+{-# LANGUAGE TypeFamilies          #-}
 module EjStand.Web.HtmlElements
   ( EjStandLocaleMessage(..)
   , EjStandRoute(..)
@@ -14,16 +13,21 @@ module EjStand.Web.HtmlElements
   , TotalScoreColumn(..)
   , TotalSuccessesColumn(..)
   , LastSuccessTimeColumn(..)
+  , ConditionalStyleRuntimeException(..)
   , translate
   , skipUrlRendering
   , getColumnByVariant
-  , getColumnsByVariantWithStyles
+  , getColumnByVariantWithStyles
   , renderStandingProblemSuccesses
   , renderCell
   )
 where
 
+import           Control.Exception              ( Exception
+                                                , throw
+                                                )
 import           Control.Monad                  ( when )
+import           Data.Char                     as Char
 import           Data.Function                  ( on )
 import           Data.Map.Strict                ( (!?) )
 import qualified Data.Map.Strict               as Map
@@ -33,7 +37,7 @@ import           Data.Ratio                     ( Ratio
                                                 , numerator
                                                 )
 import           Data.Text                      ( Text )
-import qualified Data.Text                     as T
+import qualified Data.Text                     as Text
 import           Data.Time                      ( NominalDiffTime
                                                 , UTCTime
                                                 , defaultTimeLocale
@@ -41,7 +45,10 @@ import           Data.Time                      ( NominalDiffTime
                                                 )
 import           Data.Time.Format               ( formatTime )
 import           EjStand                        ( defaultLanguage )
-import           EjStand.Internals.Core         ( (==>) )
+import qualified EjStand.ELang                 as ELang
+import           EjStand.Internals.Core         ( (==>)
+                                                , sconcat
+                                                )
 import           EjStand.Models.Base
 import           EjStand.Models.Standing
 import           Prelude                 hiding ( div
@@ -99,7 +106,8 @@ instance ToMarkup UTCTime where
 
 newtype PlaceColumn = PlaceColumn { lang :: [Lang] }
 
-instance StandingColumn PlaceColumn Integer where
+instance StandingColumn PlaceColumn where
+  type StandingColumnValue PlaceColumn = Integer
   columnTagClass = const "place"
   columnCaptionText PlaceColumn {..} = preEscapedText $ translate lang MsgPlace
   columnValue _ = const
@@ -108,7 +116,8 @@ instance StandingColumn PlaceColumn Integer where
 
 newtype UserIDColumn = UserIDColumn { lang :: [Lang] }
 
-instance StandingColumn UserIDColumn Integer where
+instance StandingColumn UserIDColumn where
+  type StandingColumnValue UserIDColumn = Integer
   columnTagClass = const "user_id"
   columnCaptionText UserIDColumn {..} = preEscapedText $ translate lang MsgUserID
   columnValue _ _ = contestantID . rowContestant
@@ -117,7 +126,8 @@ instance StandingColumn UserIDColumn Integer where
 
 newtype ContestantNameColumn = ContestantNameColumn { lang :: [Lang] }
 
-instance StandingColumn ContestantNameColumn Text where
+instance StandingColumn ContestantNameColumn where
+  type StandingColumnValue ContestantNameColumn = Text
   columnTagClass = const "contestant"
   columnCaptionText ContestantNameColumn {..} = preEscapedText $ translate lang MsgContestant
   columnValue _ _ = contestantName . rowContestant
@@ -126,7 +136,8 @@ instance StandingColumn ContestantNameColumn Text where
 
 newtype TotalSuccessesColumn = TotalSuccessesColumn { lang :: [Lang] }
 
-instance StandingColumn TotalSuccessesColumn Integer where
+instance StandingColumn TotalSuccessesColumn where
+  type StandingColumnValue TotalSuccessesColumn = Integer
   columnTagClass = const "total_successes"
   columnCaptionText _ = "="
   columnCaptionTitleText TotalSuccessesColumn {..} = Just $ translate lang MsgSuccessesCaptionTitle
@@ -136,7 +147,8 @@ instance StandingColumn TotalSuccessesColumn Integer where
 
 newtype TotalAttemptsColumn = TotalAttemptsColumn { lang :: [Lang] }
 
-instance StandingColumn TotalAttemptsColumn Integer where
+instance StandingColumn TotalAttemptsColumn where
+  type StandingColumnValue TotalAttemptsColumn = Integer
   columnTagClass = const "total_attempts"
   columnCaptionText _ = "!"
   columnCaptionTitleText TotalAttemptsColumn {..} = Just $ translate lang MsgAttemptsCaptionTitle
@@ -146,7 +158,8 @@ instance StandingColumn TotalAttemptsColumn Integer where
 
 newtype TotalScoreColumn = TotalScoreColumn { lang :: [Lang] }
 
-instance StandingColumn TotalScoreColumn Rational where
+instance StandingColumn TotalScoreColumn where
+  type StandingColumnValue TotalScoreColumn = Rational
   columnTagClass = const "total_score"
   columnCaptionText _ = preEscapedText "&Sigma;"
   columnCaptionTitleText TotalScoreColumn {..} = Just $ translate lang MsgTotalScoreCaptionTitle
@@ -156,7 +169,8 @@ instance StandingColumn TotalScoreColumn Rational where
 
 newtype LastSuccessTimeColumn = LastSuccessTimeColumn { lang :: [Lang] }
 
-instance StandingColumn LastSuccessTimeColumn (Maybe UTCTime) where
+instance StandingColumn LastSuccessTimeColumn where
+  type StandingColumnValue LastSuccessTimeColumn = Maybe UTCTime
   columnTagClass = const "last_success_time"
   columnCaptionText LastSuccessTimeColumn {..} = preEscapedText $ translate lang MsgLastSuccessTime
   columnCaptionTitleText LastSuccessTimeColumn {..} = Just $ translate lang MsgLastSuccessTimeCaptionTitle
@@ -175,9 +189,71 @@ getColumnByVariant lang columnV = case columnV of
   ScoreColumnVariant           -> GenericStandingColumn $ TotalScoreColumn lang
   LastSuccessTimeColumnVariant -> GenericStandingColumn $ LastSuccessTimeColumn lang
 
-getColumnsByVariantWithStyles
-  :: [Lang] -> StandingConfig -> StandingSource -> [ColumnVariant] -> [GenericStandingColumn]
-getColumnsByVariantWithStyles lang StandingConfig {..} src columnV = getColumnByVariant lang <$> columnV
+-- Conditional styles
+
+data ConditionalStyleColumn c = ConditionalStyleColumn { lang              :: [Lang]
+                                                       , baseColumn        :: !c
+                                                       , conditionalStyles :: ![ConditionalStyle]
+                                                       , standingConfig    :: !StandingConfig
+                                                       , standingSource    :: !StandingSource
+                                                       }
+
+data ConditionalStyleRuntimeException = InvalidElangExpression !Text
+                                      | BoolValueExpected !ELang.Value
+                                      | InvalidColumnName !String
+
+instance Exception ConditionalStyleRuntimeException
+
+instance Show ConditionalStyleRuntimeException where
+  show (InvalidElangExpression e    ) = sconcat ["ELang Runtime Exception: ", e]
+  show (BoolValueExpected      value) = sconcat ["Expected Bool value in ELang expression, but ", show value, " got"]
+  show (InvalidColumnName      name ) = sconcat ["Invalid column name: \"", name, "\""]
+
+instance StandingColumn c => StandingColumn (ConditionalStyleColumn c) where
+  type StandingColumnValue (ConditionalStyleColumn c) = StandingColumnValue c
+  columnTagClass    = columnTagClass . baseColumn
+  columnCaptionText = columnCaptionText . baseColumn
+  columnValue column = columnValue (baseColumn column)
+  columnOrder column = columnOrder (baseColumn column)
+  columnValueDisplayer column = columnValueDisplayer (baseColumn column)
+  columnCaptionTitleText = columnCaptionTitleText . baseColumn
+  columnCaptionTag column = columnCaptionTag (baseColumn column)
+  columnValueTag column = columnValueTag (baseColumn column)
+  columnCaption column = columnCaption (baseColumn column)
+  columnValueCell ConditionalStyleColumn {..} place row = foldl (!) baseValueCell stylesToApply
+   where
+    stylesToApply =
+      [ style (toValue styleValue)
+      | ConditionalStyle {..} <- conditionalStyles
+      , fromELangEvaluationToBool $ ELang.evaluate conditions columnBindings
+      ]
+    baseValueCell  = columnValueCell baseColumn place row
+    columnBindings = do
+      (name, variant) <- allColumnVariants
+      let genericColumn = getColumnByVariant lang variant
+      let value         = getValueByGenericColumn genericColumn place row
+      let name' = case name of
+            (l : r) -> Text.cons (Char.toLower l) (Text.pack r)
+            _       -> throw $ InvalidColumnName name
+      [ELang.VariableBinding name' (return value)]
+
+    fromELangEvaluationToBool :: Either Text ELang.Value -> Bool
+    fromELangEvaluationToBool (Left  errorMsg) = throw $ InvalidElangExpression errorMsg
+    fromELangEvaluationToBool (Right value   ) = case value of
+      (ELang.ValueBool boolVal) -> boolVal
+      _                         -> throw $ BoolValueExpected value
+
+    getValueByGenericColumn :: GenericStandingColumn -> Integer -> StandingRow -> ELang.Value
+    getValueByGenericColumn (GenericStandingColumn column) place row = ELang.toValue $ columnValue column place row
+
+getColumnByVariantWithStyles :: [Lang] -> StandingConfig -> StandingSource -> ColumnVariant -> GenericStandingColumn
+getColumnByVariantWithStyles lang cfg@StandingConfig {..} src columnV =
+  let baseColumn = getColumnByVariant lang columnV
+  in  case Map.lookup columnV conditionalStyles of
+        Nothing       -> baseColumn
+        (Just []    ) -> baseColumn
+        (Just styles) -> case baseColumn of
+          (GenericStandingColumn column) -> GenericStandingColumn $ ConditionalStyleColumn lang column styles cfg src
 
 -- Cell rendering
 
@@ -223,7 +299,7 @@ selectAdditionalCellContentBuilders Standing { standingConfig = StandingConfig {
 
 buildCellTitle :: Standing -> StandingRow -> Problem -> StandingCell -> Text
 buildCellTitle Standing { standingConfig = StandingConfig {..}, standingSource = StandingSource {..}, ..} StandingRow {..} Problem {..} StandingCell {..}
-  = T.intercalate ", " $ mconcat
+  = Text.intercalate ", " $ mconcat
     [ [contestantName rowContestant, mconcat [problemShortName, " (", problemLongName, ")"]]
     , catMaybes $ showLanguages ==> (languageLongName <$> (cellMainRun >>= runLanguage >>= (languages !?)))
     ]

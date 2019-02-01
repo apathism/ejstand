@@ -31,7 +31,7 @@ import           EjStand.Models.Standing
 import           EjStand.Parsers.Data           ( parseEjudgeXMLs )
 import           EjStand.Parsers.EjudgeOptions  ( updateStandingSourceWithProblemConfigurations )
 import           EjStand.Web.HtmlElements       ( getColumnByVariant
-                                                , getColumnsByVariantWithStyles
+                                                , getColumnByVariantWithStyles
                                                 )
 import           Safe                           ( headMay
                                                 , lastMay
@@ -214,5 +214,5 @@ buildStanding lang cfg@StandingConfig {..} src =
                , standingSource   = src'
                , standingProblems = problems
                , standingRows     = sortRows orderer $ buildRows cfg src' problems
-               , standingColumns  = getColumnsByVariantWithStyles lang cfg src displayedColumns
+               , standingColumns  = getColumnByVariantWithStyles lang cfg src <$> displayedColumns
                }

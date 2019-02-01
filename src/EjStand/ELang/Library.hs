@@ -49,10 +49,6 @@ instance (ToValue a) => NativeFunction a where
   fromNative result [] = return . toValue $ result
   fromNative _      _  = mzero
 
-instance {-# OVERLAPPING #-} (ToValue a) => NativeFunction (Maybe a) where
-  fromNative result [] = return . fromMaybe ValueVoid $ toValue <$> result
-  fromNative _      _  = mzero
-
 instance {-# OVERLAPPING #-} (FromValue a, NativeFunction r) => NativeFunction (a -> r) where
   fromNative _    []                        = mzero
   fromNative func (firstValue : tailValues) = do

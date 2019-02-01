@@ -1,7 +1,8 @@
 {-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE FunctionalDependencies    #-}
+{-# LANGUAGE FlexibleContexts          #-}
 {-# LANGUAGE OverloadedStrings         #-}
 {-# LANGUAGE TemplateHaskell           #-}
+{-# LANGUAGE TypeFamilies              #-}
 module EjStand.Models.Standing
   ( GlobalConfiguration(..)
   , StandingSource(..)
@@ -194,12 +195,13 @@ data StandingRow = StandingRow { rowContestant :: !Contestant
                                }
                                deriving (Show)
 
-class StandingColumn c v | c -> v where
+class StandingColumn c where
+  type StandingColumnValue c :: *
   columnTagClass :: c -> Text
   columnCaptionText :: c -> Markup
-  columnValue :: c -> Integer -> StandingRow -> v
+  columnValue :: c -> Integer -> StandingRow -> StandingColumnValue c
   columnOrder :: c -> StandingRow -> StandingRow -> Ordering
-  columnValueDisplayer :: c -> v -> Markup
+  columnValueDisplayer :: c -> StandingColumnValue c -> Markup
 
   columnCaptionTitleText :: c -> Maybe Text
   columnCaptionTitleText = const Nothing
@@ -219,7 +221,7 @@ class StandingColumn c v | c -> v where
   columnValueCell :: c -> Integer -> StandingRow -> Markup
   columnValueCell column place row = columnValueTag column . columnValueDisplayer column $ columnValue column place row
 
-data GenericStandingColumn = forall c v . StandingColumn c v => GenericStandingColumn c
+data GenericStandingColumn = forall c . (StandingColumn c, ELang.ToValue (StandingColumnValue c)) => GenericStandingColumn c
 
 data Standing = Standing { standingConfig   :: !StandingConfig
                          , standingSource   :: !StandingSource

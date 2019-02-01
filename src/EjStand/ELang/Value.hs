@@ -17,6 +17,10 @@ import           Data.Ratio                     ( Rational
                                                 )
 import           Data.Sequence                  ( Seq )
 import           Data.Text                      ( Text )
+import           Data.Time                      ( UTCTime )
+import           Data.Time.Clock.System         ( systemSeconds
+                                                , utcToSystemTime
+                                                )
 
 -- Values 
 
@@ -51,7 +55,7 @@ class ToValue a where
     toValue :: a -> Value
 
 instance ToValue () where
-  toValue _ = ValueVoid
+  toValue () = ValueVoid
 
 instance ToValue Integer where
   toValue = ValueInt
@@ -64,6 +68,13 @@ instance ToValue Bool where
 
 instance ToValue Text where
   toValue = ValueText
+
+instance ToValue UTCTime where
+  toValue = ValueInt . toInteger . systemSeconds . utcToSystemTime
+
+instance ToValue a => ToValue (Maybe a) where
+  toValue Nothing      = ValueVoid
+  toValue (Just value) = toValue value
 
 -- FromValue class
 
