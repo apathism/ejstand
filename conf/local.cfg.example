@@ -320,10 +320,9 @@ InternalName = example
 --|
 --|    Required: optional (can be specified more than once)
 --|
---|    This section can apply additional CSS styles for cells in "Total Score"
---|    column. This can be handy for a situation when you want to highlight
---|    students that are lagging behind, or to grant a special shiny status for
---|    outstanding work.
+--|    This section can apply additional CSS styles for column cells. This can
+--|    be handy for a situation when you want to highlight students that are lagging
+--|    behind, or to grant a special shiny status for outstanding work.
 --|
 
 -- ConditionalStyle {
@@ -339,27 +338,26 @@ InternalName = example
   -- StyleValue = color: red
 
   --|
-  --|  Option: "Conditions"
+  --|  Option: "Condition"
   --|    Required: mandatory (for each ConditionalStyle section)
   --|
-  --|    This is a comma-seperated list of conditions on a relative score.
-  --|    Relative score is a contestant score divided by maximum score for
-  --|    a competition. For example, relative score is 1/2 if contestant
-  --|    got half of the total score.
-  --|
-  --|    Each condition consists of two parts:
-  --|      1. one of these relation operators:
-  --|          <  <=  >  >=  =  /=
-  --|      2. constant ratio or integer.
-  --|
-  --|    For example: >= 1/2  
-  --|
-  --|    Warning! This option has an unwanted behaviour on contests with
-  --|    partial scores as it assumes that each task in standing have maximal
-  --|    score of 100. There is no sane way to retrieve information about
-  --|    maximum score from ejudge using current XML interface.
+  --|    This value represent condition under which the style is applied.
+  --|    It can contain any boolean expression in ELang format. All column
+  --|    values are embedded into expression context with camel case names
+  --|    like (score, attempts, ...). Also, there are maximal possible values
+  --|    with "max" prefix (like maxScore).
   --|
 
-  -- Conditions = >= 1/2, < 1
+  -- Condition = score / maxScore >= 1 / 2
+
+  --|
+  --|  Option: "ColumnNames"
+  --|    Requires:      optional
+  --|    Default value: Score
+  --|
+  --|    This option is a comma-seperated list of columns to apply styles for.
+  --|
+
+  -- ColumnNames = Score
 
 -- }

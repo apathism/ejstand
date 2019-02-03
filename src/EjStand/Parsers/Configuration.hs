@@ -309,7 +309,7 @@ buildExtraDeadline = evalState $ do
 buildConditionalStyle :: Configuration -> [(ColumnVariant, [ConditionalStyle])]
 buildConditionalStyle = evalState $ do
   styleValue  <- takeMandatoryValue |> toTextValue $ "StyleValue"
-  conditions  <- takeMandatoryValue |> toTextValue |> toELangAST $ "Conditions"
+  conditions  <- takeMandatoryValue |> toTextValue |> toELangAST $ "Condition"
   columnNames <- takeUniqueValue ||> toTextValue ||> toColumnVariantL .> fromMaybe [ScoreColumnVariant] $ "ColumnNames"
   !_          <- ensureEmptyState
   return [ (columnName, [ConditionalStyle conditions styleValue]) | columnName <- columnNames ]
