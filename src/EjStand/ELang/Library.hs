@@ -19,6 +19,7 @@ import           Control.Monad.Trans.Maybe      ( MaybeT(..)
                                                 , maybeToExceptT
                                                 )
 import           Data.Fixed                     ( mod' )
+import           Data.Function                  ( on )
 import           Data.Functor.Identity          ( Identity )
 import           Data.Map.Strict               as Map
 import           Data.Maybe                     ( catMaybes
@@ -66,6 +67,10 @@ mergeNativeToFunction handlers name args = maybeToExceptT (invalidArgumentsError
 mergeNativeToOperator
   :: Monad m => [[Value] -> MaybeT m Value] -> OperatorMeta -> Value -> Value -> ExceptT Text m Value
 mergeNativeToOperator handlers OperatorMeta {..} v1 v2 = mergeNativeToFunction handlers operatorMetaName [v1, v2]
+
+fromIntToRational :: Value -> Value
+fromIntToRational (ValueInt v) = ValueRational . fromInteger $ v
+fromIntToRational value        = value
 
 -- Function patterns
 
@@ -181,7 +186,6 @@ operatorLessOrEqual = OperatorMeta "<=" 4 NonAssociative ==> mergeNativeToOperat
   , fromNative ((<=) :: Text -> Text -> Bool)
   ]
 
-
 operatorGreater :: Monad m => CombinedOperator m
 operatorGreater = OperatorMeta ">" 4 NonAssociative ==> mergeNativeToOperator
   [ fromNative ((>) :: Integer -> Integer -> Bool)
@@ -197,10 +201,11 @@ operatorGreaterOrEqual = OperatorMeta ">=" 4 NonAssociative ==> mergeNativeToOpe
   ]
 
 operatorEqual :: Monad m => CombinedOperator m
-operatorEqual = (OperatorMeta "==" 4 NonAssociative, \v1 v2 -> return . ValueBool $ v1 == v2)
+operatorEqual = (OperatorMeta "==" 4 NonAssociative, (\v1 v2 -> return . ValueBool $ v1 == v2) `on` fromIntToRational)
 
 operatorNotEqual :: Monad m => CombinedOperator m
-operatorNotEqual = (OperatorMeta "!=" 4 NonAssociative, \v1 v2 -> return . ValueBool $ v1 /= v2)
+operatorNotEqual =
+  (OperatorMeta "!=" 4 NonAssociative, (\v1 v2 -> return . ValueBool $ v1 /= v2) `on` fromIntToRational)
 
 operatorAnd :: Monad m => CombinedOperator m
 operatorAnd = OperatorMeta "&&" 3 LeftAssociativity ==> mergeNativeToOperator [fromNative (&&)]
