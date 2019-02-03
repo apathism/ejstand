@@ -203,6 +203,9 @@ class StandingColumn c where
   columnOrder :: c -> StandingRow -> StandingRow -> Ordering
   columnValueDisplayer :: c -> StandingColumnValue c -> Markup
 
+  columnMaxValue :: Maybe (c -> StandingColumnValue c)
+  columnMaxValue = Nothing
+
   columnCaptionTitleText :: c -> Maybe Text
   columnCaptionTitleText = const Nothing
 

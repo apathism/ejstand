@@ -7,12 +7,6 @@
 module EjStand.Web.HtmlElements
   ( EjStandLocaleMessage(..)
   , EjStandRoute(..)
-  , PlaceColumn(..)
-  , UserIDColumn(..)
-  , ContestantNameColumn(..)
-  , TotalScoreColumn(..)
-  , TotalSuccessesColumn(..)
-  , LastSuccessTimeColumn(..)
   , ConditionalStyleRuntimeException(..)
   , translate
   , skipUrlRendering
@@ -104,7 +98,9 @@ instance ToMarkup UTCTime where
 
 -- Columns rendering
 
-newtype PlaceColumn = PlaceColumn { lang :: [Lang] }
+data PlaceColumn = PlaceColumn { lang           :: [Lang]
+                               , standingSource :: StandingSource
+                               }
 
 instance StandingColumn PlaceColumn where
   type StandingColumnValue PlaceColumn = Integer
@@ -113,6 +109,7 @@ instance StandingColumn PlaceColumn where
   columnValue _ = const
   columnOrder _ _ _ = EQ
   columnValueDisplayer _ = toMarkup
+  columnMaxValue = Just $ \PlaceColumn {..} -> toInteger . Map.size $ contestants standingSource
 
 newtype UserIDColumn = UserIDColumn { lang :: [Lang] }
 
@@ -134,7 +131,8 @@ instance StandingColumn ContestantNameColumn where
   columnOrder column = compare `on` columnValue column (-1)
   columnValueDisplayer _ = toMarkup
 
-newtype TotalSuccessesColumn = TotalSuccessesColumn { lang :: [Lang] }
+data TotalSuccessesColumn = TotalSuccessesColumn { lang           :: [Lang]
+                                                 , standingSource :: StandingSource }
 
 instance StandingColumn TotalSuccessesColumn where
   type StandingColumnValue TotalSuccessesColumn = Integer
@@ -144,6 +142,7 @@ instance StandingColumn TotalSuccessesColumn where
   columnValue _ _ = rowSuccesses . rowStats
   columnOrder column = compare `on` columnValue column (-1)
   columnValueDisplayer _ = toMarkup
+  columnMaxValue = Just $ \TotalSuccessesColumn {..} -> toInteger . Map.size $ problems standingSource
 
 newtype TotalAttemptsColumn = TotalAttemptsColumn { lang :: [Lang] }
 
@@ -156,7 +155,10 @@ instance StandingColumn TotalAttemptsColumn where
   columnOrder column = compare `on` columnValue column (-1)
   columnValueDisplayer _ = toMarkup
 
-newtype TotalScoreColumn = TotalScoreColumn { lang :: [Lang] }
+data TotalScoreColumn = TotalScoreColumn { lang :: [Lang]
+                                         , standingConfig :: StandingConfig
+                                         , standingSource :: StandingSource
+                                         }
 
 instance StandingColumn TotalScoreColumn where
   type StandingColumnValue TotalScoreColumn = Rational
@@ -166,6 +168,9 @@ instance StandingColumn TotalScoreColumn where
   columnValue _ _ = rowScore . rowStats
   columnOrder column = compare `on` columnValue column (-1)
   columnValueDisplayer _ = toMarkup
+  columnMaxValue =
+    Just $ \TotalScoreColumn { standingConfig = StandingConfig {..}, standingSource = StandingSource {..} } ->
+      fromInteger $ if enableScores then sum $ problemMaxScore <$> problems else toInteger $ Map.size problems
 
 newtype LastSuccessTimeColumn = LastSuccessTimeColumn { lang :: [Lang] }
 
@@ -179,14 +184,14 @@ instance StandingColumn LastSuccessTimeColumn where
   columnValueDisplayer _ Nothing     = ""
   columnValueDisplayer _ (Just time) = toMarkup time
 
-getColumnByVariant :: [Lang] -> ColumnVariant -> GenericStandingColumn
-getColumnByVariant lang columnV = case columnV of
-  PlaceColumnVariant           -> GenericStandingColumn $ PlaceColumn lang
+getColumnByVariant :: [Lang] -> StandingConfig -> StandingSource -> ColumnVariant -> GenericStandingColumn
+getColumnByVariant lang cfg src columnV = case columnV of
+  PlaceColumnVariant           -> GenericStandingColumn $ PlaceColumn lang src
   UserIDColumnVariant          -> GenericStandingColumn $ UserIDColumn lang
   NameColumnVariant            -> GenericStandingColumn $ ContestantNameColumn lang
-  SuccessesColumnVariant       -> GenericStandingColumn $ TotalSuccessesColumn lang
+  SuccessesColumnVariant       -> GenericStandingColumn $ TotalSuccessesColumn lang src
   AttemptsColumnVariant        -> GenericStandingColumn $ TotalAttemptsColumn lang
-  ScoreColumnVariant           -> GenericStandingColumn $ TotalScoreColumn lang
+  ScoreColumnVariant           -> GenericStandingColumn $ TotalScoreColumn lang cfg src
   LastSuccessTimeColumnVariant -> GenericStandingColumn $ LastSuccessTimeColumn lang
 
 -- Conditional styles
@@ -200,14 +205,12 @@ data ConditionalStyleColumn c = ConditionalStyleColumn { lang              :: [L
 
 data ConditionalStyleRuntimeException = InvalidElangExpression !Text
                                       | BoolValueExpected !ELang.Value
-                                      | InvalidColumnName !String
 
 instance Exception ConditionalStyleRuntimeException
 
 instance Show ConditionalStyleRuntimeException where
   show (InvalidElangExpression e    ) = sconcat ["ELang Runtime Exception: ", e]
   show (BoolValueExpected      value) = sconcat ["Expected Bool value in ELang expression, but ", show value, " got"]
-  show (InvalidColumnName      name ) = sconcat ["Invalid column name: \"", name, "\""]
 
 instance StandingColumn c => StandingColumn (ConditionalStyleColumn c) where
   type StandingColumnValue (ConditionalStyleColumn c) = StandingColumnValue c
@@ -216,6 +219,7 @@ instance StandingColumn c => StandingColumn (ConditionalStyleColumn c) where
   columnValue column = columnValue (baseColumn column)
   columnOrder column = columnOrder (baseColumn column)
   columnValueDisplayer column = columnValueDisplayer (baseColumn column)
+  columnMaxValue         = (. baseColumn) <$> columnMaxValue
   columnCaptionTitleText = columnCaptionTitleText . baseColumn
   columnCaptionTag column = columnCaptionTag (baseColumn column)
   columnValueTag column = columnValueTag (baseColumn column)
@@ -230,12 +234,9 @@ instance StandingColumn c => StandingColumn (ConditionalStyleColumn c) where
     baseValueCell  = columnValueCell baseColumn place row
     columnBindings = do
       (name, variant) <- allColumnVariants
-      let genericColumn = getColumnByVariant lang variant
-      let value         = getValueByGenericColumn genericColumn place row
-      let name' = case name of
-            (l : r) -> Text.cons (Char.toLower l) (Text.pack r)
-            _       -> throw $ InvalidColumnName name
-      [ELang.VariableBinding name' (return value)]
+      let genericColumn = getColumnByVariant lang standingConfig standingSource variant
+      (bindName, bindValue) <- getValuesByGenericColumn genericColumn name place row
+      [ELang.VariableBinding bindName (return bindValue)]
 
     fromELangEvaluationToBool :: Either Text ELang.Value -> Bool
     fromELangEvaluationToBool (Left  errorMsg) = throw $ InvalidElangExpression errorMsg
@@ -243,12 +244,20 @@ instance StandingColumn c => StandingColumn (ConditionalStyleColumn c) where
       (ELang.ValueBool boolVal) -> boolVal
       _                         -> throw $ BoolValueExpected value
 
-    getValueByGenericColumn :: GenericStandingColumn -> Integer -> StandingRow -> ELang.Value
-    getValueByGenericColumn (GenericStandingColumn column) place row = ELang.toValue $ columnValue column place row
+    getValuesByGenericColumn :: GenericStandingColumn -> Text -> Integer -> StandingRow -> [(Text, ELang.Value)]
+    getValuesByGenericColumn (GenericStandingColumn column) name place row = mainValue : maxValue
+     where
+      mainValue = (nameLower, ELang.toValue $ columnValue column place row)
+      nameLower = case Text.uncons name of
+        Just (letter, rest) -> Text.cons (Char.toLower letter) rest
+        Nothing             -> name
+      maxValue  = case columnMaxValue of
+        Nothing    -> []
+        Just value -> [("max" <> name, ELang.toValue $ value column)]
 
 getColumnByVariantWithStyles :: [Lang] -> StandingConfig -> StandingSource -> ColumnVariant -> GenericStandingColumn
 getColumnByVariantWithStyles lang cfg@StandingConfig {..} src columnV =
-  let baseColumn = getColumnByVariant lang columnV
+  let baseColumn = getColumnByVariant lang cfg src columnV
   in  case Map.lookup columnV conditionalStyles of
         Nothing       -> baseColumn
         (Just []    ) -> baseColumn

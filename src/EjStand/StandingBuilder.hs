@@ -209,7 +209,7 @@ buildStanding :: [Lang] -> StandingConfig -> StandingSource -> Standing
 buildStanding lang cfg@StandingConfig {..} src =
   let src'     = if mergeContestantsByName then mergeStandingSourceContestantsByName src else src
       problems = buildProblems cfg src'
-      orderer  = (\(ord, col) -> (ord, getColumnByVariant lang col)) <$> rowSortingOrder
+      orderer  = (\(ord, col) -> (ord, getColumnByVariant lang cfg src' col)) <$> rowSortingOrder
   in  Standing { standingConfig   = cfg
                , standingSource   = src'
                , standingProblems = problems
