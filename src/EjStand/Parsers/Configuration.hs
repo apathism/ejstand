@@ -306,13 +306,13 @@ buildExtraDeadline = evalState $ do
   !_                 <- ensureEmptyState
   return $ FixedDeadline valueContestIDs valueDeadline valueContestantIDs
 
-buildConditionalStyle :: Configuration -> (ColumnVariant, [ConditionalStyle])
+buildConditionalStyle :: Configuration -> [(ColumnVariant, [ConditionalStyle])]
 buildConditionalStyle = evalState $ do
-  styleValue <- takeMandatoryValue |> toTextValue $ "StyleValue"
-  conditions <- takeMandatoryValue |> toTextValue |> toELangAST $ "Conditions"
-  columnName <- takeUniqueValue ||> toTextValue ||> toColumnVariant .> fromMaybe ScoreColumnVariant $ "ColumnName"
-  !_         <- ensureEmptyState
-  return (columnName, [ConditionalStyle conditions styleValue])
+  styleValue  <- takeMandatoryValue |> toTextValue $ "StyleValue"
+  conditions  <- takeMandatoryValue |> toTextValue |> toELangAST $ "Conditions"
+  columnNames <- takeUniqueValue ||> toTextValue ||> toColumnVariantL .> fromMaybe [ScoreColumnVariant] $ "ColumnNames"
+  !_          <- ensureEmptyState
+  return [ (columnName, [ConditionalStyle conditions styleValue]) | columnName <- columnNames ]
 
 buildContestNamePattern :: Configuration -> (RE.Regex, RE.Replacer)
 buildContestNamePattern = evalState $ do
@@ -370,7 +370,7 @@ buildStandingConfig path = do
                           , rowSortingOrder        = rowSortingOrder
                           , headerAppendix         = headerAppendix
                           , disableDefaultCSS      = disableDefaultCSS
-                          , conditionalStyles      = Map.fromListWith (++) conditionalStyles
+                          , conditionalStyles      = Map.fromListWith (++) . mconcat $ conditionalStyles
                           , enableDeadlines        = enableDeadlines
                           , deadlinePenalty        = deadlinePenalty
                           , fixedDeadlines         = fixedDeadlines
