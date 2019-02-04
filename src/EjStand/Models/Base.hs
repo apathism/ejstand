@@ -1,6 +1,5 @@
-{-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies    #-}
 module EjStand.Models.Base
   ( Contestant(..)
   , Contest(..)
@@ -8,7 +7,6 @@ module EjStand.Models.Base
   , Language(..)
   , RunStatus(..)
   , Run(..)
-  , RunIdentification
   , filterRunMap
   , readRunStatus
   )
@@ -19,7 +17,7 @@ import qualified Data.Map.Strict               as Map
 import           Data.Text                      ( Text )
 import           Data.Time                      ( UTCTime )
 import           EjStand.Internals.ADTReader    ( mkADTReader )
-import           EjStand.Internals.Core         ( IdentifiableBy(..) )
+import           EjStand.Internals.Core         ( Identifiable(..) )
 
 -- Models
 
@@ -27,7 +25,8 @@ data Contestant = Contestant { contestantID   :: !Integer
                              , contestantName :: !Text
                              } deriving (Show)
 
-instance IdentifiableBy Integer Contestant where
+instance Identifiable Contestant where
+  type Identificator Contestant = Integer
   getID = contestantID
 
 data Contest = Contest { contestID        :: !Integer
@@ -35,7 +34,8 @@ data Contest = Contest { contestID        :: !Integer
                        , contestStartTime :: !(Maybe UTCTime)
                        } deriving (Show)
 
-instance IdentifiableBy Integer Contest where
+instance Identifiable Contest where
+  type Identificator Contest = Integer
   getID = contestID
 
 data Problem = Problem { problemID         :: !Integer
@@ -46,7 +46,8 @@ data Problem = Problem { problemID         :: !Integer
                        , problemRunPenalty :: !Integer
                        } deriving (Show)
 
-instance IdentifiableBy (Integer, Integer) Problem where
+instance Identifiable Problem where
+  type Identificator Problem = (Integer, Integer)
   getID problem = (problemContest problem, problemID problem)
 
 data Language = Language { languageID        :: !Integer
@@ -54,7 +55,8 @@ data Language = Language { languageID        :: !Integer
                          , languageLongName  :: !Text
                          } deriving (Show)
 
-instance IdentifiableBy Integer Language where
+instance Identifiable Language where
+  type Identificator Language = Integer
   getID = languageID
 
 data RunStatus = OK | CE | RT | TL | PE | WA | CF | PT | AC | IG | DQ
@@ -75,12 +77,11 @@ data Run = Run { runID         :: !Integer
                , runTest       :: !(Maybe Integer)
                } deriving (Show)
 
-type RunIdentification = (Integer, Integer, Maybe Integer, Integer)
-
-instance IdentifiableBy RunIdentification Run where
+instance Identifiable Run where
+  type Identificator Run = (Integer, Integer, Maybe Integer, Integer)
   getID run = (runContest run, runContestant run, runProblem run, runID run)
 
-filterRunMap :: Integer -> Integer -> Maybe Integer -> Map RunIdentification Run -> Map RunIdentification Run
+filterRunMap :: Integer -> Integer -> Maybe Integer -> Map (Identificator Run) Run -> Map (Identificator Run) Run
 filterRunMap contestID contestantID problemID = Map.takeWhileAntitone pTake . Map.dropWhileAntitone pDrop
  where
   values = (contestID, contestantID, problemID)

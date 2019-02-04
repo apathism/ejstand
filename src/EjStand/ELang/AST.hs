@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
 module EjStand.ELang.AST
   ( ASTElement(..)
   , Binding(..)
@@ -13,7 +13,7 @@ import           Data.Map.Strict                ( Map )
 import           Data.Sequence                 as Seq
 import           Data.Text                      ( Text )
 import           EjStand.ELang.Value            ( Value(..) )
-import           EjStand.Internals.Core         ( IdentifiableBy(..) )
+import           EjStand.Internals.Core         ( Identifiable(..) )
 
 data ASTElement = ASTConstant !Value
                 | ASTVariable !Text
@@ -35,7 +35,8 @@ data Binding m = VariableBinding { bindingName  :: !Text
                                  , bindingFunction :: [Value] -> ExceptT Text m Value
                                  }
 
-instance IdentifiableBy Text (Binding m) where
+instance Identifiable (Binding m) where
+  type Identificator (Binding m) = Text
   getID = bindingName
 
 type BindingMap m = Map Text (Binding m)
@@ -45,7 +46,8 @@ data OperatorMeta = OperatorMeta { operatorMetaName          :: !Text
                                  , operatorMetaAssociativity :: !OperatorAssociativity
                                  }
 
-instance IdentifiableBy Text OperatorMeta where
+instance Identifiable OperatorMeta where
+  type Identificator OperatorMeta = Text
   getID = operatorMetaName
 
 data OperatorAssociativity = LeftAssociativity | RightAssociativity | NonAssociative

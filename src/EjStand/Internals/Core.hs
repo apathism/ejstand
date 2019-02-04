@@ -1,10 +1,10 @@
-{-# LANGUAGE FlexibleInstances      #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE MultiParamTypeClasses  #-}
-{-# LANGUAGE OverloadedStrings      #-}
-{-# LANGUAGE UndecidableInstances   #-}
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE TypeFamilies         #-}
+{-# LANGUAGE UndecidableInstances #-}
 module EjStand.Internals.Core
-  ( IdentifiableBy(..)
+  ( Identifiable(..)
   , (==>)
   , (|||)
   , allValues
@@ -71,14 +71,15 @@ sconcat = mconcat . (toString <$>)
 
 -- Identifiable typeclass and some related operations
 
-class IdentifiableBy k a | a -> k where
-  getID :: a -> k
+class Identifiable a where
+  type Identificator a :: *
+  getID :: a -> (Identificator a)
 
-instance {-# OVERLAPPABLE #-} (Eq k, IdentifiableBy k a) => Eq a where
+instance {-# OVERLAPPABLE #-} (Identifiable a, Eq (Identificator a)) => Eq a where
   (==) = (==) `on` getID
 
-instance {-# OVERLAPPABLE #-} (Ord k, IdentifiableBy k a) => Ord a where
+instance {-# OVERLAPPABLE #-} (Identifiable a, Ord (Identificator a)) => Ord a where
   compare = compare `on` getID
 
-fromIdentifiableList :: (Ord k, IdentifiableBy k a) => [a] -> Map k a
+fromIdentifiableList :: (Identifiable a, Ord (Identificator a)) => [a] -> Map (Identificator a) a
 fromIdentifiableList lst = Map.fromList $ (\x -> (getID x, x)) <$> lst

@@ -58,7 +58,7 @@ data StandingSource = StandingSource { contests    :: !(Map Integer Contest)
                                      , contestants :: !(Map Integer Contestant)
                                      , languages   :: !(Map Integer Language)
                                      , problems    :: !(Map (Integer, Integer) Problem)
-                                     , runs        :: !(Map RunIdentification Run)
+                                     , runs        :: !(Map (Identificator Run) Run)
                                      }
                      deriving (Show)
 
