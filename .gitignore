@@ -15,6 +15,9 @@
 # No logs
 **/*.log
 
+# No locks
+**.lock
+
 # No ArchLinux building files
 dist/archlinux*/src/**
 dist/archlinux*/pkg/**
