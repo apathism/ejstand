@@ -25,6 +25,9 @@ import           Data.Map.Strict               as Map
 import           Data.Maybe                     ( catMaybes
                                                 , fromMaybe
                                                 )
+import           Data.Ratio                     ( denominator
+                                                , numerator
+                                                )
 import           Data.Text                      ( Text )
 import           Data.Text                     as Text
 import qualified Data.Text.Read                as TextR
@@ -233,6 +236,28 @@ functionToInteger = "ToInteger" ==> mergeNativeToFunction
   isFullyRead (value, "") = Just value
   isFullyRead _           = Nothing
 
+functionCeil :: Monad m => CombinedFunction m
+functionCeil =
+  "Ceil" ==> mergeNativeToFunction [fromNative (id :: Integer -> Integer), fromNative (ceiling :: Rational -> Integer)]
+
+functionFloor :: Monad m => CombinedFunction m
+functionFloor =
+  "Floor" ==> mergeNativeToFunction [fromNative (id :: Integer -> Integer), fromNative (floor :: Rational -> Integer)]
+
+functionRound :: Monad m => CombinedFunction m
+functionRound =
+  "Round" ==> mergeNativeToFunction [fromNative (id :: Integer -> Integer), fromNative (round :: Rational -> Integer)]
+
+functionToText :: Monad m => CombinedFunction m
+functionToText = "ToText"
+  ==> mergeNativeToFunction [fromNative integerToText, fromNative rationalToText, fromNative (id :: Text -> Text)]
+ where
+  integerToText :: Integer -> Text
+  integerToText = Text.pack . show
+
+  rationalToText :: Rational -> Text
+  rationalToText number = integerToText (numerator number) <> "/" <> integerToText (denominator number)
+
 -- Bool functions
 
 functionNot :: Monad m => CombinedFunction m
@@ -297,7 +322,18 @@ allCombinedOperators =
   ]
 
 allCombinedFunctions :: Monad m => [CombinedFunction m]
-allCombinedFunctions = [functionToInteger, functionNot, functionAbs, functionMax, functionMin, functionIf]
+allCombinedFunctions =
+  [ functionToInteger
+  , functionCeil
+  , functionFloor
+  , functionRound
+  , functionToText
+  , functionNot
+  , functionAbs
+  , functionMax
+  , functionMin
+  , functionIf
+  ]
 
 defaultOperatorMeta :: [OperatorMeta]
 defaultOperatorMeta = fst <$> (allCombinedOperators :: [CombinedOperator Identity])
