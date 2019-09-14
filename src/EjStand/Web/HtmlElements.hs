@@ -23,7 +23,9 @@ import           Control.Exception              ( Exception
 import           Control.Monad                  ( when )
 import           Data.Char                     as Char
 import           Data.Function                  ( on )
-import           Data.Map.Strict                ( (!?) )
+import           Data.Map.Strict                ( Map
+                                                , (!?)
+                                                )
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( catMaybes )
 import           Data.Ratio                     ( Ratio
@@ -43,6 +45,7 @@ import qualified EjStand.ELang                 as ELang
 import           EjStand.Internals.Core
 import           EjStand.Models.Base
 import           EjStand.Models.Standing
+import           Numeric                        ( showFFloat )
 import           Prelude                 hiding ( div
                                                 , span
                                                 )
@@ -176,16 +179,59 @@ instance StandingColumn LastSuccessTimeColumn where
   columnValueDisplayer _ Nothing     = ""
   columnValueDisplayer _ (Just time) = toMarkup time
 
-newtype RatingProblemScoreColumn = RatingProblemScoreColumn { standing :: Standing }
+data RatingProblemScoreColumn = RatingProblemScoreColumn { standing          :: !Standing
+                                                         , contestantPrecalc :: !(Map Integer Double)
+                                                         }
+
+calculateProblemRating :: Standing -> Problem -> Double
+calculateProblemRating Standing { standingConfig = StandingConfig {..}, ..} problem = case problemRatingFormula of
+  Nothing -> 100
+  (Just formula) ->
+    let problemStat = case standingProblemStats !? getID problem of
+          Nothing     -> mempty
+          (Just stat) -> stat
+        bindings =
+          [ ELang.VariableBinding "successes" (return . ELang.ValueInt . problemSuccesses $ problemStat)
+          , ELang.VariableBinding "overdueSuccesses" (return . ELang.ValueInt . problemOverdueSuccesses $ problemStat)
+          ]
+        result = case ELang.evaluate formula bindings of
+          (Left  errorMsg) -> throw $ InvalidElangExpression errorMsg
+          (Right value   ) -> case (ELang.fromValue value :: Maybe Double) of
+            Nothing       -> throw $ DoubleValueExpected value
+            (Just result) -> result
+    in  result
+
+calculateContestantRating :: Standing -> Map (Integer, Integer) Double -> StandingRow -> (Integer, Double)
+calculateContestantRating standing problemRatings standingRow@StandingRow {..} =
+  ( contestantID rowContestant
+  , sum $ calculateContestantRatingOnProblem standing standingRow <$> Map.toList problemRatings
+  )
+ where
+  calculateContestantRatingOnProblem :: Standing -> StandingRow -> ((Integer, Integer), Double) -> Double
+  calculateContestantRatingOnProblem Standing { standingConfig = StandingConfig {..}, ..} StandingRow {..} (problemIDs, rating)
+    = case rowCells !? problemIDs of
+      Nothing                  -> 0
+      (Just StandingCell {..}) -> baseScore * penalty
+       where
+        baseScore = if cellType == Success then rating else 0
+        penalty   = if enableDeadlines && cellIsOverdue then fromRational deadlinePenalty else 1
+
+mkRatingProblemScoreColumn :: Standing -> RatingProblemScoreColumn
+mkRatingProblemScoreColumn standing@Standing { standingSource = StandingSource {..}, ..} =
+  let problemPrecalc    = calculateProblemRating standing <$> problems
+      contestantPrecalc = calculateContestantRating standing problemPrecalc <$> standingRows
+  in  RatingProblemScoreColumn {standing = standing, contestantPrecalc = Map.fromList contestantPrecalc}
 
 instance StandingColumn RatingProblemScoreColumn where
   type StandingColumnValue RatingProblemScoreColumn = Double
   columnTagClass = const "rating_problem_score"
   columnCaptionText _ = preEscapedText "📊"
   columnCaptionTitleText RatingProblemScoreColumn{ standing = Standing{..}} = Just $ translate standingLanguage MsgRatingProblemScoreCaptionTitle
-  columnValue _ _ = fromRational . rowScore . rowStats  -- FIXME: Implementation stub: uses Total score as a value for now
+  columnValue RatingProblemScoreColumn{..} _ StandingRow{..} = case contestantPrecalc !? contestantID rowContestant of
+    Nothing      -> 0
+    (Just value) -> value
   columnOrder column = compare `on` columnValue column (-1)
-  columnValueDisplayer _ = toMarkup
+  columnValueDisplayer _ rating = toMarkup $ showFFloat (Just 2) rating ""
 
 getColumnByVariant :: Standing -> ColumnVariant -> GenericStandingColumn
 getColumnByVariant standing columnV = case columnV of
@@ -196,7 +242,7 @@ getColumnByVariant standing columnV = case columnV of
   AttemptsColumnVariant           -> GenericStandingColumn $ TotalAttemptsColumn standing
   ScoreColumnVariant              -> GenericStandingColumn $ TotalScoreColumn standing
   LastSuccessTimeColumnVariant    -> GenericStandingColumn $ LastSuccessTimeColumn standing
-  RatingProblemScoreColumnVariant -> GenericStandingColumn $ RatingProblemScoreColumn standing
+  RatingProblemScoreColumnVariant -> GenericStandingColumn $ mkRatingProblemScoreColumn standing
 
 -- Conditional styles
 
@@ -207,12 +253,14 @@ data ConditionalStyleColumn c = ConditionalStyleColumn { standing          :: !S
 
 data ConditionalStyleRuntimeException = InvalidElangExpression !Text
                                       | BoolValueExpected !ELang.Value
+                                      | DoubleValueExpected !ELang.Value
 
 instance Exception ConditionalStyleRuntimeException
 
 instance Show ConditionalStyleRuntimeException where
   show (InvalidElangExpression e    ) = sconcat ["ELang Runtime Exception: ", e]
   show (BoolValueExpected      value) = sconcat ["Expected Bool value in ELang expression, but ", show value, " got"]
+  show (DoubleValueExpected    value) = sconcat ["Expected Double value in ELang expression, but ", show value, " got"]
 
 instance StandingColumn c => StandingColumn (ConditionalStyleColumn c) where
   type StandingColumnValue (ConditionalStyleColumn c) = StandingColumnValue c

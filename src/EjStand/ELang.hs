@@ -1,6 +1,7 @@
 module EjStand.ELang
   ( ASTElement(..)
   , Binding(..)
+  , FromValue(..)
   , ToValue(..)
   , Value(..)
   , buildAST
@@ -20,7 +21,8 @@ import           EjStand.ELang.Library          ( defaultBindingMap
                                                 , defaultOperatorMeta
                                                 )
 import           EjStand.ELang.Syntax           ( runSyntaxAnalyzerStrict )
-import           EjStand.ELang.Value            ( ToValue(..)
+import           EjStand.ELang.Value            ( FromValue(..)
+                                                , ToValue(..)
                                                 , Value(..)
                                                 )
 import           EjStand.Internals.Core         ( fromIdentifiableList )

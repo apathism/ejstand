@@ -355,6 +355,9 @@ buildStandingConfig path = do
   fixedDeadlines         <- buildNestedOptions buildExtraDeadline "SetFixedDeadline"
   enableScores           <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "EnableScores"
   onlyScoreLastSubmit    <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "OnlyScoreLastSubmit"
+  problemRatingFormula   <- if enableScores
+    then return Nothing
+    else takeUniqueValue ||> toTextValue ||> toELangAST $ "ProblemRatingFormula"
   showAttemptsNumber     <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe True $ "ShowAttemptsNumber"
   showSuccessTime        <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ShowSuccessTime"
   showLanguages          <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ShowLanguages"
@@ -377,6 +380,7 @@ buildStandingConfig path = do
     , fixedDeadlines         = fixedDeadlines
     , enableScores           = enableScores
     , onlyScoreLastSubmit    = onlyScoreLastSubmit
+    , problemRatingFormula   = problemRatingFormula
     , showAttemptsNumber     = showAttemptsNumber
     , showSuccessTime        = showSuccessTime
     , showLanguages          = showLanguages

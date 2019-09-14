@@ -134,6 +134,7 @@ data StandingConfig = StandingConfig { standingName           :: !Text
                                      , fixedDeadlines         :: ![FixedDeadline]
                                      , enableScores           :: !Bool
                                      , onlyScoreLastSubmit    :: !Bool
+                                     , problemRatingFormula   :: !(Maybe ELang.ASTElement)
                                      , showAttemptsNumber     :: !Bool
                                      , showSuccessTime        :: !Bool
                                      , showLanguages          :: !Bool
@@ -199,8 +200,10 @@ data StandingProblemStats = StandingProblemStats { problemSuccesses :: !Integer
                                                  deriving (Show, Eq)
 
 instance Semigroup StandingProblemStats where
-  statA <> statB = StandingProblemStats { problemSuccesses = problemSuccesses statA + problemSuccesses statB
-   , problemOverdueSuccesses = problemOverdueSuccesses statA + problemOverdueSuccesses statB }
+  statA <> statB = StandingProblemStats
+    { problemSuccesses = problemSuccesses statA + problemSuccesses statB
+    , problemOverdueSuccesses = problemOverdueSuccesses statA + problemOverdueSuccesses statB
+    }
 
 instance Monoid StandingProblemStats where
   mempty = StandingProblemStats 0 0

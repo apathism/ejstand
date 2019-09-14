@@ -260,6 +260,19 @@ InternalName = example
 -- OnlyScoreLastSubmit = False
 
 --|
+--|  Option "ProblemRatingFormula"
+--|    Required: optional   (when EnableScores = False)
+--|              prohibited (when EnableScores = True)
+--|
+--|    Sets a formula to calculate problem max score for a RatingProblemScore
+--|    column. There are two self-explanatory variables available:
+--|      * successes;
+--|      * overdueSuccesses.
+--|
+
+-- ProblemRatingFormula = Max(0, 105 - 5 * successes)
+
+--|
 --|  Option "ShowAttemptsNumber"
 --|    Required:      optional
 --|    Default value: True
