@@ -63,7 +63,7 @@ getShortContestName StandingConfig {..} Contest {..} = fromMaybe (T.takeWhileEnd
 
 renderStanding :: GlobalConfiguration -> Standing -> [Lang] -> LT.Text
 renderStanding GlobalConfiguration {..} standing@Standing { standingConfig = cfg@StandingConfig {..}, ..} lang =
-  let problemSuccesses = showProblemStatistics ==> renderStandingProblemSuccesses lang standing
+  let problemSuccesses = showProblemStatistics ==> renderStandingProblemSuccesses standing
   in  renderHtml $ $(ihamletFile "templates/main.hamlet") (preEscapedText . translate lang) skipUrlRendering
 
 renderCSS :: LT.Text

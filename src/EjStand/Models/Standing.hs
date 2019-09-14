@@ -12,6 +12,7 @@ module EjStand.Models.Standing
   , GenericStandingColumn(..)
   , StandingRow(..)
   , StandingRowStats(..)
+  , StandingProblemStats(..)
   , Standing(..)
   , RunStatusType(..)
   , FixedDeadline(..)
@@ -53,6 +54,7 @@ import           Text.Blaze.Html5.Attributes    ( class_
                                                 , rowspan
                                                 , title
                                                 )
+import           Text.Shakespeare.I18N          ( Lang )
 
 data StandingSource = StandingSource { contests    :: !(Map Integer Contest)
                                      , contestants :: !(Map Integer Contestant)
@@ -80,13 +82,14 @@ data GlobalConfiguration = GlobalConfiguration { xmlFilePattern                :
                                                deriving (Show)
 
 defaultGlobalConfiguration :: GlobalConfiguration
-defaultGlobalConfiguration = GlobalConfiguration { xmlFilePattern = "/home/judges/%06d/var/status/dir/external.xml"
-                                                 , ejudgeServeConfigurationsPath = "/home/judges/%06d/conf/serve.cfg"
-                                                 , standingConfigurationsPath = "/etc/ejstand/cfg/"
-                                                 , ejStandPort = 80
-                                                 , ejStandHostname = "127.0.0.1"
-                                                 , webRoot = "/"
-                                                 }
+defaultGlobalConfiguration = GlobalConfiguration
+  { xmlFilePattern                = "/home/judges/%06d/var/status/dir/external.xml"
+  , ejudgeServeConfigurationsPath = "/home/judges/%06d/conf/serve.cfg"
+  , standingConfigurationsPath    = "/etc/ejstand/cfg/"
+  , ejStandPort                   = 80
+  , ejStandHostname               = "127.0.0.1"
+  , webRoot                       = "/"
+  }
 
 data FixedDeadline = FixedDeadline { contestIDs    :: !(Set Integer)
                                    , deadline      :: !UTCTime
@@ -189,6 +192,18 @@ instance Semigroup StandingRowStats where
 instance Monoid StandingRowStats where
   mempty = StandingRowStats 0 0 Nothing 0
 
+data StandingProblemStats = StandingProblemStats { problemSuccesses :: !Integer
+                                                 , problemOverdueSuccesses :: !Integer
+                                                 }
+                                                 deriving (Show, Eq)
+
+instance Semigroup StandingProblemStats where
+  statA <> statB = StandingProblemStats { problemSuccesses = problemSuccesses statA + problemSuccesses statB
+   , problemOverdueSuccesses = problemOverdueSuccesses statA + problemOverdueSuccesses statB }
+
+instance Monoid StandingProblemStats where
+  mempty = StandingProblemStats 0 0
+
 data StandingRow = StandingRow { rowContestant :: !Contestant
                                , rowCells      :: !(Map (Integer, Integer) StandingCell)
                                , rowStats      :: !StandingRowStats
@@ -226,9 +241,11 @@ class StandingColumn c where
 
 data GenericStandingColumn = forall c . (StandingColumn c, ELang.ToValue (StandingColumnValue c)) => GenericStandingColumn c
 
-data Standing = Standing { standingConfig   :: !StandingConfig
-                         , standingSource   :: !StandingSource
-                         , standingProblems :: ![Problem]
-                         , standingRows     :: ![StandingRow]
-                         , standingColumns  :: ![GenericStandingColumn]
+data Standing = Standing { standingLanguage     :: ![Lang]
+                         , standingConfig       :: !StandingConfig
+                         , standingSource       :: !StandingSource
+                         , standingProblems     :: ![Problem]
+                         , standingRows         :: ![StandingRow]
+                         , standingColumns      :: ![GenericStandingColumn]
+                         , standingProblemStats :: !(Map (Integer, Integer) StandingProblemStats)
                          }

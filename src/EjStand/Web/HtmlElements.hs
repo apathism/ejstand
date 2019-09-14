@@ -40,9 +40,7 @@ import           Data.Time                      ( NominalDiffTime
 import           Data.Time.Format               ( formatTime )
 import           EjStand                        ( defaultLanguage )
 import qualified EjStand.ELang                 as ELang
-import           EjStand.Internals.Core         ( (==>)
-                                                , sconcat
-                                                )
+import           EjStand.Internals.Core
 import           EjStand.Models.Base
 import           EjStand.Models.Standing
 import           Prelude                 hiding ( div
@@ -98,109 +96,102 @@ instance ToMarkup UTCTime where
 
 -- Columns rendering
 
-data PlaceColumn = PlaceColumn { lang           :: [Lang]
-                               , standingSource :: StandingSource
-                               }
+newtype PlaceColumn = PlaceColumn { standing :: Standing }
 
 instance StandingColumn PlaceColumn where
   type StandingColumnValue PlaceColumn = Integer
   columnTagClass = const "place"
-  columnCaptionText PlaceColumn {..} = preEscapedText $ translate lang MsgPlace
+  columnCaptionText PlaceColumn { standing = Standing {..} } = preEscapedText $ translate standingLanguage MsgPlace
   columnValue _ = const
   columnOrder _ _ _ = EQ
   columnValueDisplayer _ = toMarkup
-  columnMaxValue = Just $ \PlaceColumn {..} -> toInteger . Map.size $ contestants standingSource
+  columnMaxValue = Just $ \PlaceColumn { standing = Standing{..}} -> toInteger . Map.size $ contestants standingSource
 
-newtype UserIDColumn = UserIDColumn { lang :: [Lang] }
+newtype UserIDColumn = UserIDColumn { standing :: Standing }
 
 instance StandingColumn UserIDColumn where
   type StandingColumnValue UserIDColumn = Integer
   columnTagClass = const "user_id"
-  columnCaptionText UserIDColumn {..} = preEscapedText $ translate lang MsgUserID
+  columnCaptionText UserIDColumn { standing = Standing {..} } = preEscapedText $ translate standingLanguage MsgUserID
   columnValue _ _ = contestantID . rowContestant
   columnOrder column = compare `on` columnValue column (-1)
   columnValueDisplayer _ = toMarkup
 
-newtype ContestantNameColumn = ContestantNameColumn { lang :: [Lang] }
+newtype ContestantNameColumn = ContestantNameColumn { standing :: Standing }
 
 instance StandingColumn ContestantNameColumn where
   type StandingColumnValue ContestantNameColumn = Text
   columnTagClass = const "contestant"
-  columnCaptionText ContestantNameColumn {..} = preEscapedText $ translate lang MsgContestant
+  columnCaptionText ContestantNameColumn { standing = Standing {..} } = preEscapedText $ translate standingLanguage MsgContestant
   columnValue _ _ = contestantName . rowContestant
   columnOrder column = compare `on` columnValue column (-1)
   columnValueDisplayer _ = toMarkup
 
-data TotalSuccessesColumn = TotalSuccessesColumn { lang           :: [Lang]
-                                                 , standingSource :: StandingSource }
+newtype TotalSuccessesColumn = TotalSuccessesColumn { standing :: Standing }
 
 instance StandingColumn TotalSuccessesColumn where
   type StandingColumnValue TotalSuccessesColumn = Integer
   columnTagClass = const "total_successes"
   columnCaptionText _ = "="
-  columnCaptionTitleText TotalSuccessesColumn {..} = Just $ translate lang MsgSuccessesCaptionTitle
+  columnCaptionTitleText TotalSuccessesColumn { standing = Standing {..} } = Just $ translate standingLanguage MsgSuccessesCaptionTitle
   columnValue _ _ = rowSuccesses . rowStats
   columnOrder column = compare `on` columnValue column (-1)
   columnValueDisplayer _ = toMarkup
-  columnMaxValue = Just $ \TotalSuccessesColumn {..} -> toInteger . Map.size $ problems standingSource
+  columnMaxValue = Just $ \TotalSuccessesColumn { standing = Standing {..}} -> toInteger . Map.size $ problems standingSource
 
-newtype TotalAttemptsColumn = TotalAttemptsColumn { lang :: [Lang] }
+newtype TotalAttemptsColumn = TotalAttemptsColumn { standing :: Standing }
 
 instance StandingColumn TotalAttemptsColumn where
   type StandingColumnValue TotalAttemptsColumn = Integer
   columnTagClass = const "total_attempts"
   columnCaptionText _ = "!"
-  columnCaptionTitleText TotalAttemptsColumn {..} = Just $ translate lang MsgAttemptsCaptionTitle
+  columnCaptionTitleText TotalAttemptsColumn { standing = Standing{..}} = Just $ translate standingLanguage MsgAttemptsCaptionTitle
   columnValue _ _ = rowAttempts . rowStats
   columnOrder column = compare `on` columnValue column (-1)
   columnValueDisplayer _ = toMarkup
 
-data TotalScoreColumn = TotalScoreColumn { lang :: [Lang]
-                                         , standingConfig :: StandingConfig
-                                         , standingSource :: StandingSource
-                                         }
+newtype TotalScoreColumn = TotalScoreColumn { standing :: Standing }
 
 instance StandingColumn TotalScoreColumn where
   type StandingColumnValue TotalScoreColumn = Rational
   columnTagClass = const "total_score"
   columnCaptionText _ = preEscapedText "&Sigma;"
-  columnCaptionTitleText TotalScoreColumn {..} = Just $ translate lang MsgTotalScoreCaptionTitle
+  columnCaptionTitleText TotalScoreColumn { standing = Standing {..}} = Just $ translate standingLanguage MsgTotalScoreCaptionTitle
   columnValue _ _ = rowScore . rowStats
   columnOrder column = compare `on` columnValue column (-1)
   columnValueDisplayer _ = toMarkup
   columnMaxValue =
-    Just $ \TotalScoreColumn { standingConfig = StandingConfig {..}, standingSource = StandingSource {..} } ->
+    Just $ \TotalScoreColumn { standing = Standing {standingConfig = StandingConfig{..}, standingSource = StandingSource {..}} } ->
       fromInteger $ if enableScores then sum $ problemMaxScore <$> problems else toInteger $ Map.size problems
 
-newtype LastSuccessTimeColumn = LastSuccessTimeColumn { lang :: [Lang] }
+newtype LastSuccessTimeColumn = LastSuccessTimeColumn { standing :: Standing }
 
 instance StandingColumn LastSuccessTimeColumn where
   type StandingColumnValue LastSuccessTimeColumn = Maybe UTCTime
   columnTagClass = const "last_success_time"
-  columnCaptionText LastSuccessTimeColumn {..} = preEscapedText $ translate lang MsgLastSuccessTime
-  columnCaptionTitleText LastSuccessTimeColumn {..} = Just $ translate lang MsgLastSuccessTimeCaptionTitle
+  columnCaptionText LastSuccessTimeColumn { standing = Standing{..}} = preEscapedText $ translate standingLanguage MsgLastSuccessTime
+  columnCaptionTitleText LastSuccessTimeColumn { standing = Standing{..}} = Just $ translate standingLanguage MsgLastSuccessTimeCaptionTitle
   columnValue _ _ = rowLastTimeSuccess . rowStats
   columnOrder column = compare `on` columnValue column (-1)
   columnValueDisplayer _ Nothing     = ""
   columnValueDisplayer _ (Just time) = toMarkup time
 
-getColumnByVariant :: [Lang] -> StandingConfig -> StandingSource -> ColumnVariant -> GenericStandingColumn
-getColumnByVariant lang cfg src columnV = case columnV of
-  PlaceColumnVariant           -> GenericStandingColumn $ PlaceColumn lang src
-  UserIDColumnVariant          -> GenericStandingColumn $ UserIDColumn lang
-  NameColumnVariant            -> GenericStandingColumn $ ContestantNameColumn lang
-  SuccessesColumnVariant       -> GenericStandingColumn $ TotalSuccessesColumn lang src
-  AttemptsColumnVariant        -> GenericStandingColumn $ TotalAttemptsColumn lang
-  ScoreColumnVariant           -> GenericStandingColumn $ TotalScoreColumn lang cfg src
-  LastSuccessTimeColumnVariant -> GenericStandingColumn $ LastSuccessTimeColumn lang
+
+getColumnByVariant :: Standing -> ColumnVariant -> GenericStandingColumn
+getColumnByVariant standing columnV = case columnV of
+  PlaceColumnVariant           -> GenericStandingColumn $ PlaceColumn standing
+  UserIDColumnVariant          -> GenericStandingColumn $ UserIDColumn standing
+  NameColumnVariant            -> GenericStandingColumn $ ContestantNameColumn standing
+  SuccessesColumnVariant       -> GenericStandingColumn $ TotalSuccessesColumn standing
+  AttemptsColumnVariant        -> GenericStandingColumn $ TotalAttemptsColumn standing
+  ScoreColumnVariant           -> GenericStandingColumn $ TotalScoreColumn standing
+  LastSuccessTimeColumnVariant -> GenericStandingColumn $ LastSuccessTimeColumn standing
 
 -- Conditional styles
 
-data ConditionalStyleColumn c = ConditionalStyleColumn { lang              :: [Lang]
+data ConditionalStyleColumn c = ConditionalStyleColumn { standing          :: !Standing
                                                        , baseColumn        :: !c
                                                        , conditionalStyles :: ![ConditionalStyle]
-                                                       , standingConfig    :: !StandingConfig
-                                                       , standingSource    :: !StandingSource
                                                        }
 
 data ConditionalStyleRuntimeException = InvalidElangExpression !Text
@@ -234,7 +225,7 @@ instance StandingColumn c => StandingColumn (ConditionalStyleColumn c) where
     baseValueCell  = columnValueCell baseColumn place row
     columnBindings = do
       (name, variant) <- allColumnVariants
-      let genericColumn = getColumnByVariant lang standingConfig standingSource variant
+      let genericColumn = getColumnByVariant standing variant
       (bindName, bindValue) <- getValuesByGenericColumn genericColumn name place row
       [ELang.VariableBinding bindName (return bindValue)]
 
@@ -255,14 +246,14 @@ instance StandingColumn c => StandingColumn (ConditionalStyleColumn c) where
         Nothing    -> []
         Just value -> [("max" <> name, ELang.toValue $ value column)]
 
-getColumnByVariantWithStyles :: [Lang] -> StandingConfig -> StandingSource -> ColumnVariant -> GenericStandingColumn
-getColumnByVariantWithStyles lang cfg@StandingConfig {..} src columnV =
-  let baseColumn = getColumnByVariant lang cfg src columnV
+getColumnByVariantWithStyles :: Standing -> ColumnVariant -> GenericStandingColumn
+getColumnByVariantWithStyles standing@Standing { standingConfig = StandingConfig {..} } columnV =
+  let baseColumn = getColumnByVariant standing columnV
   in  case Map.lookup columnV conditionalStyles of
         Nothing       -> baseColumn
         (Just []    ) -> baseColumn
         (Just styles) -> case baseColumn of
-          (GenericStandingColumn column) -> GenericStandingColumn $ ConditionalStyleColumn lang column styles cfg src
+          (GenericStandingColumn column) -> GenericStandingColumn $ ConditionalStyleColumn standing column styles
 
 -- Cell rendering
 
@@ -334,22 +325,17 @@ renderCell st@Standing { standingConfig = StandingConfig {..}, ..} row problem c
     Error        -> (td ! class_ "error", addRunStatusCellText "✖", False)
 
 renderProblemSuccesses :: Standing -> Problem -> Markup
-renderProblemSuccesses Standing {..} Problem {..} =
-  let countProblemSuccesses =
-        length
-          .   filter ((== Success) . cellType)
-          .   catMaybes
-          $   Map.lookup (problemContest, problemID)
-          .   rowCells
-          <$> standingRows
-  in  td ! class_ "problem_successes row_value" $ toMarkup countProblemSuccesses
+renderProblemSuccesses Standing {..} problem =
+  td ! class_ "problem_successes row_value" $ toMarkup $ case standingProblemStats !? getID problem of
+    (Just stats) -> problemSuccesses stats
+    _            -> 0
 
-renderStandingProblemSuccesses :: [Lang] -> Standing -> Markup
-renderStandingProblemSuccesses lang standing@Standing {..} =
+renderStandingProblemSuccesses :: Standing -> Markup
+renderStandingProblemSuccesses standing@Standing {..} =
   let header =
         td
           ! class_ "problem_successes row_header"
           ! colspan (toValue . length $ standingColumns)
           $ preEscapedText
-          $ translate lang MsgCorrectSolutions
+          $ translate standingLanguage MsgCorrectSolutions
   in  tr $ foldl (>>) header $ renderProblemSuccesses standing <$> standingProblems

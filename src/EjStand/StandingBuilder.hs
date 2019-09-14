@@ -68,13 +68,14 @@ calculateDeadline StandingConfig {..} StandingSource {..} prob@Problem {..} user
 -- Standing building
 
 defaultCell :: Contest -> StandingCell
-defaultCell Contest {..} = StandingCell { cellType      = Ignore
-                                        , cellIsOverdue = False
-                                        , cellScore     = 0
-                                        , cellAttempts  = 0
-                                        , cellMainRun   = Nothing
-                                        , cellStartTime = fromJust contestStartTime
-                                        }
+defaultCell Contest {..} = StandingCell
+  { cellType      = Ignore
+  , cellIsOverdue = False
+  , cellScore     = 0
+  , cellAttempts  = 0
+  , cellMainRun   = Nothing
+  , cellStartTime = fromJust contestStartTime
+  }
 
 applyRunDeadline :: Maybe UTCTime -> Run -> (Run, Bool)
 applyRunDeadline Nothing     run          = (run, False)
@@ -142,11 +143,12 @@ buildCell cfg@StandingConfig {..} src@StandingSource {..} prob@Problem {..} user
 calculateCellStats :: StandingCell -> StandingRowStats
 calculateCellStats StandingCell {..} = if cellType /= Success
   then mempty { rowScore = cellScore }
-  else StandingRowStats { rowSuccesses       = 1
-                        , rowAttempts        = cellAttempts
-                        , rowScore           = cellScore
-                        , rowLastTimeSuccess = runTime <$> cellMainRun
-                        }
+  else StandingRowStats
+    { rowSuccesses       = 1
+    , rowAttempts        = cellAttempts
+    , rowScore           = cellScore
+    , rowLastTimeSuccess = runTime <$> cellMainRun
+    }
 
 calculateRowStats :: StandingRow -> StandingRowStats
 calculateRowStats StandingRow {..} = mconcat $ calculateCellStats <$> Map.elems rowCells
@@ -154,15 +156,17 @@ calculateRowStats StandingRow {..} = mconcat $ calculateCellStats <$> Map.elems 
 appendRecalculatedCellStats :: StandingRow -> StandingRow
 appendRecalculatedCellStats row = row { rowStats = calculateRowStats row }
 
-buildRow :: StandingConfig -> StandingSource -> [Problem] -> Contestant -> StandingRow
-buildRow cfg src probs user = appendRecalculatedCellStats $ StandingRow
+buildRow :: Standing -> Contestant -> StandingRow
+buildRow Standing {..} user = appendRecalculatedCellStats $ StandingRow
   { rowContestant = user
-  , rowCells = Map.fromList $ fmap (\p@Problem {..} -> ((problemContest, problemID), buildCell cfg src p user)) probs
-  , rowStats = mempty
+  , rowCells      = Map.fromList $ fmap
+    (\p@Problem {..} -> ((problemContest, problemID), buildCell standingConfig standingSource p user))
+    standingProblems
+  , rowStats      = mempty
   }
 
-buildRows :: StandingConfig -> StandingSource -> [Problem] -> [StandingRow]
-buildRows cfg src probs = buildRow cfg src probs <$> Map.elems (contestants src)
+buildRows :: Standing -> [StandingRow]
+buildRows standing@Standing {..} = buildRow standing <$> Map.elems (contestants standingSource)
 
 buildProblems :: StandingConfig -> StandingSource -> [Problem]
 buildProblems StandingConfig {..} | reversedContestOrder = sortOn reversedCmp . elementsF
@@ -205,14 +209,45 @@ mergeStandingSourceContestantsByName src@StandingSource {..} = src { contestants
     Nothing     -> (Map.insert (contestantName c1) (contestantID c1) nameIndex, idIndex, contestantMap)
     (Just c2id) -> (nameIndex, Map.insert (contestantID c1) c2id idIndex, Map.delete (contestantID c1) contestantMap)
 
+buildProblemStats :: Standing -> Map (Integer, Integer) StandingProblemStats
+buildProblemStats Standing {..} = Map.fromListWith
+  (<>)
+  (cellToProblemStat <$> concat (Map.toList . rowCells <$> standingRows))
+ where
+  cellToProblemStat :: (a, StandingCell) -> (a, StandingProblemStats)
+  cellToProblemStat (id, StandingCell {..}) =
+    ( id
+    , StandingProblemStats
+      { problemSuccesses        = if cellType == Success then 1 else 0
+      , problemOverdueSuccesses = if cellType == Success && cellIsOverdue then 1 else 0
+      }
+    )
+
 buildStanding :: [Lang] -> StandingConfig -> StandingSource -> Standing
 buildStanding lang cfg@StandingConfig {..} src =
-  let src'     = if mergeContestantsByName then mergeStandingSourceContestantsByName src else src
-      problems = buildProblems cfg src'
-      orderer  = (\(ord, col) -> (ord, getColumnByVariant lang cfg src' col)) <$> rowSortingOrder
-  in  Standing { standingConfig   = cfg
-               , standingSource   = src'
-               , standingProblems = problems
-               , standingRows     = sortRows orderer $ buildRows cfg src' problems
-               , standingColumns  = getColumnByVariantWithStyles lang cfg src <$> displayedColumns
-               }
+  let src'           = if mergeContestantsByName then mergeStandingSourceContestantsByName src else src
+      problems       = buildProblems cfg src'
+
+      -- Stage 1. No rows, no columns, no problem stats
+      standingStage1 = Standing
+        { standingLanguage     = lang
+        , standingConfig       = cfg
+        , standingSource       = src'
+        , standingProblems     = problems
+        , standingRows         = mempty
+        , standingColumns      = mempty
+        , standingProblemStats = mempty
+        }
+
+      orderer        = (\(ord, variant) -> (ord, getColumnByVariant standingStage1 variant)) <$> rowSortingOrder
+      rows           = sortRows orderer $ buildRows standingStage1
+
+      -- Stage II. No columns, no problem stats
+      standingStage2 = standingStage1 { standingRows = rows }
+
+      columns        = getColumnByVariantWithStyles standingStage2 <$> displayedColumns
+      problemStats   = buildProblemStats standingStage2
+
+      -- Stage III. Everything set up
+      standingStage3 = standingStage2 { standingColumns = columns, standingProblemStats = problemStats }
+  in  standingStage3
