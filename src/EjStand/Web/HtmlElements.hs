@@ -176,16 +176,27 @@ instance StandingColumn LastSuccessTimeColumn where
   columnValueDisplayer _ Nothing     = ""
   columnValueDisplayer _ (Just time) = toMarkup time
 
+newtype RatingProblemScoreColumn = RatingProblemScoreColumn { standing :: Standing }
+
+instance StandingColumn RatingProblemScoreColumn where
+  type StandingColumnValue RatingProblemScoreColumn = Double
+  columnTagClass = const "rating_problem_score"
+  columnCaptionText _ = preEscapedText "📊"
+  columnCaptionTitleText RatingProblemScoreColumn{ standing = Standing{..}} = Just $ translate standingLanguage MsgRatingProblemScoreCaptionTitle
+  columnValue _ _ = fromRational . rowScore . rowStats  -- FIXME: Implementation stub: uses Total score as a value for now
+  columnOrder column = compare `on` columnValue column (-1)
+  columnValueDisplayer _ = toMarkup
 
 getColumnByVariant :: Standing -> ColumnVariant -> GenericStandingColumn
 getColumnByVariant standing columnV = case columnV of
-  PlaceColumnVariant           -> GenericStandingColumn $ PlaceColumn standing
-  UserIDColumnVariant          -> GenericStandingColumn $ UserIDColumn standing
-  NameColumnVariant            -> GenericStandingColumn $ ContestantNameColumn standing
-  SuccessesColumnVariant       -> GenericStandingColumn $ TotalSuccessesColumn standing
-  AttemptsColumnVariant        -> GenericStandingColumn $ TotalAttemptsColumn standing
-  ScoreColumnVariant           -> GenericStandingColumn $ TotalScoreColumn standing
-  LastSuccessTimeColumnVariant -> GenericStandingColumn $ LastSuccessTimeColumn standing
+  PlaceColumnVariant              -> GenericStandingColumn $ PlaceColumn standing
+  UserIDColumnVariant             -> GenericStandingColumn $ UserIDColumn standing
+  NameColumnVariant               -> GenericStandingColumn $ ContestantNameColumn standing
+  SuccessesColumnVariant          -> GenericStandingColumn $ TotalSuccessesColumn standing
+  AttemptsColumnVariant           -> GenericStandingColumn $ TotalAttemptsColumn standing
+  ScoreColumnVariant              -> GenericStandingColumn $ TotalScoreColumn standing
+  LastSuccessTimeColumnVariant    -> GenericStandingColumn $ LastSuccessTimeColumn standing
+  RatingProblemScoreColumnVariant -> GenericStandingColumn $ RatingProblemScoreColumn standing
 
 -- Conditional styles
 

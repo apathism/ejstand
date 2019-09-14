@@ -109,6 +109,7 @@ data ColumnVariant = PlaceColumnVariant
                    | AttemptsColumnVariant
                    | ScoreColumnVariant
                    | LastSuccessTimeColumnVariant
+                   | RatingProblemScoreColumnVariant
                    deriving (Show, Eq, Ord, Bounded, Enum)
 
 data OrderType = Ascending | Descending

@@ -113,6 +113,7 @@ InternalName = example
 --|      5) Successes       (solved problems)
 --|      6) Attempts        (number of unsuccessful submits)
 --|      7) LastSuccessTime
+--|      8) RatingProblemScore
 --|
 --|    Option value is a comma-seperated non-empty list of column
 --|    names.
