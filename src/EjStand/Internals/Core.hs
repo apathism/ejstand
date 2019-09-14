@@ -73,7 +73,7 @@ sconcat = mconcat . (toString <$>)
 
 class Identifiable a where
   type Identificator a :: *
-  getID :: a -> (Identificator a)
+  getID :: a -> Identificator a
 
 instance {-# OVERLAPPABLE #-} (Identifiable a, Eq (Identificator a)) => Eq a where
   (==) = (==) `on` getID
