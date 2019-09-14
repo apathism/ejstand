@@ -27,6 +27,7 @@ import           Data.Time.Clock.System         ( systemSeconds
 data Value = ValueVoid
            | ValueInt !Integer
            | ValueRational !Rational
+           | ValueDouble !Double
            | ValueBool !Bool
            | ValueText !Text
            | ValueList !(Seq Value)
@@ -40,6 +41,7 @@ instance Show Value where
    where
     a = numerator r
     b = denominator r
+  show (ValueDouble x) = show x
   show (ValueBool b) = show b
   show (ValueText t) = show t
   show (ValueList l) = show . toList $ l
@@ -62,6 +64,9 @@ instance ToValue Integer where
 
 instance ToValue Rational where
   toValue = ValueRational
+
+instance ToValue Double where
+  toValue = ValueDouble
 
 instance ToValue Bool where
   toValue = ValueBool
@@ -101,3 +106,9 @@ instance FromValue Bool where
 instance FromValue Text where
   fromValue (ValueText v) = Just v
   fromValue _             = Nothing
+
+instance FromValue Double where
+  fromValue (ValueDouble v) = Just v
+  fromValue (ValueInt    v) = Just . fromInteger $ v
+  fromValue (ValueRational v) = Just . fromRational $ v
+  fromValue _ = Nothing
