@@ -50,7 +50,7 @@ table.standing td, table.standing th {
   text-align: center;
 }
 
-.row_header {
+.row_header, td.rating_problem_score {
   text-align: right;
 }
 

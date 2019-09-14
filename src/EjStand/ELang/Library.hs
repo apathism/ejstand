@@ -18,6 +18,7 @@ import           Control.Monad.Trans.Maybe      ( MaybeT(..)
                                                 , exceptToMaybeT
                                                 , maybeToExceptT
                                                 )
+import           Data.Double.Conversion.Text    ( toShortest )
 import           Data.Fixed                     ( mod' )
 import           Data.Function                  ( on )
 import           Data.Functor.Identity          ( Identity )
@@ -71,9 +72,9 @@ mergeNativeToOperator
   :: Monad m => [[Value] -> MaybeT m Value] -> OperatorMeta -> Value -> Value -> ExceptT Text m Value
 mergeNativeToOperator handlers OperatorMeta {..} v1 v2 = mergeNativeToFunction handlers operatorMetaName [v1, v2]
 
-fromIntToRational :: Value -> Value
-fromIntToRational (ValueInt v) = ValueRational . fromInteger $ v
-fromIntToRational value        = value
+weakCastToRational :: Value -> Value
+weakCastToRational (ValueInt v) = ValueRational . fromInteger $ v
+weakCastToRational value        = value
 
 -- Function patterns
 
@@ -140,16 +141,19 @@ operatorIndex = OperatorMeta "_" 9 LeftAssociativity ==> operatorF
   operatorF OperatorMeta {..} v1 v2 = throwE $ invalidArgumentsError operatorMetaName [v1, v2]
 
 operatorPower :: Monad m => CombinedOperator m
-operatorPower = OperatorMeta "**" 8 RightAssociativity
-  ==> mergeNativeToOperator [fromNative ((^^) :: Rational -> Integer -> Rational)]
+operatorPower = OperatorMeta "**" 8 RightAssociativity ==> mergeNativeToOperator
+  [fromNative ((^^) :: Rational -> Integer -> Rational), fromNative ((**) :: Double -> Double -> Double)]
 
 operatorMultiplication :: Monad m => CombinedOperator m
 operatorMultiplication = OperatorMeta "*" 7 LeftAssociativity ==> mergeNativeToOperator
-  [fromNative ((*) :: Integer -> Integer -> Integer), fromNative ((*) :: Rational -> Rational -> Rational)]
+  [ fromNative ((*) :: Integer -> Integer -> Integer)
+  , fromNative ((*) :: Rational -> Rational -> Rational)
+  , fromNative ((*) :: Double -> Double -> Double)
+  ]
 
 operatorDivision :: Monad m => CombinedOperator m
-operatorDivision =
-  OperatorMeta "/" 7 LeftAssociativity ==> mergeNativeToOperator [fromNative ((/) :: Rational -> Rational -> Rational)]
+operatorDivision = OperatorMeta "/" 7 LeftAssociativity ==> mergeNativeToOperator
+  [fromNative ((/) :: Rational -> Rational -> Rational), fromNative ((/) :: Double -> Double -> Double)]
 
 operatorModulo :: Monad m => CombinedOperator m
 operatorModulo = OperatorMeta "%" 7 LeftAssociativity ==> mergeNativeToOperator
@@ -161,11 +165,17 @@ operatorIntegerDivision =
 
 operatorPlus :: Monad m => CombinedOperator m
 operatorPlus = OperatorMeta "+" 6 LeftAssociativity ==> mergeNativeToOperator
-  [fromNative ((+) :: Integer -> Integer -> Integer), fromNative ((+) :: Rational -> Rational -> Rational)]
+  [ fromNative ((+) :: Integer -> Integer -> Integer)
+  , fromNative ((+) :: Rational -> Rational -> Rational)
+  , fromNative ((+) :: Double -> Double -> Double)
+  ]
 
 operatorMinus :: Monad m => CombinedOperator m
 operatorMinus = OperatorMeta "-" 6 LeftAssociativity ==> mergeNativeToOperator
-  [fromNative ((-) :: Integer -> Integer -> Integer), fromNative ((-) :: Rational -> Rational -> Rational)]
+  [ fromNative ((-) :: Integer -> Integer -> Integer)
+  , fromNative ((-) :: Rational -> Rational -> Rational)
+  , fromNative ((-) :: Double -> Double -> Double)
+  ]
 
 operatorConcat :: Monad m => CombinedOperator m
 operatorConcat = OperatorMeta "++" 5 LeftAssociativity ==> operatorF
@@ -179,6 +189,7 @@ operatorLess :: Monad m => CombinedOperator m
 operatorLess = OperatorMeta "<" 4 NonAssociative ==> mergeNativeToOperator
   [ fromNative ((<) :: Integer -> Integer -> Bool)
   , fromNative ((<) :: Rational -> Rational -> Bool)
+  , fromNative ((<) :: Double -> Double -> Bool)
   , fromNative ((<) :: Text -> Text -> Bool)
   ]
 
@@ -186,6 +197,7 @@ operatorLessOrEqual :: Monad m => CombinedOperator m
 operatorLessOrEqual = OperatorMeta "<=" 4 NonAssociative ==> mergeNativeToOperator
   [ fromNative ((<=) :: Integer -> Integer -> Bool)
   , fromNative ((<=) :: Rational -> Rational -> Bool)
+  , fromNative ((<=) :: Double -> Double -> Bool)
   , fromNative ((<=) :: Text -> Text -> Bool)
   ]
 
@@ -193,6 +205,7 @@ operatorGreater :: Monad m => CombinedOperator m
 operatorGreater = OperatorMeta ">" 4 NonAssociative ==> mergeNativeToOperator
   [ fromNative ((>) :: Integer -> Integer -> Bool)
   , fromNative ((>) :: Rational -> Rational -> Bool)
+  , fromNative ((>) :: Double -> Double -> Bool)
   , fromNative ((>) :: Text -> Text -> Bool)
   ]
 
@@ -200,15 +213,16 @@ operatorGreaterOrEqual :: Monad m => CombinedOperator m
 operatorGreaterOrEqual = OperatorMeta ">=" 4 NonAssociative ==> mergeNativeToOperator
   [ fromNative ((>=) :: Integer -> Integer -> Bool)
   , fromNative ((>=) :: Rational -> Rational -> Bool)
+  , fromNative ((>=) :: Double -> Double -> Bool)
   , fromNative ((>=) :: Text -> Text -> Bool)
   ]
 
 operatorEqual :: Monad m => CombinedOperator m
-operatorEqual = (OperatorMeta "==" 4 NonAssociative, (\v1 v2 -> return . ValueBool $ v1 == v2) `on` fromIntToRational)
+operatorEqual = (OperatorMeta "==" 4 NonAssociative, (\v1 v2 -> return . ValueBool $ v1 == v2) `on` weakCastToRational)
 
 operatorNotEqual :: Monad m => CombinedOperator m
 operatorNotEqual =
-  (OperatorMeta "!=" 4 NonAssociative, (\v1 v2 -> return . ValueBool $ v1 /= v2) `on` fromIntToRational)
+  (OperatorMeta "!=" 4 NonAssociative, (\v1 v2 -> return . ValueBool $ v1 /= v2) `on` weakCastToRational)
 
 operatorAnd :: Monad m => CombinedOperator m
 operatorAnd = OperatorMeta "&&" 3 LeftAssociativity ==> mergeNativeToOperator [fromNative (&&)]
@@ -229,6 +243,7 @@ functionToInteger = "ToInteger" ==> mergeNativeToFunction
   [ fromNative (toInteger . fromEnum :: Bool -> Integer)
   , fromNative (id :: Integer -> Integer)
   , fromNative (truncate :: Rational -> Integer)
+  , fromNative (truncate :: Double -> Integer)
   , fromNative (either (const Nothing) isFullyRead . (TextR.signed TextR.decimal :: TextR.Reader Integer))
   ]
  where
@@ -237,20 +252,29 @@ functionToInteger = "ToInteger" ==> mergeNativeToFunction
   isFullyRead _           = Nothing
 
 functionCeil :: Monad m => CombinedFunction m
-functionCeil =
-  "Ceil" ==> mergeNativeToFunction [fromNative (id :: Integer -> Integer), fromNative (ceiling :: Rational -> Integer)]
+functionCeil = "Ceil" ==> mergeNativeToFunction
+  [ fromNative (id :: Integer -> Integer)
+  , fromNative (ceiling :: Rational -> Integer)
+  , fromNative (ceiling :: Double -> Integer)
+  ]
 
 functionFloor :: Monad m => CombinedFunction m
-functionFloor =
-  "Floor" ==> mergeNativeToFunction [fromNative (id :: Integer -> Integer), fromNative (floor :: Rational -> Integer)]
+functionFloor = "Floor" ==> mergeNativeToFunction
+  [ fromNative (id :: Integer -> Integer)
+  , fromNative (floor :: Rational -> Integer)
+  , fromNative (ceiling :: Double -> Integer)
+  ]
 
 functionRound :: Monad m => CombinedFunction m
-functionRound =
-  "Round" ==> mergeNativeToFunction [fromNative (id :: Integer -> Integer), fromNative (round :: Rational -> Integer)]
+functionRound = "Round" ==> mergeNativeToFunction
+  [ fromNative (id :: Integer -> Integer)
+  , fromNative (round :: Rational -> Integer)
+  , fromNative (ceiling :: Double -> Integer)
+  ]
 
 functionToText :: Monad m => CombinedFunction m
-functionToText = "ToText"
-  ==> mergeNativeToFunction [fromNative integerToText, fromNative rationalToText, fromNative (id :: Text -> Text)]
+functionToText = "ToText" ==> mergeNativeToFunction
+  [fromNative integerToText, fromNative rationalToText, fromNative toShortest, fromNative (id :: Text -> Text)]
  where
   integerToText :: Integer -> Text
   integerToText = Text.pack . show
@@ -266,13 +290,17 @@ functionNot = "Not" ==> mergeNativeToFunction [fromNative not]
 -- Numerical functions
 
 functionAbs :: Monad m => CombinedFunction m
-functionAbs =
-  "Abs" ==> mergeNativeToFunction [fromNative (abs :: Integer -> Integer), fromNative (abs :: Rational -> Rational)]
+functionAbs = "Abs" ==> mergeNativeToFunction
+  [ fromNative (abs :: Integer -> Integer)
+  , fromNative (abs :: Rational -> Rational)
+  , fromNative (abs :: Double -> Double)
+  ]
 
 functionMax :: Monad m => CombinedFunction m
 functionMax = "Max" ==> mergeNativeToFunction
   [ fromNative (max :: Integer -> Integer -> Integer)
   , fromNative (max :: Rational -> Rational -> Rational)
+  , fromNative (max :: Double -> Double -> Double)
   , fromNative (max :: Text -> Text -> Text)
   , listFoldable1 functionMax
   ]
@@ -281,9 +309,39 @@ functionMin :: Monad m => CombinedFunction m
 functionMin = "Min" ==> mergeNativeToFunction
   [ fromNative (min :: Integer -> Integer -> Integer)
   , fromNative (min :: Rational -> Rational -> Rational)
+  , fromNative (min :: Double -> Double -> Double)
   , fromNative (min :: Text -> Text -> Text)
   , listFoldable1 functionMin
   ]
+
+-- Floating-point functions
+
+functionExp :: Monad m => CombinedFunction m
+functionExp = "Exp" ==> mergeNativeToFunction [fromNative (exp :: Double -> Double)]
+
+functionSqrt :: Monad m => CombinedFunction m
+functionSqrt = "Sqrt" ==> mergeNativeToFunction [fromNative (sqrt :: Double -> Double)]
+
+functionLog :: Monad m => CombinedFunction m
+functionLog = "Log" ==> mergeNativeToFunction [fromNative (logBase :: Double -> Double -> Double)]
+
+functionSin :: Monad m => CombinedFunction m
+functionSin = "Sin" ==> mergeNativeToFunction [fromNative (sin :: Double -> Double)]
+
+functionCos :: Monad m => CombinedFunction m
+functionCos = "Cos" ==> mergeNativeToFunction [fromNative (cos :: Double -> Double)]
+
+functionTan :: Monad m => CombinedFunction m
+functionTan = "Tan" ==> mergeNativeToFunction [fromNative (tan :: Double -> Double)]
+
+functionAsin :: Monad m => CombinedFunction m
+functionAsin = "Asin" ==> mergeNativeToFunction [fromNative (asin :: Double -> Double)]
+
+functionAcos :: Monad m => CombinedFunction m
+functionAcos = "Acos" ==> mergeNativeToFunction [fromNative (acos :: Double -> Double)]
+
+functionAtan :: Monad m => CombinedFunction m
+functionAtan = "Atan" ==> mergeNativeToFunction [fromNative (atan :: Double -> Double)]
 
 -- Control functions
 
@@ -332,6 +390,15 @@ allCombinedFunctions =
   , functionAbs
   , functionMax
   , functionMin
+  , functionExp
+  , functionSqrt
+  , functionLog
+  , functionSin
+  , functionCos
+  , functionTan
+  , functionAsin
+  , functionAcos
+  , functionAtan
   , functionIf
   ]
 
