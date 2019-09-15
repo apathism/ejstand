@@ -12,6 +12,7 @@ module EjStand.Web.HtmlElements
   , skipUrlRendering
   , getColumnByVariant
   , getColumnByVariantWithStyles
+  , calculateProblemRating
   , renderStandingProblemSuccesses
   , renderCell
   )
@@ -26,7 +27,6 @@ import           Data.Function                  ( on )
 import           Data.Map.Strict                ( Map
                                                 , (!?)
                                                 )
-import           Data.Double.Conversion.Text    ( toFixed )
 import qualified Data.Map.Strict               as Map
 import           Data.Maybe                     ( catMaybes )
 import           Data.Ratio                     ( Ratio
@@ -231,7 +231,7 @@ instance StandingColumn RatingProblemScoreColumn where
     Nothing      -> 0
     (Just value) -> value
   columnOrder column = compare `on` columnValue column (-1)
-  columnValueDisplayer _ rating = toMarkup $ toFixed 2 rating
+  columnValueDisplayer _ rating = toMarkup $ displayDouble rating
 
 getColumnByVariant :: Standing -> ColumnVariant -> GenericStandingColumn
 getColumnByVariant standing columnV = case columnV of

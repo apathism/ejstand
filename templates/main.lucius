@@ -46,7 +46,8 @@ table.standing td, table.standing th {
   white-space: nowrap;
 }
 
-.place, .user_id, .total_score, .total_successes, .total_attempts, .last_success_time, .contest, .problem, th, .row_value {
+.place, .user_id, .total_score, .total_successes, .total_attempts,
+.last_success_time, .contest, .problem, th, .row_value {
   text-align: center;
 }
 
@@ -75,6 +76,15 @@ td.disqualified, td.error, td.processing {
   color: #666666;
   display: block;
   font-size: 8pt;
+}
+
+.current_problem_rating {
+  color: #005500;
+  display: block;
+  font-size: 8pt;
+  font-weight: bold;
+  font-style: oblique;
+  padding: 1px;
 }
 
 td.success .score, td.overdue .score {
