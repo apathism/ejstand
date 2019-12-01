@@ -28,7 +28,10 @@ import           Data.Map.Strict                ( Map
                                                 , (!?)
                                                 )
 import qualified Data.Map.Strict               as Map
-import           Data.Maybe                     ( catMaybes )
+import qualified Data.MultiSet                 as MultiSet
+import           Data.Maybe                     ( catMaybes
+                                                , isJust
+                                                )
 import           Data.Ratio                     ( Ratio
                                                 , denominator
                                                 , numerator
@@ -192,43 +195,61 @@ data RatingProblemScoreColumn = RatingProblemScoreColumn { standing          :: 
                                                          , contestantPrecalc :: !(Map Integer Double)
                                                          }
 
-calculateProblemRating :: Standing -> Problem -> Double
-calculateProblemRating Standing { standingConfig = StandingConfig {..}, ..} problem = case problemRatingFormula of
-  Nothing -> 100
-  (Just formula) ->
-    let problemStat = case standingProblemStats !? getID problem of
-          Nothing     -> mempty
+calculateProblemRating :: Standing -> Problem -> Maybe UTCTime -> Double
+calculateProblemRating Standing { standingConfig = StandingConfig {..}, ..} problem timeM =
+  case problemRatingFormula of
+    Nothing -> 100
+    (Just formula) ->
+      let
+        StandingProblemStats {..} = case standingProblemStats !? getID problem of
+          Nothing     -> StandingProblemStats mempty mempty
           (Just stat) -> stat
+        beforeInMultiSet key = MultiSet.size . fst . MultiSet.split key
+        varSuccesses = MultiSet.size problemSuccessesBeforeDeadline + MultiSet.size problemSuccessesAfterDeadline
+        varOverdueSuccesses = MultiSet.size problemSuccessesAfterDeadline
+        varSuccessesBefore = case timeM of
+          Nothing -> varSuccesses
+          (Just time) ->
+            sum $ beforeInMultiSet time <$> [problemSuccessesBeforeDeadline, problemSuccessesAfterDeadline]
+        varOverdueSuccessesBefore = case timeM of
+          Nothing     -> varOverdueSuccesses
+          (Just time) -> beforeInMultiSet time problemSuccessesAfterDeadline
         bindings =
-            [ ELang.VariableBinding "successes" (return . ELang.ValueInt . problemSuccesses $ problemStat)
-            , ELang.VariableBinding "overdueSuccesses" (return . ELang.ValueInt . problemOverdueSuccesses $ problemStat)
-            ]
-        result = case ELang.evaluate formula bindings of
+          [ ELang.VariableBinding "successes" (return . ELang.ValueInt . toInteger $ varSuccesses)
+          , ELang.VariableBinding "overdueSuccesses" (return . ELang.ValueInt . toInteger $ varOverdueSuccesses)
+          , ELang.VariableBinding "successesBefore" (return . ELang.ValueInt . toInteger $ varSuccessesBefore)
+          , ELang.VariableBinding "overdueSuccessesBefore"
+                                  (return . ELang.ValueInt . toInteger $ varOverdueSuccessesBefore)
+          ]
+      in
+        case ELang.evaluate formula bindings of
           (Left  errorMsg) -> throw $ InvalidElangExpression errorMsg
           (Right value   ) -> case (ELang.fromValue value :: Maybe Double) of
             Nothing       -> throw $ DoubleValueExpected value
             (Just result) -> result
-    in  result
 
-calculateContestantRating :: Standing -> Map (Integer, Integer) Double -> StandingRow -> (Integer, Double)
-calculateContestantRating standing problemRatings standingRow@StandingRow {..} =
+calculateStandingCellRating :: Standing -> Problem -> StandingCell -> Double
+calculateStandingCellRating standing@Standing { standingConfig = StandingConfig {..} } problem StandingCell {..} =
+  baseScore * penalty
+ where
+  baseScore = if cellType == Success then calculateProblemRating standing problem (runTime <$> cellMainRun) else 0
+  penalty   = if enableDeadlines && cellIsOverdue then fromRational deadlinePenalty else 1
+
+calculateContestantRating :: Standing -> StandingRow -> (Identificator Contestant, Double)
+calculateContestantRating standing standingRow@StandingRow {..} =
   ( contestantID rowContestant
-  , sum $ calculateContestantRatingOnProblem standing standingRow <$> Map.toList problemRatings
+  , sum $ calculateContestantRatingOnProblem standing standingRow <$> problems (standingSource standing)
   )
  where
-  calculateContestantRatingOnProblem :: Standing -> StandingRow -> ((Integer, Integer), Double) -> Double
-  calculateContestantRatingOnProblem Standing { standingConfig = StandingConfig {..}, ..} StandingRow {..} (problemIDs, rating)
-    = case rowCells !? problemIDs of
-      Nothing                  -> 0
-      (Just StandingCell {..}) -> baseScore * penalty
-       where
-        baseScore = if cellType == Success then rating else 0
-        penalty   = if enableDeadlines && cellIsOverdue then fromRational deadlinePenalty else 1
+  calculateContestantRatingOnProblem :: Standing -> StandingRow -> Problem -> Double
+  calculateContestantRatingOnProblem Standing { standingConfig = StandingConfig {..}, ..} StandingRow {..} problem =
+    case rowCells !? getID problem of
+      Nothing     -> 0
+      (Just cell) -> calculateStandingCellRating standing problem cell
 
 mkRatingProblemScoreColumn :: Standing -> RatingProblemScoreColumn
 mkRatingProblemScoreColumn standing@Standing { standingSource = StandingSource {..}, ..} =
-  let problemPrecalc    = calculateProblemRating standing <$> problems
-      contestantPrecalc = calculateContestantRating standing problemPrecalc <$> standingRows
+  let contestantPrecalc = calculateContestantRating standing <$> standingRows
   in  RatingProblemScoreColumn { standing = standing, contestantPrecalc = Map.fromList contestantPrecalc }
 
 instance StandingColumn RatingProblemScoreColumn where
@@ -332,6 +353,11 @@ type CellContentBuilder = StandingCell -> Markup
 scoreCellContent :: CellContentBuilder
 scoreCellContent StandingCell {..} = if cellType == Ignore then mempty else span ! class_ "score" $ toMarkup cellScore
 
+ratingScoreCellContent :: Standing -> Problem -> CellContentBuilder
+ratingScoreCellContent standing problem cell@StandingCell {..} = if cellType == Ignore
+  then mempty
+  else span ! class_ "score" $ toMarkup $ displayDouble $ calculateStandingCellRating standing problem cell
+
 wrongAttemptsCellContent :: CellContentBuilder
 wrongAttemptsCellContent StandingCell {..} = case cellAttempts of
   0 -> mempty
@@ -360,11 +386,12 @@ successTimeCellContent StandingCell {..} = if cellType /= Success
     Nothing       -> mempty
     Just Run {..} -> span ! class_ "success_time" $ displayContestTime $ runTime `diffUTCTime` cellStartTime
 
-selectAdditionalCellContentBuilders :: Standing -> [CellContentBuilder]
-selectAdditionalCellContentBuilders Standing { standingConfig = StandingConfig {..}, ..} = mconcat
+selectAdditionalCellContentBuilders :: Standing -> Problem -> [CellContentBuilder]
+selectAdditionalCellContentBuilders standing@Standing { standingConfig = StandingConfig {..}, ..} problem = mconcat
   [ enableScores ==> scoreCellContent
   , showAttemptsNumber ==> if enableScores then attemptsCellContent else wrongAttemptsCellContent
   , showSuccessTime ==> successTimeCellContent
+  , isJust problemRatingFormula ==> ratingScoreCellContent standing problem
   ]
 
 buildCellTitle :: Standing -> StandingRow -> Problem -> StandingCell -> Text
@@ -378,9 +405,9 @@ renderCell :: Standing -> StandingRow -> Problem -> CellContentBuilder
 renderCell st@Standing { standingConfig = StandingConfig {..}, ..} row problem cell@StandingCell {..} =
   cellTag' $ foldl (>>) cellValue additionalContent
  where
-  additionalContent    = if allowCellContent then selectAdditionalCellContentBuilders st <*> [cell] else []
+  additionalContent    = if allowCellContent then selectAdditionalCellContentBuilders st problem <*> [cell] else []
   addRunStatusCellText = span ! class_ "run_status"
-  ifNotScores x = if enableScores then mempty else x
+  ifNotScores x = if enableScores || isJust problemRatingFormula then mempty else x
   cellTag'                               = cellTag ! title (toValue $ buildCellTitle st row problem cell)
   (cellTag, cellValue, allowCellContent) = case cellType of
     Success      -> if cellIsOverdue
@@ -397,8 +424,9 @@ renderCell st@Standing { standingConfig = StandingConfig {..}, ..} row problem c
 renderProblemSuccesses :: Standing -> Problem -> Markup
 renderProblemSuccesses Standing {..} problem =
   td ! class_ "problem_successes row_value" $ toMarkup $ case standingProblemStats !? getID problem of
-    (Just stats) -> problemSuccesses stats
-    _            -> 0
+    (Just stats) ->
+      sum $ MultiSet.size <$> ([problemSuccessesBeforeDeadline, problemSuccessesAfterDeadline] <*> [stats])
+    _ -> 0
 
 renderStandingProblemSuccesses :: Standing -> Markup
 renderStandingProblemSuccesses standing@Standing {..} =

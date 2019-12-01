@@ -29,7 +29,7 @@ $doctype 5
                         #{problemShortName}
                         $maybe _ <- problemRatingFormula
                             <span class="current_problem_rating">
-                                #{displayDouble $ calculateProblemRating standing problem}
+                                #{displayDouble $ calculateProblemRating standing problem Nothing}
             $forall (place, row) <- enumerate standingRows
                 <tr id="contestant-#{contestantID $ rowContestant row}">
                     $forall (GenericStandingColumn column) <- standingColumns

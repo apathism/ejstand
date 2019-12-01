@@ -29,6 +29,7 @@ where
 import           Data.Maybe                     ( fromJust )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
+import           Data.MultiSet                  ( MultiSet )
 import           Data.Semigroup                 ( Semigroup
                                                 , (<>)
                                                 )
@@ -193,19 +194,10 @@ instance Semigroup StandingRowStats where
 instance Monoid StandingRowStats where
   mempty = StandingRowStats 0 0 Nothing 0
 
-data StandingProblemStats = StandingProblemStats { problemSuccesses :: !Integer
-                                                 , problemOverdueSuccesses :: !Integer
+data StandingProblemStats = StandingProblemStats { problemSuccessesBeforeDeadline :: !(MultiSet UTCTime)
+                                                 , problemSuccessesAfterDeadline :: !(MultiSet UTCTime)
                                                  }
                                                  deriving (Show, Eq)
-
-instance Semigroup StandingProblemStats where
-  statA <> statB = StandingProblemStats
-    { problemSuccesses        = problemSuccesses statA + problemSuccesses statB
-    , problemOverdueSuccesses = problemOverdueSuccesses statA + problemOverdueSuccesses statB
-    }
-
-instance Monoid StandingProblemStats where
-  mempty = StandingProblemStats 0 0
 
 data StandingRow = StandingRow { rowContestant :: !Contestant
                                , rowCells      :: !(Map (Integer, Integer) StandingCell)
@@ -250,5 +242,5 @@ data Standing = Standing { standingLanguage     :: ![Lang]
                          , standingProblems     :: ![Problem]
                          , standingRows         :: ![StandingRow]
                          , standingColumns      :: ![GenericStandingColumn]
-                         , standingProblemStats :: !(Map (Integer, Integer) StandingProblemStats)
+                         , standingProblemStats :: !(Map (Identificator Problem) StandingProblemStats)
                          }

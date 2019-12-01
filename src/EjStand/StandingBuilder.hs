@@ -1,4 +1,5 @@
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TupleSections #-}
 module EjStand.StandingBuilder
   ( prepareStandingSource
   , buildStanding
@@ -19,13 +20,17 @@ import           Data.Maybe                     ( catMaybes
                                                 , fromJust
                                                 , fromMaybe
                                                 )
+import           Data.MultiSet                  ( MultiSet )
+import qualified Data.MultiSet                 as MultiSet
 import           Data.Ratio                     ( (%) )
 import qualified Data.Set                      as Set
 import           Data.Text                      ( Text
                                                 , unpack
                                                 )
 import           Data.Time                      ( UTCTime )
-import           EjStand.Internals.Core         ( fromIdentifiableList )
+import           EjStand.Internals.Core         ( Identificator
+                                                , fromIdentifiableList
+                                                )
 import           EjStand.Models.Base
 import           EjStand.Models.Standing
 import           EjStand.Parsers.Data           ( parseEjudgeXMLs )
@@ -207,18 +212,32 @@ mergeStandingSourceContestantsByName src@StandingSource {..} = src { contestants
     Nothing     -> (Map.insert (contestantName c1) (contestantID c1) nameIndex, idIndex, contestantMap)
     (Just c2id) -> (nameIndex, Map.insert (contestantID c1) c2id idIndex, Map.delete (contestantID c1) contestantMap)
 
-buildProblemStats :: Standing -> Map (Integer, Integer) StandingProblemStats
-buildProblemStats Standing {..} = Map.fromListWith
-  (<>)
-  (cellToProblemStat <$> concat (Map.toList . rowCells <$> standingRows))
+buildProblemStats :: Standing -> Map (Identificator Problem) StandingProblemStats
+buildProblemStats Standing {..} = foldl' foldF
+                                         mempty
+                                         (cellToProblemStat <$> concat (Map.toList . rowCells <$> standingRows))
  where
-  cellToProblemStat :: (a, StandingCell) -> (a, StandingProblemStats)
-  cellToProblemStat (id, StandingCell {..}) =
-    ( id
-    , StandingProblemStats { problemSuccesses        = if cellType == Success then 1 else 0
-                           , problemOverdueSuccesses = if cellType == Success && cellIsOverdue then 1 else 0
-                           }
-    )
+  maybeInsertMultiSet :: Ord a => Maybe a -> MultiSet a -> MultiSet a
+  maybeInsertMultiSet Nothing  = id
+  maybeInsertMultiSet (Just x) = MultiSet.insert x
+
+  alterF :: (Maybe UTCTime, Maybe UTCTime) -> Maybe StandingProblemStats -> StandingProblemStats
+  alterF (v1, v2) statsM =
+    let StandingProblemStats {..} = fromMaybe (StandingProblemStats mempty mempty) statsM
+        newBefore                 = maybeInsertMultiSet v1 problemSuccessesBeforeDeadline
+        newAfter                  = maybeInsertMultiSet v2 problemSuccessesAfterDeadline
+    in  StandingProblemStats newBefore newAfter
+
+  foldF
+    :: Map (Identificator Problem) StandingProblemStats
+    -> (Identificator Problem, (Maybe UTCTime, Maybe UTCTime))
+    -> Map (Identificator Problem) StandingProblemStats
+  foldF map (id, value) = Map.alter (Just . alterF value) id map
+
+  cellToProblemStat :: (a, StandingCell) -> (a, (Maybe UTCTime, Maybe UTCTime))
+  cellToProblemStat (id, StandingCell {..}) = (id, ) $ if cellType /= Success
+    then (Nothing, Nothing)
+    else if cellIsOverdue then (Nothing, runTime <$> cellMainRun) else (runTime <$> cellMainRun, Nothing)
 
 buildStanding :: [Lang] -> StandingConfig -> StandingSource -> Standing
 buildStanding lang cfg@StandingConfig {..} src =

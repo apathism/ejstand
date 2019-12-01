@@ -20,7 +20,9 @@ executable ejstand
   main-is:             Main.hs
   build-depends:
                        -- Basic data types & utilities
-                       base, bytestring, containers, double-conversion, safe, split, text,
+                       base, bytestring, double-conversion, safe, split, text,
+                       -- Containers
+                       containers, multiset,
                        -- Time measuring
                        clock, time,
                        -- Filesystem & Network tools
