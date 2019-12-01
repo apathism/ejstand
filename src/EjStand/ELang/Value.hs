@@ -42,10 +42,10 @@ instance Show Value where
     a = numerator r
     b = denominator r
   show (ValueDouble x) = show x
-  show (ValueBool b) = show b
-  show (ValueText t) = show t
-  show (ValueList l) = show . toList $ l
-  show (ValueMap  m) = "[" <> contents <> "]"
+  show (ValueBool   b) = show b
+  show (ValueText   t) = show t
+  show (ValueList   l) = show . toList $ l
+  show (ValueMap    m) = "[" <> contents <> "]"
    where
     contents = List.intercalate ", " pairs
     pairs    = displayer <$> Map.toList m
@@ -108,7 +108,7 @@ instance FromValue Text where
   fromValue _             = Nothing
 
 instance FromValue Double where
-  fromValue (ValueDouble v) = Just v
-  fromValue (ValueInt    v) = Just . fromInteger $ v
+  fromValue (ValueDouble   v) = Just v
+  fromValue (ValueInt      v) = Just . fromInteger $ v
   fromValue (ValueRational v) = Just . fromRational $ v
-  fromValue _ = Nothing
+  fromValue _                 = Nothing

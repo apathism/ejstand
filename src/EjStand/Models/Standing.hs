@@ -82,14 +82,13 @@ data GlobalConfiguration = GlobalConfiguration { xmlFilePattern                :
                                                deriving (Show)
 
 defaultGlobalConfiguration :: GlobalConfiguration
-defaultGlobalConfiguration = GlobalConfiguration
-  { xmlFilePattern                = "/home/judges/%06d/var/status/dir/external.xml"
-  , ejudgeServeConfigurationsPath = "/home/judges/%06d/conf/serve.cfg"
-  , standingConfigurationsPath    = "/etc/ejstand/cfg/"
-  , ejStandPort                   = 80
-  , ejStandHostname               = "127.0.0.1"
-  , webRoot                       = "/"
-  }
+defaultGlobalConfiguration = GlobalConfiguration { xmlFilePattern = "/home/judges/%06d/var/status/dir/external.xml"
+                                                 , ejudgeServeConfigurationsPath = "/home/judges/%06d/conf/serve.cfg"
+                                                 , standingConfigurationsPath = "/etc/ejstand/cfg/"
+                                                 , ejStandPort = 80
+                                                 , ejStandHostname = "127.0.0.1"
+                                                 , webRoot = "/"
+                                                 }
 
 data FixedDeadline = FixedDeadline { contestIDs    :: !(Set Integer)
                                    , deadline      :: !UTCTime
@@ -201,7 +200,7 @@ data StandingProblemStats = StandingProblemStats { problemSuccesses :: !Integer
 
 instance Semigroup StandingProblemStats where
   statA <> statB = StandingProblemStats
-    { problemSuccesses = problemSuccesses statA + problemSuccesses statB
+    { problemSuccesses        = problemSuccesses statA + problemSuccesses statB
     , problemOverdueSuccesses = problemOverdueSuccesses statA + problemOverdueSuccesses statB
     }
 
