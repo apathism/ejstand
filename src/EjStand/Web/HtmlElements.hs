@@ -81,18 +81,25 @@ skipUrlRendering _ _ = "/"
 
 -- Non-standart types rendering
 
-instance (ToMarkup a, Integral a) => ToMarkup (Ratio a) where
-  toMarkup x =
-    let (a, b) = (numerator x, denominator x)
-        aDiv   = a `Prelude.div` b
-        aMod   = a `mod` b
-    in  if aMod /= 0
+displayRatio :: FractionDisplayStyle -> Ratio Integer -> Markup
+displayRatio style x =
+  let (a, b) = (numerator x, denominator x)
+  in  case style of
+        DisplayAsFraction -> if aMod /= 0
           then do
             when (aDiv /= 0) (toMarkup aDiv)
             sup (toMarkup aMod)
             preEscapedText "&frasl;"
             sub (toMarkup b)
           else toMarkup aDiv
+          where (aDiv, aMod) = a `divMod` b
+        (DisplayAsDecimal digits) ->
+          let newDenominator  = 10 ^ digits
+              newNumerator    = (a * newDenominator) `Prelude.div` b
+              (before, after) = newNumerator `divMod` newDenominator
+          in  do
+                toMarkup before
+                when (before /= 0) (toMarkup ((printf ".%0*d" digits after) :: String))
 
 instance ToMarkup UTCTime where
   toMarkup = toMarkup . formatTime defaultTimeLocale "%d.%m.%y %R"
@@ -168,7 +175,7 @@ instance StandingColumn TotalScoreColumn where
     Just $ translate standingLanguage MsgTotalScoreCaptionTitle
   columnValue _ _ = rowScore . rowStats
   columnOrder column = compare `on` columnValue column (-1)
-  columnValueDisplayer _ = toMarkup
+  columnValueDisplayer TotalScoreColumn {..} = displayRatio (fractionDisplayStyle . standingConfig $ standing)
   columnMaxValue =
     Just
       $ \TotalScoreColumn { standing = Standing { standingConfig = StandingConfig {..}, standingSource = StandingSource {..} } } ->
@@ -329,8 +336,9 @@ getColumnByVariantWithStyles standing@Standing { standingConfig = StandingConfig
 
 type CellContentBuilder = StandingCell -> Markup
 
-scoreCellContent :: CellContentBuilder
-scoreCellContent StandingCell {..} = if cellType == Ignore then mempty else span ! class_ "score" $ toMarkup cellScore
+scoreCellContent :: Standing -> CellContentBuilder
+scoreCellContent Standing { standingConfig = StandingConfig { fractionDisplayStyle = style } } StandingCell {..} =
+  if cellType == Ignore then mempty else span ! class_ "score" $ displayRatio style cellScore
 
 wrongAttemptsCellContent :: CellContentBuilder
 wrongAttemptsCellContent StandingCell {..} = case cellAttempts of
@@ -348,9 +356,8 @@ attemptsCellContent StandingCell {..} = if cellType == Ignore
 
 displayContestTime :: NominalDiffTime -> Markup
 displayContestTime time =
-  let total_minutes = floor time `Prelude.div` 60 :: Integer
-      hours         = total_minutes `Prelude.div` 60
-      minutes       = total_minutes `Prelude.mod` 60
+  let total_minutes    = floor time `Prelude.div` 60 :: Integer
+      (hours, minutes) = total_minutes `divMod` 60
   in  toMarkup (printf "%d:%02d" hours minutes :: String)
 
 successTimeCellContent :: CellContentBuilder
@@ -361,8 +368,8 @@ successTimeCellContent StandingCell {..} = if cellType /= Success
     Just Run {..} -> span ! class_ "success_time" $ displayContestTime $ runTime `diffUTCTime` cellStartTime
 
 selectAdditionalCellContentBuilders :: Standing -> [CellContentBuilder]
-selectAdditionalCellContentBuilders Standing { standingConfig = StandingConfig {..}, ..} = mconcat
-  [ enableScores ==> scoreCellContent
+selectAdditionalCellContentBuilders st@Standing { standingConfig = StandingConfig {..}, ..} = mconcat
+  [ enableScores ==> scoreCellContent st
   , showAttemptsNumber ==> if enableScores then attemptsCellContent else wrongAttemptsCellContent
   , showSuccessTime ==> successTimeCellContent
   ]

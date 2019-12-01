@@ -279,6 +279,11 @@ toFileContents key filename = liftIO $ handle handler $ decodeUtf8 <$> B.readFil
   handler :: IOException -> IO a
   handler _ = throw $ FileNotFound key filename
 
+toFractionDisplayStyle :: Text -> Text -> FractionDisplayStyle
+toFractionDisplayStyle key value = case Text.strip value of
+  "fraction" -> DisplayAsFraction
+  value'     -> DisplayAsDecimal $ toInteger key value'
+
 transformHomePath :: Text -> Text -> Text -> Text
 transformHomePath cfgpath _ path = if "/" `Text.isPrefixOf` path
   then path
@@ -362,6 +367,8 @@ buildStandingConfig path = do
   showSuccessTime        <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ShowSuccessTime"
   showLanguages          <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ShowLanguages"
   showProblemStatistics  <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ShowProblemStatistics"
+  fractionDisplayStyle   <-
+    takeUniqueValue ||> toTextValue ||> toFractionDisplayStyle .> fromMaybe DisplayAsFraction $ "DecimalPrecision"
   !_                     <- ensureEmptyState
   return $ StandingConfig { standingName           = standingName
                           , standingContests       = standingContests
@@ -384,6 +391,7 @@ buildStandingConfig path = do
                           , showSuccessTime        = showSuccessTime
                           , showLanguages          = showLanguages
                           , showProblemStatistics  = showProblemStatistics
+                          , fractionDisplayStyle   = fractionDisplayStyle
                           }
 
 parseStandingConfig :: FilePath -> IO StandingConfig

@@ -375,3 +375,16 @@ InternalName = example
   -- ColumnNames = Score
 
 -- }
+
+--|
+--|  Option "DecimalPrecision"
+--|    Required:      optional
+--|    Default value: fraction
+--|
+--|    Regulates how many digits it is shown after decimal point in generated
+--|    pages. For example, setting this option to 2 will make PI appear as
+--|    "3.14". Alternatively, it can also be set to "fraction", which will
+--|    make number appear as fractions.
+--|
+
+-- DecimalPrecision = fraction

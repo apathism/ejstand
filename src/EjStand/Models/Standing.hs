@@ -19,6 +19,7 @@ module EjStand.Models.Standing
   , ConditionalStyle(..)
   , ColumnVariant(..)
   , OrderType(..)
+  , FractionDisplayStyle(..)
   , defaultGlobalConfiguration
   , getRunStatusType
   , allColumnVariants
@@ -117,6 +118,10 @@ data OrderType = Ascending | Descending
 mkADTReader ''ColumnVariant "readColumnVariant" (Text.unpack . fromJust . Text.stripSuffix "ColumnVariant" . Text.pack)
 mkADTReaderList ''ColumnVariant "allColumnVariants" (Text.unpack . fromJust . Text.stripSuffix "ColumnVariant" . Text.pack)
 
+data FractionDisplayStyle = DisplayAsFraction
+                          | DisplayAsDecimal !Int
+                          deriving (Show)
+
 data StandingConfig = StandingConfig { standingName           :: !Text
                                      , standingContests       :: !(Set Integer)
                                      , internalName           :: !Text
@@ -138,6 +143,7 @@ data StandingConfig = StandingConfig { standingName           :: !Text
                                      , showSuccessTime        :: !Bool
                                      , showLanguages          :: !Bool
                                      , showProblemStatistics  :: !Bool
+                                     , fractionDisplayStyle   :: !FractionDisplayStyle
                                      }
 
 data RunStatusType =  Ignore | Mistake | Rejected | Processing | Pending | Success | Disqualified | Error
