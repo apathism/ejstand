@@ -36,13 +36,13 @@ Contests = 1,2,3
 --|  Option "InternalName"
 --|    Required: mandatory
 --|
---|    Sets the routing path within EjStand server. If EjStand root on you
+--|    Sets the routing path within EjStand server. If EjStand root on your
 --|    server is located in http://yourserver.com/ejstand/ and you set this
---|    option to 2018/mytable, then your standing table will be located at
+--|    option to /2018/mytable, then your standing table will be located at
 --|    http://yourserver.com/ejstand/2018/mytable.
 --|
 
-InternalName = example
+InternalName = /example
 
 --|
 --|  Section "ContestNamePattern"
