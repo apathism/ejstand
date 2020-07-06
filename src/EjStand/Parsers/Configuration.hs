@@ -232,9 +232,9 @@ toIntervalValue key =
   mconcat . map (readInterval key . map (toInteger key . Text.strip) . Text.splitOn "-") . Text.splitOn ","
  where
   readInterval :: Text -> [Integer] -> Set Integer
-  readInterval _   [x]    = Set.singleton x
-  readInterval _   [l, r] = Set.fromDistinctAscList [l .. r]
-  readInterval key _      = throw $ InvalidInterval key
+  readInterval _ [x]             = Set.singleton x
+  readInterval _ [l, r] | l <= r = Set.fromDistinctAscList [l .. r]
+  readInterval key _             = throw $ InvalidInterval key
 
 toRegex :: Text -> Text -> RE.Regex
 toRegex key value = case RE.buildRegex value of
