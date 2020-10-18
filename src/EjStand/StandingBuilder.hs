@@ -68,14 +68,13 @@ calculateDeadline StandingConfig {..} StandingSource {..} prob@Problem {..} user
 -- Standing building
 
 defaultCell :: Contest -> StandingCell
-defaultCell Contest {..} = StandingCell
-  { cellType      = Ignore
-  , cellIsOverdue = False
-  , cellScore     = 0
-  , cellAttempts  = 0
-  , cellMainRun   = Nothing
-  , cellStartTime = fromJust contestStartTime
-  }
+defaultCell Contest {..} = StandingCell { cellType      = Ignore
+                                        , cellIsOverdue = False
+                                        , cellScore     = 0
+                                        , cellAttempts  = 0
+                                        , cellMainRun   = Nothing
+                                        , cellStartTime = fromJust contestStartTime
+                                        }
 
 applyRunDeadline :: Maybe UTCTime -> Run -> (Run, Bool)
 applyRunDeadline Nothing     run          = (run, False)
@@ -85,7 +84,7 @@ getRunScore :: StandingConfig -> Problem -> (Run, Bool) -> Integer -> Rational
 getRunScore StandingConfig {..} Problem {..} (Run {..}, overdue) attempts =
   let deadlineMultiplier = if enableDeadlines && overdue then deadlinePenalty else 1
       (contextMaxScore, runPenalty, fixedScore) =
-        if enableScores then (problemMaxScore, attempts * problemRunPenalty, runScore) else (1, 0, Nothing)
+          if enableScores then (problemMaxScore, attempts * problemRunPenalty, runScore) else (1, 0, Nothing)
       statusBasedRunScore = case getRunStatusType runStatus of
         Success -> contextMaxScore
         _       -> 0
@@ -143,12 +142,11 @@ buildCell cfg@StandingConfig {..} src@StandingSource {..} prob@Problem {..} user
 calculateCellStats :: StandingCell -> StandingRowStats
 calculateCellStats StandingCell {..} = if cellType /= Success
   then mempty { rowScore = cellScore }
-  else StandingRowStats
-    { rowSuccesses       = 1
-    , rowAttempts        = cellAttempts
-    , rowScore           = cellScore
-    , rowLastTimeSuccess = runTime <$> cellMainRun
-    }
+  else StandingRowStats { rowSuccesses       = 1
+                        , rowAttempts        = cellAttempts
+                        , rowScore           = cellScore
+                        , rowLastTimeSuccess = runTime <$> cellMainRun
+                        }
 
 calculateRowStats :: StandingRow -> StandingRowStats
 calculateRowStats StandingRow {..} = mconcat $ calculateCellStats <$> Map.elems rowCells
@@ -160,8 +158,8 @@ buildRow :: Standing -> Contestant -> StandingRow
 buildRow Standing {..} user = appendRecalculatedCellStats $ StandingRow
   { rowContestant = user
   , rowCells      = Map.fromList $ fmap
-    (\p@Problem {..} -> ((problemContest, problemID), buildCell standingConfig standingSource p user))
-    standingProblems
+                      (\p@Problem {..} -> ((problemContest, problemID), buildCell standingConfig standingSource p user))
+                      standingProblems
   , rowStats      = mempty
   }
 
@@ -217,10 +215,9 @@ buildProblemStats Standing {..} = Map.fromListWith
   cellToProblemStat :: (a, StandingCell) -> (a, StandingProblemStats)
   cellToProblemStat (id, StandingCell {..}) =
     ( id
-    , StandingProblemStats
-      { problemSuccesses        = if cellType == Success then 1 else 0
-      , problemOverdueSuccesses = if cellType == Success && cellIsOverdue then 1 else 0
-      }
+    , StandingProblemStats { problemSuccesses        = if cellType == Success then 1 else 0
+                           , problemOverdueSuccesses = if cellType == Success && cellIsOverdue then 1 else 0
+                           }
     )
 
 buildStanding :: [Lang] -> StandingConfig -> StandingSource -> Standing
@@ -229,15 +226,14 @@ buildStanding lang cfg@StandingConfig {..} src =
       problems       = buildProblems cfg src'
 
       -- Stage 1. No rows, no columns, no problem stats
-      standingStage1 = Standing
-        { standingLanguage     = lang
-        , standingConfig       = cfg
-        , standingSource       = src'
-        , standingProblems     = problems
-        , standingRows         = mempty
-        , standingColumns      = mempty
-        , standingProblemStats = mempty
-        }
+      standingStage1 = Standing { standingLanguage     = lang
+                                , standingConfig       = cfg
+                                , standingSource       = src'
+                                , standingProblems     = problems
+                                , standingRows         = mempty
+                                , standingColumns      = mempty
+                                , standingProblemStats = mempty
+                                }
 
       orderer        = (\(ord, variant) -> (ord, getColumnByVariant standingStage1 variant)) <$> rowSortingOrder
       rows           = sortRows orderer $ buildRows standingStage1

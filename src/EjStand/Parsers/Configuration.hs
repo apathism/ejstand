@@ -360,28 +360,27 @@ buildStandingConfig path = do
   showLanguages          <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ShowLanguages"
   showProblemStatistics  <- takeUniqueValue ||> toTextValue ||> toBool .> fromMaybe False $ "ShowProblemStatistics"
   !_                     <- ensureEmptyState
-  return $ StandingConfig
-    { standingName           = standingName
-    , standingContests       = standingContests
-    , internalName           = internalName
-    , contestNamePattern     = contestNamePattern
-    , reversedContestOrder   = reversedContestOrder
-    , displayedColumns       = displayedColumns
-    , mergeContestantsByName = mergeContestantsByName
-    , rowSortingOrder        = rowSortingOrder
-    , headerAppendix         = headerAppendix
-    , disableDefaultCSS      = disableDefaultCSS
-    , conditionalStyles      = Map.fromListWith (++) . mconcat $ conditionalStyles
-    , enableDeadlines        = enableDeadlines
-    , deadlinePenalty        = deadlinePenalty
-    , fixedDeadlines         = fixedDeadlines
-    , enableScores           = enableScores
-    , onlyScoreLastSubmit    = onlyScoreLastSubmit
-    , showAttemptsNumber     = showAttemptsNumber
-    , showSuccessTime        = showSuccessTime
-    , showLanguages          = showLanguages
-    , showProblemStatistics  = showProblemStatistics
-    }
+  return $ StandingConfig { standingName           = standingName
+                          , standingContests       = standingContests
+                          , internalName           = internalName
+                          , contestNamePattern     = contestNamePattern
+                          , reversedContestOrder   = reversedContestOrder
+                          , displayedColumns       = displayedColumns
+                          , mergeContestantsByName = mergeContestantsByName
+                          , rowSortingOrder        = rowSortingOrder
+                          , headerAppendix         = headerAppendix
+                          , disableDefaultCSS      = disableDefaultCSS
+                          , conditionalStyles      = Map.fromListWith (++) . mconcat $ conditionalStyles
+                          , enableDeadlines        = enableDeadlines
+                          , deadlinePenalty        = deadlinePenalty
+                          , fixedDeadlines         = fixedDeadlines
+                          , enableScores           = enableScores
+                          , onlyScoreLastSubmit    = onlyScoreLastSubmit
+                          , showAttemptsNumber     = showAttemptsNumber
+                          , showSuccessTime        = showSuccessTime
+                          , showLanguages          = showLanguages
+                          , showProblemStatistics  = showProblemStatistics
+                          }
 
 parseStandingConfig :: FilePath -> IO StandingConfig
 parseStandingConfig path = do

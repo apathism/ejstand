@@ -105,7 +105,8 @@ instance StandingColumn PlaceColumn where
   columnValue _ = const
   columnOrder _ _ _ = EQ
   columnValueDisplayer _ = toMarkup
-  columnMaxValue = Just $ \PlaceColumn { standing = Standing{..}} -> toInteger . Map.size $ contestants standingSource
+  columnMaxValue =
+    Just $ \PlaceColumn { standing = Standing {..} } -> toInteger . Map.size $ contestants standingSource
 
 newtype UserIDColumn = UserIDColumn { standing :: Standing }
 
@@ -122,7 +123,8 @@ newtype ContestantNameColumn = ContestantNameColumn { standing :: Standing }
 instance StandingColumn ContestantNameColumn where
   type StandingColumnValue ContestantNameColumn = Text
   columnTagClass = const "contestant"
-  columnCaptionText ContestantNameColumn { standing = Standing {..} } = preEscapedText $ translate standingLanguage MsgContestant
+  columnCaptionText ContestantNameColumn { standing = Standing {..} } =
+    preEscapedText $ translate standingLanguage MsgContestant
   columnValue _ _ = contestantName . rowContestant
   columnOrder column = compare `on` columnValue column (-1)
   columnValueDisplayer _ = toMarkup
@@ -133,11 +135,13 @@ instance StandingColumn TotalSuccessesColumn where
   type StandingColumnValue TotalSuccessesColumn = Integer
   columnTagClass = const "total_successes"
   columnCaptionText _ = "="
-  columnCaptionTitleText TotalSuccessesColumn { standing = Standing {..} } = Just $ translate standingLanguage MsgSuccessesCaptionTitle
+  columnCaptionTitleText TotalSuccessesColumn { standing = Standing {..} } =
+    Just $ translate standingLanguage MsgSuccessesCaptionTitle
   columnValue _ _ = rowSuccesses . rowStats
   columnOrder column = compare `on` columnValue column (-1)
   columnValueDisplayer _ = toMarkup
-  columnMaxValue = Just $ \TotalSuccessesColumn { standing = Standing {..}} -> toInteger . Map.size $ problems standingSource
+  columnMaxValue =
+    Just $ \TotalSuccessesColumn { standing = Standing {..} } -> toInteger . Map.size $ problems standingSource
 
 newtype TotalAttemptsColumn = TotalAttemptsColumn { standing :: Standing }
 
@@ -145,7 +149,8 @@ instance StandingColumn TotalAttemptsColumn where
   type StandingColumnValue TotalAttemptsColumn = Integer
   columnTagClass = const "total_attempts"
   columnCaptionText _ = "!"
-  columnCaptionTitleText TotalAttemptsColumn { standing = Standing{..}} = Just $ translate standingLanguage MsgAttemptsCaptionTitle
+  columnCaptionTitleText TotalAttemptsColumn { standing = Standing {..} } =
+    Just $ translate standingLanguage MsgAttemptsCaptionTitle
   columnValue _ _ = rowAttempts . rowStats
   columnOrder column = compare `on` columnValue column (-1)
   columnValueDisplayer _ = toMarkup
@@ -156,21 +161,25 @@ instance StandingColumn TotalScoreColumn where
   type StandingColumnValue TotalScoreColumn = Rational
   columnTagClass = const "total_score"
   columnCaptionText _ = preEscapedText "&Sigma;"
-  columnCaptionTitleText TotalScoreColumn { standing = Standing {..}} = Just $ translate standingLanguage MsgTotalScoreCaptionTitle
+  columnCaptionTitleText TotalScoreColumn { standing = Standing {..} } =
+    Just $ translate standingLanguage MsgTotalScoreCaptionTitle
   columnValue _ _ = rowScore . rowStats
   columnOrder column = compare `on` columnValue column (-1)
   columnValueDisplayer _ = toMarkup
   columnMaxValue =
-    Just $ \TotalScoreColumn { standing = Standing {standingConfig = StandingConfig{..}, standingSource = StandingSource {..}} } ->
-      fromInteger $ if enableScores then sum $ problemMaxScore <$> problems else toInteger $ Map.size problems
+    Just
+      $ \TotalScoreColumn { standing = Standing { standingConfig = StandingConfig {..}, standingSource = StandingSource {..} } } ->
+          fromInteger $ if enableScores then sum $ problemMaxScore <$> problems else toInteger $ Map.size problems
 
 newtype LastSuccessTimeColumn = LastSuccessTimeColumn { standing :: Standing }
 
 instance StandingColumn LastSuccessTimeColumn where
   type StandingColumnValue LastSuccessTimeColumn = Maybe UTCTime
   columnTagClass = const "last_success_time"
-  columnCaptionText LastSuccessTimeColumn { standing = Standing{..}} = preEscapedText $ translate standingLanguage MsgLastSuccessTime
-  columnCaptionTitleText LastSuccessTimeColumn { standing = Standing{..}} = Just $ translate standingLanguage MsgLastSuccessTimeCaptionTitle
+  columnCaptionText LastSuccessTimeColumn { standing = Standing {..} } =
+    preEscapedText $ translate standingLanguage MsgLastSuccessTime
+  columnCaptionTitleText LastSuccessTimeColumn { standing = Standing {..} } =
+    Just $ translate standingLanguage MsgLastSuccessTimeCaptionTitle
   columnValue _ _ = rowLastTimeSuccess . rowStats
   columnOrder column = compare `on` columnValue column (-1)
   columnValueDisplayer _ Nothing     = ""
@@ -333,9 +342,9 @@ renderProblemSuccesses Standing {..} problem =
 renderStandingProblemSuccesses :: Standing -> Markup
 renderStandingProblemSuccesses standing@Standing {..} =
   let header =
-        td
-          ! class_ "problem_successes row_header"
-          ! colspan (toValue . length $ standingColumns)
-          $ preEscapedText
-          $ translate standingLanguage MsgCorrectSolutions
+          td
+            ! class_ "problem_successes row_header"
+            ! colspan (toValue . length $ standingColumns)
+            $ preEscapedText
+            $ translate standingLanguage MsgCorrectSolutions
   in  tr $ foldl (>>) header $ renderProblemSuccesses standing <$> standingProblems

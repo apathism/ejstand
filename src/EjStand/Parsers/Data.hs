@@ -96,7 +96,7 @@ readInteger str = case BSC8.readInteger str of
   Just (value, tail) -> if BS.null tail then value else throw $ InvalidInteger str
   Nothing            -> throw $ InvalidInteger str
 
-readUTC :: Monad a => ByteString -> a UTCTime
+readUTC :: MonadFail a => ByteString -> a UTCTime
 readUTC = parseTimeM True defaultTimeLocale "%Y/%m/%d %T" . BSC8.unpack
 
 readStatus :: ByteString -> RunStatus
@@ -212,13 +212,15 @@ stateToStandingSource ParsingState {..} = StandingSource (fromIdentifiableList s
                                                          (fromIdentifiableList stateRuns)
 
 processRawXML :: ByteString -> StandingSource
-processRawXML raw = stateToStandingSource $ flip execState emptyPS $ Xeno.process openTag
-                                                                                  processTagAttribute
-                                                                                  skipXenoEvent
-                                                                                  textInsideTag
-                                                                                  closeTag
-                                                                                  skipXenoEvent
-                                                                                  raw
+processRawXML raw = stateToStandingSource $ flip execState emptyPS $ Xeno.process parsingProcess raw
+ where
+  parsingProcess = Xeno.Process { openF    = openTag
+                                , attrF    = processTagAttribute
+                                , endOpenF = skipXenoEvent
+                                , textF    = textInsideTag
+                                , closeF   = closeTag
+                                , cdataF   = skipXenoEvent
+                                }
 
 -- Main entry points
 
