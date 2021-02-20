@@ -8,6 +8,7 @@ module EjStand.Internals.Core
   , (==>)
   , (|||)
   , allValues
+  , displayDouble
   , fromIdentifiableList
   , sconcat
   , textReplaceLast
@@ -20,6 +21,7 @@ import           Control.Applicative            ( Alternative(..)
                                                 )
 import           Data.ByteString                ( ByteString )
 import qualified Data.ByteString.Char8         as BSC8
+import           Data.Double.Conversion.Text    ( toFixed )
 import           Data.Function                  ( on )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
@@ -83,3 +85,8 @@ instance {-# OVERLAPPABLE #-} (Identifiable a, Ord (Identificator a)) => Ord a w
 
 fromIdentifiableList :: (Identifiable a, Ord (Identificator a)) => [a] -> Map (Identificator a) a
 fromIdentifiableList lst = Map.fromList $ (\x -> (getID x, x)) <$> lst
+
+-- Floating-point utilities
+
+displayDouble :: Double -> Text
+displayDouble = toFixed 2

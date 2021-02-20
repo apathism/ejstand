@@ -226,6 +226,7 @@ buildStanding lang cfg@StandingConfig {..} src =
       problems       = buildProblems cfg src'
 
       -- Stage 1. No rows, no columns, no problem stats
+
       standingStage1 = Standing { standingLanguage     = lang
                                 , standingConfig       = cfg
                                 , standingSource       = src'
@@ -235,15 +236,24 @@ buildStanding lang cfg@StandingConfig {..} src =
                                 , standingProblemStats = mempty
                                 }
 
-      orderer        = (\(ord, variant) -> (ord, getColumnByVariant standingStage1 variant)) <$> rowSortingOrder
-      rows           = sortRows orderer $ buildRows standingStage1
+      unsortedRows   = buildRows standingStage1
 
-      -- Stage II. No columns, no problem stats
-      standingStage2 = standingStage1 { standingRows = rows }
+      -- Stage II. Unsorted rows, no columns, no problem stats
+      standingStage2 = standingStage1 { standingRows = unsortedRows }
 
-      columns        = getColumnByVariantWithStyles standingStage2 <$> displayedColumns
       problemStats   = buildProblemStats standingStage2
 
-      -- Stage III. Everything set up
-      standingStage3 = standingStage2 { standingColumns = columns, standingProblemStats = problemStats }
-  in  standingStage3
+      -- Stage III. Unsorted rows, no columns
+      standingStage3 = standingStage2 { standingProblemStats = problemStats }
+
+      orderer        = (\(ord, variant) -> (ord, getColumnByVariant standingStage3 variant)) <$> rowSortingOrder
+      rows           = sortRows orderer unsortedRows
+
+      -- Stage IV. No columns, no problem stats
+      standingStage4 = standingStage3 { standingRows = rows }
+
+      columns        = getColumnByVariantWithStyles standingStage4 <$> displayedColumns
+
+      -- Stage IV. Final
+      standingStage5 = standingStage4 { standingColumns = columns }
+  in  standingStage5

@@ -113,6 +113,7 @@ InternalName = /example
 --|      5) Successes       (solved problems)
 --|      6) Attempts        (number of unsuccessful submits)
 --|      7) LastSuccessTime
+--|      8) RatingProblemScore
 --|
 --|    Option value is a comma-seperated non-empty list of column
 --|    names.
@@ -259,6 +260,19 @@ InternalName = /example
 -- OnlyScoreLastSubmit = False
 
 --|
+--|  Option "ProblemRatingFormula"
+--|    Required: optional   (when EnableScores = False)
+--|              prohibited (when EnableScores = True)
+--|
+--|    Sets a formula to calculate problem max score for a RatingProblemScore
+--|    column. There are two self-explanatory variables available:
+--|      * successes;
+--|      * overdueSuccesses.
+--|
+
+-- ProblemRatingFormula = Max(0, 105 - 5 * successes)
+
+--|
 --|  Option "ShowAttemptsNumber"
 --|    Required:      optional
 --|    Default value: True
@@ -361,3 +375,16 @@ InternalName = /example
   -- ColumnNames = Score
 
 -- }
+
+--|
+--|  Option "DecimalPrecision"
+--|    Required:      optional
+--|    Default value: fraction
+--|
+--|    Regulates how many digits it is shown after decimal point in generated
+--|    pages. For example, setting this option to 2 will make PI appear as
+--|    "3.14". Alternatively, it can also be set to "fraction", which will
+--|    make number appear as fractions.
+--|
+
+-- DecimalPrecision = fraction

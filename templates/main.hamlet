@@ -24,9 +24,12 @@ $doctype 5
                             <th colspan="#{cols}" class="contest" title="#{contestName}">
                                 #{getShortContestName cfg contest}
             <tr>
-                $forall Problem{problemContest, problemID, problemShortName, problemLongName} <- standingProblems
+                $forall problem@Problem{problemContest, problemID, problemShortName, problemLongName} <- standingProblems
                     <th class="problem" title="#{problemShortName}: #{problemLongName}"  id="problem-#{problemContest}-#{problemID}">
                         #{problemShortName}
+                        $maybe _ <- problemRatingFormula
+                            <span class="current_problem_rating">
+                                #{displayDouble $ calculateProblemRating standing problem}
             $forall (place, row) <- enumerate standingRows
                 <tr id="contestant-#{contestantID $ rowContestant row}">
                     $forall (GenericStandingColumn column) <- standingColumns

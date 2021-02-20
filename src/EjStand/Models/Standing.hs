@@ -19,6 +19,7 @@ module EjStand.Models.Standing
   , ConditionalStyle(..)
   , ColumnVariant(..)
   , OrderType(..)
+  , FractionDisplayStyle(..)
   , defaultGlobalConfiguration
   , getRunStatusType
   , allColumnVariants
@@ -108,6 +109,7 @@ data ColumnVariant = PlaceColumnVariant
                    | AttemptsColumnVariant
                    | ScoreColumnVariant
                    | LastSuccessTimeColumnVariant
+                   | RatingProblemScoreColumnVariant
                    deriving (Show, Eq, Ord, Bounded, Enum)
 
 data OrderType = Ascending | Descending
@@ -115,6 +117,10 @@ data OrderType = Ascending | Descending
 
 mkADTReader ''ColumnVariant "readColumnVariant" (Text.unpack . fromJust . Text.stripSuffix "ColumnVariant" . Text.pack)
 mkADTReaderList ''ColumnVariant "allColumnVariants" (Text.unpack . fromJust . Text.stripSuffix "ColumnVariant" . Text.pack)
+
+data FractionDisplayStyle = DisplayAsFraction
+                          | DisplayAsDecimal !Int
+                          deriving (Show)
 
 data StandingConfig = StandingConfig { standingName           :: !Text
                                      , standingContests       :: !(Set Integer)
@@ -132,10 +138,12 @@ data StandingConfig = StandingConfig { standingName           :: !Text
                                      , fixedDeadlines         :: ![FixedDeadline]
                                      , enableScores           :: !Bool
                                      , onlyScoreLastSubmit    :: !Bool
+                                     , problemRatingFormula   :: !(Maybe ELang.ASTElement)
                                      , showAttemptsNumber     :: !Bool
                                      , showSuccessTime        :: !Bool
                                      , showLanguages          :: !Bool
                                      , showProblemStatistics  :: !Bool
+                                     , fractionDisplayStyle   :: !FractionDisplayStyle
                                      }
 
 data RunStatusType =  Ignore | Mistake | Rejected | Processing | Pending | Success | Disqualified | Error

@@ -7,6 +7,7 @@ AttemptsCaptionTitle: Штрафных попыток
 LastSuccessTime: Время
 LastSuccessTimeCaptionTitle: Время последней успешной посылки
 CorrectSolutions: Правильных решений:
+RatingProblemScoreCaptionTitle: Суммарный рейтинговый балл
 
 AdditionalInformation: Наведите курсор на ячейку, чтобы получить дополнительную информацию о задаче/участнике/посылке.
 PageGenerationTime link@Text version@Text: Эта страница была сгенерирована <a href="#{link}">EjStand</a> #{version} за %%GENERATION_TIME%% мс.

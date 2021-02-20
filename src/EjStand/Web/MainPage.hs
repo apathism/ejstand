@@ -15,7 +15,9 @@ import           Data.Text                      ( Text )
 import qualified Data.Text                     as T
 import qualified Data.Text.Internal.Lazy       as LT
 import           EjStand                        ( getVersion )
-import           EjStand.Internals.Core         ( (==>) )
+import           EjStand.Internals.Core         ( (==>)
+                                                , displayDouble
+                                                )
 import qualified EjStand.Internals.Regex       as RE
 import           EjStand.Models.Base
 import           EjStand.Models.Standing
