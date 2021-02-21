@@ -1,4 +1,8 @@
-resolver: lts-16.18
+resolver: lts-17.4
+
+extra-deps:
+  - git: https://github.com/RikvanToor/text-icu.git
+    commit: 4174fea22d6c058ce979d813f8d9075619d820a3
 
 packages:
 - .

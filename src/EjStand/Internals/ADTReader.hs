@@ -29,7 +29,7 @@ mkReaderTuple (NormalC name []) conNameT =
   let leftStr = LitE . StringL . conNameT . nameBase $ name
       left    = AppE (UnboundVarE 'fromString) leftStr
       right   = ConE name
-  in  return $ TupE [left, right]
+  in  return . TupE $ Just <$> [left, right]
 mkReaderTuple _ _ = fail "ADTReader: Either not a normal constructor presented or it has additional arguments"
 
 mkReaderList :: [Con] -> (String -> String) -> Q Exp
